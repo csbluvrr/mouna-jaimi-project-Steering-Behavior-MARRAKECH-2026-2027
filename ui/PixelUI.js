@@ -33,7 +33,7 @@ class PixelUI {
     const x = constrain(Math.round(cx - w / 2), 4, 476 - w);
     const y = Math.round(cy - 14);
     PixelUI.panel(g, x, y, w, 16, fillc);
-    PixelUI.txt(g, font, label, x + 5, y, g.color(107, 75, 91));
+    PixelUI.txt(g, font, label, x + 5, y + 3, g.color(107, 75, 91));
   }
 
   static drawButton(g, font, rectObj, label, hovered, fillNormal, fillHover) {
@@ -47,7 +47,7 @@ class PixelUI {
       font,
       label,
       rectObj.x + rectObj.w / 2,
-      yy + Math.floor((rectObj.h - 14) / 2),
+      yy + Math.floor((rectObj.h - 10) / 2),
       g.color(107, 75, 91),
       CENTER
     );

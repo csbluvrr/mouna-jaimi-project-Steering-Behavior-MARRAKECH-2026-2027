@@ -290,7 +290,7 @@ class HubScene extends Scene {
     PixelUI.panel(g, 6, 6, 56, 16);
     const ticketSp = assets.getSprite('ticket');
     if (ticketSp) g.image(ticketSp, 10, 8);
-    PixelUI.txt(g, font, 'x ' + tickets, 28, 6, g.color(107, 75, 91));
+    PixelUI.txt(g, font, 'x ' + tickets, 28, 9, g.color(107, 75, 91));
   }
 
   cardRects() {
@@ -320,7 +320,7 @@ class HubScene extends Scene {
     PixelUI.panel(g, 70, 34, 340, 176);
     g.fill(189, 117, 126);
     g.rect(70, 34, 340, 22);
-    PixelUI.txt(g, font, "TODAY'S GAMES", 240, 38, g.color(243, 244, 231), CENTER);
+    PixelUI.txt(g, font, "TODAY'S GAMES", 240, 41, g.color(243, 244, 231), CENTER);
 
     this.cardRects().forEach((c, i) => {
       const hov = PixelUI.pointInRect(mx, my, c);
