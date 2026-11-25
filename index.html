@@ -6,10 +6,15 @@
   <title>Moo's Funfair</title>
   <link rel="stylesheet" href="style.css" />
 
-  <!-- Librairie p5.js fournie dans le pack du projet -->
+  <!-- Librairies : p5.js (pack local) + TensorFlow.js (pour Bunny Derby) -->
   <script src="ressources projet/moo_s_funfair_assets/bunny_funfair_assets/hub/p5.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.17.0/dist/tf.min.js"></script>
 
-  <!-- 1. Comportements et véhicules (1 classe par fichier, ordre strict des dépendances) -->
+  <!-- 1. IA Neuro-évolution (reprise de l'exemple 9 du cours) -->
+  <script src="ai/NeuralNetwork.js"></script>
+  <script src="ai/GeneticAlgorithm.js"></script>
+
+  <!-- 2. Comportements et véhicules (1 classe par fichier, ordre strict des dépendances) -->
   <script src="behaviors/BehaviorManager.js"></script>
   <script src="vehicles/Vehicle.js"></script>
   <script src="vehicles/Obstacle.js"></script>
@@ -20,22 +25,30 @@
   <script src="vehicles/Caterpillar.js"></script>
   <script src="vehicles/GardenFruit.js"></script>
   <script src="vehicles/SparkleFX.js"></script>
+  <script src="vehicles/BoidDuckling.js"></script>
+  <script src="vehicles/GrumpyGoose.js"></script>
+  <script src="vehicles/DerbyBunny.js"></script>
+  <script src="vehicles/Projectile.js"></script>
+  <script src="vehicles/PowerUp.js"></script>
+  <script src="vehicles/FoxBoss.js"></script>
 
-  <!-- 2. Utilitaires UI, sauvegarde, audio et assets -->
+  <!-- 3. Utilitaires UI, sauvegarde, audio et assets -->
   <script src="ui/SaveManager.js"></script>
   <script src="ui/SoundManager.js"></script>
   <script src="ui/AssetManager.js"></script>
   <script src="ui/PixelUI.js"></script>
 
-  <!-- 3. Gestionnaire de scènes et scènes du jeu -->
+  <!-- 4. Gestionnaire de scènes et scènes du jeu -->
   <script src="scenes/Scene.js"></script>
   <script src="scenes/SceneManager.js"></script>
   <script src="scenes/TitleScene.js"></script>
   <script src="scenes/HubScene.js"></script>
   <script src="scenes/SnakeScene.js"></script>
-  <script src="scenes/PlaceholderGameScene.js"></script>
+  <script src="scenes/DucklingScene.js"></script>
+  <script src="scenes/DerbyScene.js"></script>
+  <script src="scenes/FoxScene.js"></script>
 
-  <!-- 4. Point d'entrée p5.js -->
+  <!-- 5. Point d'entrée p5.js -->
   <script src="sketch.js"></script>
 </head>
 <body>

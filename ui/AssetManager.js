@@ -13,6 +13,7 @@ class AssetManager {
     this.frameCache = {};  // clé spritesheet+col+row -> p5.Image
     this.font = null;
     this.hubLayout = null;
+    this.derbyMeta = null;
     this.ready = false;
     this.pending = 0;
     this.onReadyCallback = null;
@@ -54,10 +55,42 @@ class AssetManager {
       files.add('items/plants_items.png');
       files.add('generated/fx/sparkle_4frames_9x9.png');
       files.add('generated/fx/confetti_6colors_3x3.png');
+      files.add('generated/fx/dizzy_star.png');
+
+      // Ressources Duckling Herder
+      files.add('generated/ducklings/goose_2frames_30x28.png');
+      files.add('generated/ducklings/pen_sign.png');
+
+      // Ressources Bunny Derby (circuit + 8 lapins + drapeau/couronne/foin)
+      files.add('derby/track_01.png');
+      files.add('derby/track_01_mask.png');
+      files.add('generated/derby/crown.png');
+      files.add('generated/derby/finish_flag.png');
+      files.add('generated/derby/hay_bale.png');
+      ['snow', 'peach', 'butter', 'mint', 'lavender', 'sky', 'caramel', 'smoke'].forEach((c) => {
+        files.add('sprites/bunny/bunny_' + c + '.png');
+      });
+
+      // Ressources Fox Showdown
+      files.add('sprites/fox/fox_sheet.png');
+      files.add('generated/fox/projectile_acorn.png');
+      files.add('generated/fox/projectile_carrot.png');
+      files.add('generated/fox/powerup_shield.png');
+      files.add('generated/fox/powerup_triple.png');
+      files.add('generated/fox/powerup_heal.png');
+      files.add('generated/fox/pickup_ring_0.png');
+      files.add('generated/fox/pickup_ring_1.png');
 
       files.forEach((relPath) => this.loadImageKey(relPath));
       this.checkDone();
     });
+
+    // Métadonnées du circuit Bunny Derby (checkpoints ordonnés & départ)
+    this.pending++;
+    loadJSON(this.base + 'derby/track_01_meta.json', (meta) => {
+      this.derbyMeta = meta;
+      this.checkDone();
+    }, () => this.checkDone());
   }
 
   loadImageKey(relPath) {

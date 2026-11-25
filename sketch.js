@@ -106,13 +106,13 @@ function setup() {
   game.sound = new SoundManager(ASSET_BASE);
   game.scenes = new SceneManager();
 
-  // Enregistrement des scènes (Title, Hub, Caterpillar Crawl + placeholders étapes 3 à 5)
+  // Enregistrement de toutes les scènes du jeu (Title, Hub et les 4 mini-jeux)
   game.scenes.register('title', new TitleScene(game));
   game.scenes.register('hub', new HubScene(game));
   game.scenes.register('snake', new SnakeScene(game));
-  game.scenes.register('ducklings', new PlaceholderGameScene(game, 'ducklings', 'Duckling Herder', 'Coming in Step 3'));
-  game.scenes.register('derby', new PlaceholderGameScene(game, 'derby', 'Bunny Derby', 'Coming in Step 4'));
-  game.scenes.register('fox', new PlaceholderGameScene(game, 'fox', 'Fox Showdown', 'Coming in Step 5'));
+  game.scenes.register('ducklings', new DucklingScene(game));
+  game.scenes.register('derby', new DerbyScene(game));
+  game.scenes.register('fox', new FoxScene(game));
 
   // Chargement des ressources puis ouverture de l'écran titre
   game.assets.loadAll(() => {
@@ -148,8 +148,10 @@ function windowResized() {
 
 function mousePressed(event) {
   if (!game.assets.ready) return;
-  // Ignorer les clics sur le bouton Fullscreen
-  if (event && event.target && event.target.id === 'fullscreen-btn') return;
+  // Ignorer les clics sur le bouton Fullscreen ou le panneau latéral Bunny Derby
+  if (event && event.target && (event.target.id === 'fullscreen-btn' || event.target.closest('#derby-panel'))) {
+    return;
+  }
   const { mx, my } = game.getMouseBufferPos();
   if (mx < 0 || mx > BUFFER_W || my < 0 || my > BUFFER_H) return;
   game.scenes.mousePressed(mx, my);
