@@ -1,0 +1,266 @@
+{
+ "generated": {
+  "generated/booths/booth_derby.png": [
+   50,
+   58
+  ],
+  "generated/booths/booth_snake.png": [
+   50,
+   58
+  ],
+  "generated/booths/booth_ducklings.png": [
+   50,
+   58
+  ],
+  "generated/booths/booth_fox.png": [
+   50,
+   58
+  ],
+  "generated/hub/poster_board.png": [
+   66,
+   82
+  ],
+  "generated/hub/balloon_red.png": [
+   12,
+   26
+  ],
+  "generated/hub/balloon_blue.png": [
+   12,
+   26
+  ],
+  "generated/hub/balloon_yellow.png": [
+   12,
+   26
+  ],
+  "generated/hub/balloon_green.png": [
+   12,
+   26
+  ],
+  "generated/hub/balloon_purple.png": [
+   12,
+   26
+  ],
+  "generated/hub/bunting_a.png": [
+   16,
+   10
+  ],
+  "generated/hub/bunting_b.png": [
+   16,
+   10
+  ],
+  "generated/hub/string_lights_on.png": [
+   16,
+   8
+  ],
+  "generated/hub/string_lights_dim.png": [
+   16,
+   8
+  ],
+  "generated/hub/ferris_wheel.png": [
+   82,
+   98
+  ],
+  "generated/derby/hay_bale.png": [
+   18,
+   14
+  ],
+  "generated/derby/finish_checker_tile.png": [
+   16,
+   16
+  ],
+  "generated/derby/finish_flag.png": [
+   16,
+   20
+  ],
+  "generated/derby/crown.png": [
+   11,
+   8
+  ],
+  "generated/fox/projectile_acorn.png": [
+   10,
+   11
+  ],
+  "generated/fox/projectile_carrot.png": [
+   14,
+   8
+  ],
+  "generated/fox/powerup_shield.png": [
+   16,
+   18
+  ],
+  "generated/fox/powerup_triple.png": [
+   20,
+   20
+  ],
+  "generated/fox/powerup_heal.png": [
+   16,
+   15
+  ],
+  "generated/fox/pickup_ring_0.png": [
+   24,
+   24
+  ],
+  "generated/fox/pickup_ring_1.png": [
+   24,
+   24
+  ],
+  "generated/fx/sparkle_4frames_9x9.png": [
+   36,
+   9
+  ],
+  "generated/fx/dizzy_star.png": [
+   9,
+   9
+  ],
+  "generated/fx/confetti_6colors_3x3.png": [
+   18,
+   3
+  ],
+  "generated/snake/caterpillar_head_green.png": [
+   18,
+   18
+  ],
+  "generated/snake/caterpillar_body_green.png": [
+   16,
+   16
+  ],
+  "generated/snake/caterpillar_head_pink.png": [
+   18,
+   18
+  ],
+  "generated/snake/caterpillar_body_pink.png": [
+   16,
+   16
+  ],
+  "generated/snake/caterpillar_head_blue.png": [
+   18,
+   18
+  ],
+  "generated/snake/caterpillar_body_blue.png": [
+   16,
+   16
+  ],
+  "generated/snake/caterpillar_head_gold.png": [
+   18,
+   18
+  ],
+  "generated/snake/caterpillar_body_gold.png": [
+   16,
+   16
+  ],
+  "generated/snake/caterpillar_tail_green.png": [
+   12,
+   12
+  ],
+  "generated/snake/caterpillar_tail_pink.png": [
+   12,
+   12
+  ],
+  "generated/snake/caterpillar_tail_blue.png": [
+   12,
+   12
+  ],
+  "generated/snake/caterpillar_tail_gold.png": [
+   12,
+   12
+  ],
+  "generated/ambient/butterfly_2frames_12x10.png": [
+   24,
+   10
+  ],
+  "generated/ducklings/goose_2frames_30x28.png": [
+   60,
+   30
+  ],
+  "generated/ducklings/pen_sign.png": [
+   22,
+   16
+  ],
+  "generated/hub/ticket.png": [
+   16,
+   11
+  ],
+  "generated/hub/stamp_empty_full_16x16.png": [
+   32,
+   16
+  ],
+  "generated/shop/hat_party.png": [
+   12,
+   13
+  ],
+  "generated/shop/hat_top.png": [
+   14,
+   13
+  ],
+  "generated/shop/bow_tie.png": [
+   12,
+   8
+  ],
+  "generated/shop/scarf.png": [
+   14,
+   8
+  ],
+  "generated/shop/hat_crown.png": [
+   11,
+   8
+  ],
+  "generated/hub/logo_bunny_funfair.png": [
+   180,
+   102
+  ],
+  "derby/track_01.png": [
+   640,
+   360
+  ]
+ },
+ "audio_seconds": {
+  "ui_click": 0.11,
+  "ui_hover": 0.11,
+  "countdown_tick": 0.29,
+  "success_bell": 0.76,
+  "fail_soft": 0.78,
+  "fail_soft_2": 0.78,
+  "jingle_derby": 1.28,
+  "jingle_snake": 1.28,
+  "jingle_ducklings": 1.28,
+  "jingle_fox": 1.28,
+  "hit_1": 0.12,
+  "hit_2": 0.11,
+  "hit_3": 0.12,
+  "hit_4": 0.11,
+  "hit_5": 0.12,
+  "hit_6": 0.11,
+  "squeak_1": 0.11,
+  "squeak_2": 0.11,
+  "squeak_double_1": 0.86,
+  "squeak_double_2": 1.61,
+  "long_melody_1": 6.29,
+  "long_melody_2": 6.29
+ },
+ "poster_card_slots_xywh": [
+  [
+   9,
+   27,
+   21,
+   16
+  ],
+  [
+   36,
+   27,
+   21,
+   16
+  ],
+  [
+   9,
+   45,
+   21,
+   16
+  ],
+  [
+   36,
+   45,
+   21,
+   16
+  ]
+ ]
+}

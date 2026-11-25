@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Moo's Funfair</title>
+  <link rel="stylesheet" href="style.css" />
+
+  <!-- Librairie p5.js fournie dans le pack du projet -->
+  <script src="ressources projet/moo_s_funfair_assets/bunny_funfair_assets/hub/p5.min.js"></script>
+
+  <!-- 1. Comportements et véhicules (1 classe par fichier, ordre strict des dépendances) -->
+  <script src="behaviors/BehaviorManager.js"></script>
+  <script src="vehicles/Vehicle.js"></script>
+  <script src="vehicles/Obstacle.js"></script>
+  <script src="vehicles/Moo.js"></script>
+  <script src="vehicles/HubButterfly.js"></script>
+  <script src="vehicles/HubDuckling.js"></script>
+
+  <!-- 2. Utilitaires UI, sauvegarde, audio et assets -->
+  <script src="ui/SaveManager.js"></script>
+  <script src="ui/SoundManager.js"></script>
+  <script src="ui/AssetManager.js"></script>
+  <script src="ui/PixelUI.js"></script>
+
+  <!-- 3. Gestionnaire de scènes et scènes du jeu -->
+  <script src="scenes/Scene.js"></script>
+  <script src="scenes/SceneManager.js"></script>
+  <script src="scenes/TitleScene.js"></script>
+  <script src="scenes/HubScene.js"></script>
+  <script src="scenes/PlaceholderGameScene.js"></script>
+
+  <!-- 4. Point d'entrée p5.js -->
+  <script src="sketch.js"></script>
+</head>
+<body>
+  <button id="fullscreen-btn" type="button" title="Toggle Fullscreen">[ ] Fullscreen</button>
+</body>
+</html>

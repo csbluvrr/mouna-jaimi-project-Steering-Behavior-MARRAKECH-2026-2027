@@ -1,0 +1,6 @@
+Assets used in this project
+- Sprout Lands (tiles, objects, UI, font, emotes, sounds, plant/tree/bee/frog/mouse/present/candy packs) by Cup Nooble
+  https://cupnooble.itch.io/sprout-lands-asset-pack  (Basic/free licence: non-commercial, credit required, no NFT / AI training,
+  do not redistribute or resell the asset pack itself; your own game that uses them is fine)
+- Minifolks Forest Animals (bunny, fox, bird, deer): check the licence on the page you downloaded it from and credit the author
+- Everything in generated/ was drawn for this project in the Sprout Lands palette. Recoloured bunnies/duckling are edits of the packs above.

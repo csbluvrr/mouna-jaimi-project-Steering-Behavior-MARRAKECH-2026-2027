@@ -1,0 +1,286 @@
+{
+ "sheet": "ui/ui_main_sheet.png",
+ "named": {
+  "button_white": {
+   "x": 11,
+   "y": 11,
+   "w": 26,
+   "h": 28,
+   "id": 0
+  },
+  "button_white_hover": {
+   "x": 59,
+   "y": 11,
+   "w": 26,
+   "h": 26,
+   "id": 1
+  },
+  "button_white_pressed": {
+   "x": 107,
+   "y": 11,
+   "w": 26,
+   "h": 26,
+   "id": 2
+  },
+  "panel_frame_brown": {
+   "x": 153,
+   "y": 9,
+   "w": 30,
+   "h": 30,
+   "id": 3
+  },
+  "panel_frame_brown_b": {
+   "x": 201,
+   "y": 9,
+   "w": 30,
+   "h": 30,
+   "id": 4
+  },
+  "button_cream": {
+   "x": 11,
+   "y": 59,
+   "w": 26,
+   "h": 28,
+   "id": 53
+  },
+  "button_cream_hover": {
+   "x": 59,
+   "y": 59,
+   "w": 26,
+   "h": 26,
+   "id": 54
+  },
+  "button_cream_pressed": {
+   "x": 107,
+   "y": 59,
+   "w": 26,
+   "h": 26,
+   "id": 55
+  },
+  "panel_frame_dark": {
+   "x": 153,
+   "y": 57,
+   "w": 30,
+   "h": 30,
+   "id": 56
+  },
+  "panel_frame_dark_b": {
+   "x": 201,
+   "y": 57,
+   "w": 30,
+   "h": 30,
+   "id": 57
+  },
+  "check_green": {
+   "x": 242,
+   "y": 67,
+   "w": 12,
+   "h": 11,
+   "id": 62
+  },
+  "cross_pink": {
+   "x": 243,
+   "y": 82,
+   "w": 10,
+   "h": 12,
+   "id": 87
+  },
+  "slider_track_green": {
+   "x": 402,
+   "y": 73,
+   "w": 28,
+   "h": 14,
+   "id": 68
+  },
+  "slider_track_green_knob": {
+   "x": 434,
+   "y": 71,
+   "w": 28,
+   "h": 18,
+   "id": 69
+  },
+  "slider_track_brown": {
+   "x": 466,
+   "y": 73,
+   "w": 28,
+   "h": 14,
+   "id": 70
+  },
+  "slider_track_brown_knob": {
+   "x": 498,
+   "y": 71,
+   "w": 28,
+   "h": 18,
+   "id": 71
+  },
+  "star_full": {
+   "x": 531,
+   "y": 68,
+   "w": 10,
+   "h": 8,
+   "id": 72
+  },
+  "star_half": {
+   "x": 547,
+   "y": 68,
+   "w": 10,
+   "h": 8,
+   "id": 73
+  },
+  "star_empty": {
+   "x": 563,
+   "y": 68,
+   "w": 10,
+   "h": 8,
+   "id": 74
+  },
+  "heart_full": {
+   "x": 581,
+   "y": 68,
+   "w": 7,
+   "h": 7,
+   "id": 75
+  },
+  "heart_half": {
+   "x": 597,
+   "y": 68,
+   "w": 7,
+   "h": 7,
+   "id": 76
+  },
+  "heart_empty": {
+   "x": 613,
+   "y": 68,
+   "w": 7,
+   "h": 7,
+   "id": 77
+  },
+  "coin": {
+   "x": 629,
+   "y": 68,
+   "w": 5,
+   "h": 7,
+   "id": 78
+  },
+  "speech_bubble": {
+   "x": 455,
+   "y": 139,
+   "w": 30,
+   "h": 28,
+   "id": 139
+  },
+  "sign_hearts_panel": {
+   "x": 552,
+   "y": 131,
+   "w": 35,
+   "h": 41,
+   "id": 141
+  },
+  "sign_hearts_counter": {
+   "x": 600,
+   "y": 131,
+   "w": 35,
+   "h": 41,
+   "id": 142
+  },
+  "play_button": {
+   "x": 163,
+   "y": 210,
+   "w": 90,
+   "h": 27,
+   "id": 219
+  },
+  "play_button_pressed": {
+   "x": 259,
+   "y": 212,
+   "w": 90,
+   "h": 25,
+   "id": 220
+  },
+  "dialog_big_with_portrait": {
+   "x": 355,
+   "y": 178,
+   "w": 170,
+   "h": 60,
+   "id": 191
+  },
+  "bar_long_cream": {
+   "x": 163,
+   "y": 178,
+   "w": 90,
+   "h": 27,
+   "id": 189
+  },
+  "bar_long_cream_b": {
+   "x": 259,
+   "y": 180,
+   "w": 90,
+   "h": 25,
+   "id": 190
+  },
+  "icon_gear": {
+   "x": 645,
+   "y": 68,
+   "w": 22,
+   "h": 24,
+   "id": 79
+  },
+  "icon_trophy": {
+   "x": 709,
+   "y": 68,
+   "w": 22,
+   "h": 24,
+   "id": 81
+  },
+  "icon_home": {
+   "x": 773,
+   "y": 68,
+   "w": 22,
+   "h": 24,
+   "id": 83
+  },
+  "icon_check": {
+   "x": 837,
+   "y": 68,
+   "w": 22,
+   "h": 24,
+   "id": 85
+  },
+  "icon_close": {
+   "x": 837,
+   "y": 100,
+   "w": 22,
+   "h": 24,
+   "id": 119
+  },
+  "icon_plus": {
+   "x": 837,
+   "y": 132,
+   "w": 22,
+   "h": 24,
+   "id": 149
+  },
+  "icon_minus": {
+   "x": 837,
+   "y": 164,
+   "w": 22,
+   "h": 24,
+   "id": 187
+  },
+  "icon_question": {
+   "x": 709,
+   "y": 164,
+   "w": 22,
+   "h": 24,
+   "id": 183
+  },
+  "icon_exclam": {
+   "x": 709,
+   "y": 132,
+   "w": 22,
+   "h": 24,
+   "id": 145
+  }
+ },
+ "note": "ids refer to ui_main_sheet_regions.json / the INDEXED preview; names are my best read, check the preview"
+}

@@ -1,0 +1,308 @@
+{
+ "sprites/bunny/bunny_<colour>.png": {
+  "frame": [
+   32,
+   32
+  ],
+  "grid": [
+   4,
+   4
+  ],
+  "faces": "right (flip for left)",
+  "pixel_box_in_frame": [
+   10,
+   23,
+   22,
+   31
+  ],
+  "anims_rowcol": {
+   "idle_ear_twitch": [
+    [
+     0,
+     0
+    ],
+    [
+     0,
+     1
+    ],
+    [
+     0,
+     2
+    ],
+    [
+     0,
+     3
+    ]
+   ],
+   "hop": [
+    [
+     1,
+     0
+    ],
+    [
+     1,
+     1
+    ],
+    [
+     1,
+     2
+    ],
+    [
+     1,
+     3
+    ]
+   ],
+   "nibble": [
+    [
+     2,
+     0
+    ],
+    [
+     2,
+     1
+    ]
+   ],
+   "sit_and_rest": [
+    [
+     3,
+     0
+    ],
+    [
+     3,
+     1
+    ],
+    [
+     3,
+     2
+    ]
+   ]
+  },
+  "colours": [
+   "snow",
+   "peach",
+   "butter",
+   "mint",
+   "lavender",
+   "sky",
+   "caramel",
+   "smoke"
+  ]
+ },
+ "sprites/fox/fox_sheet.png": {
+  "frame": [
+   32,
+   32
+  ],
+  "grid": [
+   6,
+   6
+  ],
+  "faces": "right",
+  "anims_rowcol": {
+   "idle": [
+    [
+     0,
+     0
+    ],
+    [
+     0,
+     1
+    ],
+    [
+     0,
+     2
+    ],
+    [
+     0,
+     3
+    ]
+   ],
+   "walk": [
+    [
+     1,
+     0
+    ],
+    [
+     1,
+     1
+    ],
+    [
+     1,
+     2
+    ],
+    [
+     1,
+     3
+    ]
+   ],
+   "run": [
+    [
+     2,
+     0
+    ],
+    [
+     2,
+     1
+    ],
+    [
+     2,
+     2
+    ]
+   ],
+   "throw_or_bark": [
+    [
+     3,
+     0
+    ],
+    [
+     3,
+     1
+    ],
+    [
+     3,
+     2
+    ],
+    [
+     3,
+     3
+    ],
+    [
+     3,
+     4
+    ],
+    [
+     3,
+     5
+    ]
+   ],
+   "crouch": [
+    [
+     4,
+     0
+    ],
+    [
+     4,
+     1
+    ]
+   ],
+   "lying_down_KO": [
+    [
+     5,
+     0
+    ],
+    [
+     5,
+     1
+    ],
+    [
+     5,
+     2
+    ],
+    [
+     5,
+     3
+    ]
+   ]
+  }
+ },
+ "sprites/ducklings/duckling_sheet.png": {
+  "frame": [
+   16,
+   16
+  ],
+  "grid": [
+   4,
+   2
+  ],
+  "note": "chick recoloured, comb removed; 6 usable frames (row0: 2, row1: 4)"
+ },
+ "sprites/ambient/bird_sheet.png": {
+  "frame": [
+   16,
+   16
+  ],
+  "grid": [
+   4,
+   3
+  ]
+ },
+ "sprites/ambient/bee_sheet.png": {
+  "frame": [
+   16,
+   16
+  ],
+  "grid": [
+   8,
+   1
+  ],
+  "note": "use as butterfly/bug ambient or tint it"
+ },
+ "sprites/ambient/frog_sheet.png": {
+  "frame": [
+   16,
+   16
+  ],
+  "grid": [
+   14,
+   6
+  ]
+ },
+ "sprites/npc/kid_4dir_sheet.png": {
+  "frame": [
+   48,
+   48
+  ],
+  "grid": [
+   4,
+   4
+  ],
+  "rows": "front, back, left, right (4 walk frames each)",
+  "pixel_box": [
+   17,
+   16,
+   31,
+   32
+  ]
+ },
+ "sprites/npc/kid_8dir_sheet.png": {
+  "frame": [
+   16,
+   16
+  ],
+  "grid": [
+   8,
+   3
+  ]
+ },
+ "tiles/*": {
+  "tile": 16
+ },
+ "sprites/moo/moo_sheet.png": {
+  "frame": [
+   32,
+   40
+  ],
+  "grid": [
+   4,
+   4
+  ],
+  "rows": [
+   "down",
+   "left",
+   "right",
+   "up"
+  ],
+  "feet": "bottom row of the cell, horizontally centred on x=16",
+  "sprite_box": "about 27x36 px incl. 1px outline",
+  "anims": {
+   "idle": "col 0 (col 1 = blink, show it every ~1.5 s)",
+   "walk": [
+    2,
+    0,
+    3,
+    0
+   ],
+   "note": "4 frames per direction: 0 stand, 1 stand/blink, 2 and 3 = steps"
+  }
+ }
+}

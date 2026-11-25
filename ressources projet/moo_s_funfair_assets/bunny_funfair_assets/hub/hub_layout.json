@@ -1,0 +1,1499 @@
+{
+ "name": "Moo's Funfair",
+ "size": [
+  480,
+  272
+ ],
+ "tile": 16,
+ "ground": "hub_ground.png",
+ "sprites": {
+  "tree_tall": {
+   "file": "decor/nature_objects.png",
+   "rect": [
+    1,
+    0,
+    14,
+    29
+   ]
+  },
+  "tree_round": {
+   "file": "decor/nature_objects.png",
+   "rect": [
+    20,
+    1,
+    26,
+    32
+   ]
+  },
+  "tree_apple": {
+   "file": "decor/nature_objects.png",
+   "rect": [
+    52,
+    1,
+    24,
+    31
+   ]
+  },
+  "mush_red": {
+   "file": "decor/nature_objects.png",
+   "rect": [
+    82,
+    2,
+    13,
+    13
+   ]
+  },
+  "mush_red_b": {
+   "file": "decor/nature_objects.png",
+   "rect": [
+    100,
+    4,
+    10,
+    11
+   ]
+  },
+  "mush_purple": {
+   "file": "decor/nature_objects.png",
+   "rect": [
+    115,
+    3,
+    7,
+    8
+   ]
+  },
+  "mush_purple_b": {
+   "file": "decor/nature_objects.png",
+   "rect": [
+    129,
+    3,
+    14,
+    12
+   ]
+  },
+  "tuft_a": {
+   "file": "decor/nature_objects.png",
+   "rect": [
+    84,
+    23,
+    8,
+    5
+   ]
+  },
+  "tuft_b": {
+   "file": "decor/nature_objects.png",
+   "rect": [
+    97,
+    18,
+    13,
+    12
+   ]
+  },
+  "rock_small": {
+   "file": "decor/nature_objects.png",
+   "rect": [
+    114,
+    18,
+    10,
+    8
+   ]
+  },
+  "rock_big": {
+   "file": "decor/nature_objects.png",
+   "rect": [
+    128,
+    18,
+    16,
+    12
+   ]
+  },
+  "log": {
+   "file": "decor/nature_objects.png",
+   "rect": [
+    80,
+    35,
+    16,
+    10
+   ]
+  },
+  "sunflower": {
+   "file": "decor/nature_objects.png",
+   "rect": [
+    128,
+    34,
+    16,
+    45
+   ]
+  },
+  "bush_berry": {
+   "file": "decor/nature_objects.png",
+   "rect": [
+    0,
+    48,
+    32,
+    16
+   ]
+  },
+  "flower_yellow_s": {
+   "file": "decor/nature_objects.png",
+   "rect": [
+    99,
+    39,
+    9,
+    6
+   ]
+  },
+  "flower_yellow": {
+   "file": "decor/nature_objects.png",
+   "rect": [
+    114,
+    37,
+    11,
+    9
+   ]
+  },
+  "flower_blue": {
+   "file": "decor/nature_objects.png",
+   "rect": [
+    83,
+    50,
+    11,
+    12
+   ]
+  },
+  "flower_pink_s": {
+   "file": "decor/nature_objects.png",
+   "rect": [
+    99,
+    54,
+    9,
+    6
+   ]
+  },
+  "flower_pink": {
+   "file": "decor/nature_objects.png",
+   "rect": [
+    114,
+    52,
+    11,
+    9
+   ]
+  },
+  "hedge_a": {
+   "file": "decor/nature_objects.png",
+   "rect": [
+    2,
+    68,
+    30,
+    12
+   ]
+  },
+  "hedge_b": {
+   "file": "decor/nature_objects.png",
+   "rect": [
+    36,
+    64,
+    32,
+    16
+   ]
+  },
+  "rock_b": {
+   "file": "decor/nature_objects.png",
+   "rect": [
+    80,
+    67,
+    16,
+    12
+   ]
+  },
+  "rock_c": {
+   "file": "decor/nature_objects.png",
+   "rect": [
+    99,
+    68,
+    10,
+    8
+   ]
+  },
+  "lily": {
+   "file": "decor/nature_objects.png",
+   "rect": [
+    112,
+    68,
+    13,
+    9
+   ]
+  },
+  "booth_derby": {
+   "file": "generated/booths/booth_derby.png",
+   "rect": [
+    0,
+    0,
+    50,
+    58
+   ]
+  },
+  "booth_snake": {
+   "file": "generated/booths/booth_snake.png",
+   "rect": [
+    0,
+    0,
+    50,
+    58
+   ]
+  },
+  "booth_ducklings": {
+   "file": "generated/booths/booth_ducklings.png",
+   "rect": [
+    0,
+    0,
+    50,
+    58
+   ]
+  },
+  "booth_fox": {
+   "file": "generated/booths/booth_fox.png",
+   "rect": [
+    0,
+    0,
+    50,
+    58
+   ]
+  },
+  "poster_board": {
+   "file": "generated/hub/poster_board.png",
+   "rect": [
+    0,
+    0,
+    66,
+    82
+   ]
+  },
+  "ferris_wheel": {
+   "file": "generated/hub/ferris_wheel.png",
+   "rect": [
+    0,
+    0,
+    82,
+    98
+   ]
+  },
+  "balloon_red": {
+   "file": "generated/hub/balloon_red.png",
+   "rect": [
+    0,
+    0,
+    12,
+    26
+   ]
+  },
+  "balloon_blue": {
+   "file": "generated/hub/balloon_blue.png",
+   "rect": [
+    0,
+    0,
+    12,
+    26
+   ]
+  },
+  "balloon_yellow": {
+   "file": "generated/hub/balloon_yellow.png",
+   "rect": [
+    0,
+    0,
+    12,
+    26
+   ]
+  },
+  "balloon_green": {
+   "file": "generated/hub/balloon_green.png",
+   "rect": [
+    0,
+    0,
+    12,
+    26
+   ]
+  },
+  "balloon_purple": {
+   "file": "generated/hub/balloon_purple.png",
+   "rect": [
+    0,
+    0,
+    12,
+    26
+   ]
+  },
+  "bunting_a": {
+   "file": "generated/hub/bunting_a.png",
+   "rect": [
+    0,
+    0,
+    16,
+    10
+   ]
+  },
+  "bunting_b": {
+   "file": "generated/hub/bunting_b.png",
+   "rect": [
+    0,
+    0,
+    16,
+    10
+   ]
+  },
+  "lights_on": {
+   "file": "generated/hub/string_lights_on.png",
+   "rect": [
+    0,
+    0,
+    16,
+    8
+   ]
+  },
+  "lights_dim": {
+   "file": "generated/hub/string_lights_dim.png",
+   "rect": [
+    0,
+    0,
+    16,
+    8
+   ]
+  },
+  "picnic_blanket": {
+   "file": "decor/picnic_blanket.png",
+   "rect": [
+    0,
+    0,
+    48,
+    48
+   ]
+  },
+  "picnic_basket": {
+   "file": "decor/picnic_basket.png",
+   "rect": [
+    0,
+    0,
+    16,
+    16
+   ]
+  },
+  "kid_front": {
+   "file": "sprites/npc/kid_4dir_sheet.png",
+   "rect": [
+    0,
+    0,
+    48,
+    48
+   ]
+  },
+  "cow": {
+   "file": "sprites/ambient/cow_sheet.png",
+   "rect": [
+    0,
+    0,
+    32,
+    32
+   ]
+  },
+  "ticket": {
+   "file": "generated/hub/ticket.png",
+   "rect": [
+    0,
+    0,
+    16,
+    11
+   ]
+  },
+  "goose": {
+   "file": "generated/ducklings/goose_2frames_30x28.png",
+   "rect": [
+    0,
+    0,
+    30,
+    30
+   ]
+  },
+  "fence_l": {
+   "file": "tiles/fences_tileset.png",
+   "rect": [
+    16,
+    48,
+    16,
+    16
+   ]
+  },
+  "fence_m": {
+   "file": "tiles/fences_tileset.png",
+   "rect": [
+    32,
+    48,
+    16,
+    16
+   ]
+  },
+  "fence_r": {
+   "file": "tiles/fences_tileset.png",
+   "rect": [
+    48,
+    48,
+    16,
+    16
+   ]
+  },
+  "fence_post": {
+   "file": "tiles/fences_tileset.png",
+   "rect": [
+    0,
+    48,
+    16,
+    16
+   ]
+  },
+  "title_sign": {
+   "file": "generated/hub/title_sign_moos_funfair.png",
+   "rect": [
+    0,
+    0,
+    172,
+    58
+   ]
+  }
+ },
+ "objects": [
+  {
+   "id": "tree_top_0",
+   "sprite": "tree_tall",
+   "x": 2,
+   "y": 5,
+   "sortY": 28
+  },
+  {
+   "id": "tree_top_1",
+   "sprite": "tree_round",
+   "x": 30,
+   "y": 2,
+   "sortY": 28
+  },
+  {
+   "id": "tree_top_2",
+   "sprite": "tree_apple",
+   "x": 62,
+   "y": 3,
+   "sortY": 28
+  },
+  {
+   "id": "tree_top_3",
+   "sprite": "tree_tall",
+   "x": 92,
+   "y": 5,
+   "sortY": 28
+  },
+  {
+   "id": "tree_top_4",
+   "sprite": "tree_tall",
+   "x": 362,
+   "y": 5,
+   "sortY": 28
+  },
+  {
+   "id": "tree_top_5",
+   "sprite": "tree_apple",
+   "x": 392,
+   "y": 3,
+   "sortY": 28
+  },
+  {
+   "id": "tree_top_6",
+   "sprite": "tree_round",
+   "x": 424,
+   "y": 2,
+   "sortY": 28
+  },
+  {
+   "id": "tree_top_7",
+   "sprite": "tree_tall",
+   "x": 456,
+   "y": 5,
+   "sortY": 28
+  },
+  {
+   "id": "title_sign",
+   "sprite": "title_sign",
+   "x": 154,
+   "y": 2,
+   "sortY": 60
+  },
+  {
+   "id": "ferris",
+   "sprite": "ferris_wheel",
+   "x": 199,
+   "y": 46,
+   "sortY": 124
+  },
+  {
+   "id": "booth_derby",
+   "sprite": "booth_derby",
+   "x": 40,
+   "y": 76,
+   "sortY": 134,
+   "game": "derby",
+   "title": "Bunny Derby"
+  },
+  {
+   "id": "booth_snake",
+   "sprite": "booth_snake",
+   "x": 136,
+   "y": 76,
+   "sortY": 134,
+   "game": "snake",
+   "title": "Caterpillar Crawl"
+  },
+  {
+   "id": "booth_ducklings",
+   "sprite": "booth_ducklings",
+   "x": 296,
+   "y": 76,
+   "sortY": 134,
+   "game": "ducklings",
+   "title": "Duckling Herder"
+  },
+  {
+   "id": "booth_fox",
+   "sprite": "booth_fox",
+   "x": 392,
+   "y": 76,
+   "sortY": 134,
+   "game": "fox",
+   "title": "Fox Showdown"
+  },
+  {
+   "id": "tree_side_2",
+   "sprite": "tree_round",
+   "x": 448,
+   "y": 110,
+   "sortY": 142
+  },
+  {
+   "id": "tree_side_0",
+   "sprite": "tree_round",
+   "x": 6,
+   "y": 118,
+   "sortY": 150
+  },
+  {
+   "id": "hedge_l",
+   "sprite": "hedge_b",
+   "x": 4,
+   "y": 150,
+   "sortY": 166
+  },
+  {
+   "id": "hedge_r",
+   "sprite": "hedge_a",
+   "x": 446,
+   "y": 156,
+   "sortY": 168
+  },
+  {
+   "id": "cow",
+   "sprite": "cow",
+   "x": 424,
+   "y": 140,
+   "sortY": 172
+  },
+  {
+   "id": "lily_a",
+   "sprite": "lily",
+   "x": 382,
+   "y": 216,
+   "sortY": 182
+  },
+  {
+   "id": "lily_b",
+   "sprite": "lily",
+   "x": 416,
+   "y": 227,
+   "sortY": 182
+  },
+  {
+   "id": "picnic_blanket",
+   "sprite": "picnic_blanket",
+   "x": 28,
+   "y": 196,
+   "sortY": 216
+  },
+  {
+   "id": "kid_balloon",
+   "sprite": "kid_front",
+   "x": 143,
+   "y": 172,
+   "sortY": 220
+  },
+  {
+   "id": "tree_side_3",
+   "sprite": "tree_apple",
+   "x": 456,
+   "y": 190,
+   "sortY": 221
+  },
+  {
+   "id": "tree_side_1",
+   "sprite": "tree_tall",
+   "x": 2,
+   "y": 196,
+   "sortY": 225
+  },
+  {
+   "id": "poster",
+   "sprite": "poster_board",
+   "x": 300,
+   "y": 146,
+   "sortY": 228
+  },
+  {
+   "id": "picnic_basket",
+   "sprite": "picnic_basket",
+   "x": 36,
+   "y": 210,
+   "sortY": 232
+  },
+  {
+   "id": "gate_post_l",
+   "sprite": "fence_post",
+   "x": 208,
+   "y": 240,
+   "sortY": 256
+  },
+  {
+   "id": "gate_post_r",
+   "sprite": "fence_post",
+   "x": 256,
+   "y": 240,
+   "sortY": 256
+  },
+  {
+   "id": "fence_a0",
+   "sprite": "fence_l",
+   "x": 0,
+   "y": 250,
+   "sortY": 266
+  },
+  {
+   "id": "fence_b0",
+   "sprite": "fence_l",
+   "x": 272,
+   "y": 250,
+   "sortY": 266
+  },
+  {
+   "id": "fence_a1",
+   "sprite": "fence_m",
+   "x": 16,
+   "y": 250,
+   "sortY": 266
+  },
+  {
+   "id": "fence_b1",
+   "sprite": "fence_m",
+   "x": 288,
+   "y": 250,
+   "sortY": 266
+  },
+  {
+   "id": "fence_a2",
+   "sprite": "fence_m",
+   "x": 32,
+   "y": 250,
+   "sortY": 266
+  },
+  {
+   "id": "fence_b2",
+   "sprite": "fence_m",
+   "x": 304,
+   "y": 250,
+   "sortY": 266
+  },
+  {
+   "id": "fence_a3",
+   "sprite": "fence_m",
+   "x": 48,
+   "y": 250,
+   "sortY": 266
+  },
+  {
+   "id": "fence_b3",
+   "sprite": "fence_m",
+   "x": 320,
+   "y": 250,
+   "sortY": 266
+  },
+  {
+   "id": "fence_a4",
+   "sprite": "fence_m",
+   "x": 64,
+   "y": 250,
+   "sortY": 266
+  },
+  {
+   "id": "fence_b4",
+   "sprite": "fence_m",
+   "x": 336,
+   "y": 250,
+   "sortY": 266
+  },
+  {
+   "id": "fence_a5",
+   "sprite": "fence_m",
+   "x": 80,
+   "y": 250,
+   "sortY": 266
+  },
+  {
+   "id": "fence_b5",
+   "sprite": "fence_m",
+   "x": 352,
+   "y": 250,
+   "sortY": 266
+  },
+  {
+   "id": "fence_a6",
+   "sprite": "fence_m",
+   "x": 96,
+   "y": 250,
+   "sortY": 266
+  },
+  {
+   "id": "fence_b6",
+   "sprite": "fence_m",
+   "x": 368,
+   "y": 250,
+   "sortY": 266
+  },
+  {
+   "id": "fence_a7",
+   "sprite": "fence_m",
+   "x": 112,
+   "y": 250,
+   "sortY": 266
+  },
+  {
+   "id": "fence_b7",
+   "sprite": "fence_m",
+   "x": 384,
+   "y": 250,
+   "sortY": 266
+  },
+  {
+   "id": "fence_a8",
+   "sprite": "fence_m",
+   "x": 128,
+   "y": 250,
+   "sortY": 266
+  },
+  {
+   "id": "fence_b8",
+   "sprite": "fence_m",
+   "x": 400,
+   "y": 250,
+   "sortY": 266
+  },
+  {
+   "id": "fence_a9",
+   "sprite": "fence_m",
+   "x": 144,
+   "y": 250,
+   "sortY": 266
+  },
+  {
+   "id": "fence_b9",
+   "sprite": "fence_m",
+   "x": 416,
+   "y": 250,
+   "sortY": 266
+  },
+  {
+   "id": "fence_a10",
+   "sprite": "fence_m",
+   "x": 160,
+   "y": 250,
+   "sortY": 266
+  },
+  {
+   "id": "fence_b10",
+   "sprite": "fence_m",
+   "x": 432,
+   "y": 250,
+   "sortY": 266
+  },
+  {
+   "id": "fence_a11",
+   "sprite": "fence_m",
+   "x": 176,
+   "y": 250,
+   "sortY": 266
+  },
+  {
+   "id": "fence_b11",
+   "sprite": "fence_m",
+   "x": 448,
+   "y": 250,
+   "sortY": 266
+  },
+  {
+   "id": "fence_a12",
+   "sprite": "fence_r",
+   "x": 192,
+   "y": 250,
+   "sortY": 266
+  },
+  {
+   "id": "fence_b12",
+   "sprite": "fence_r",
+   "x": 464,
+   "y": 250,
+   "sortY": 266
+  }
+ ],
+ "solids": [
+  [
+   6,
+   16,
+   6,
+   8
+  ],
+  [
+   40,
+   16,
+   6,
+   8
+  ],
+  [
+   71,
+   16,
+   6,
+   8
+  ],
+  [
+   96,
+   16,
+   6,
+   8
+  ],
+  [
+   366,
+   16,
+   6,
+   8
+  ],
+  [
+   401,
+   16,
+   6,
+   8
+  ],
+  [
+   434,
+   16,
+   6,
+   8
+  ],
+  [
+   460,
+   16,
+   6,
+   8
+  ],
+  [
+   15,
+   142,
+   8,
+   6
+  ],
+  [
+   5,
+   217,
+   8,
+   6
+  ],
+  [
+   457,
+   134,
+   8,
+   6
+  ],
+  [
+   464,
+   213,
+   8,
+   6
+  ],
+  [
+   213,
+   134,
+   54,
+   8
+  ],
+  [
+   41,
+   112,
+   48,
+   22
+  ],
+  [
+   137,
+   112,
+   48,
+   22
+  ],
+  [
+   297,
+   112,
+   48,
+   22
+  ],
+  [
+   393,
+   112,
+   48,
+   22
+  ],
+  [
+   304,
+   220,
+   58,
+   8
+  ],
+  [
+   158,
+   196,
+   14,
+   8
+  ],
+  [
+   430,
+   160,
+   20,
+   8
+  ],
+  [
+   6,
+   156,
+   28,
+   10
+  ],
+  [
+   448,
+   164,
+   26,
+   8
+  ],
+  [
+   0,
+   256,
+   208,
+   10
+  ],
+  [
+   272,
+   256,
+   208,
+   10
+  ],
+  [
+   212,
+   252,
+   6,
+   8
+  ],
+  [
+   260,
+   252,
+   6,
+   8
+  ],
+  [
+   368,
+   204,
+   68,
+   36
+  ],
+  [
+   356,
+   212,
+   92,
+   20
+  ],
+  [
+   378,
+   200,
+   48,
+   44
+  ]
+ ],
+ "triggers": [
+  {
+   "id": "derby",
+   "title": "Bunny Derby",
+   "rect": [
+    38,
+    134,
+    54,
+    20
+   ],
+   "stand": [
+    65,
+    146
+   ]
+  },
+  {
+   "id": "snake",
+   "title": "Caterpillar Crawl",
+   "rect": [
+    134,
+    134,
+    54,
+    20
+   ],
+   "stand": [
+    161,
+    146
+   ]
+  },
+  {
+   "id": "ducklings",
+   "title": "Duckling Herder",
+   "rect": [
+    294,
+    134,
+    54,
+    20
+   ],
+   "stand": [
+    321,
+    146
+   ]
+  },
+  {
+   "id": "fox",
+   "title": "Fox Showdown",
+   "rect": [
+    390,
+    134,
+    54,
+    20
+   ],
+   "stand": [
+    417,
+    146
+   ]
+  },
+  {
+   "id": "poster",
+   "title": "Pick a game",
+   "rect": [
+    294,
+    224,
+    78,
+    18
+   ],
+   "stand": [
+    333,
+    236
+   ]
+  }
+ ],
+ "poster": {
+  "poster_xy": [
+   300,
+   146
+  ],
+  "slots_in_sprite": [
+   [
+    9,
+    27,
+    21,
+    16
+   ],
+   [
+    36,
+    27,
+    21,
+    16
+   ],
+   [
+    9,
+    45,
+    21,
+    16
+   ],
+   [
+    36,
+    45,
+    21,
+    16
+   ]
+  ]
+ },
+ "spawn": [
+  240,
+  236
+ ],
+ "walk_bounds": [
+  8,
+  66,
+  472,
+  262
+ ],
+ "balloons": [
+  {
+   "sprite": "balloon_red",
+   "x": 151,
+   "y": 150,
+   "phase": 0.0
+  },
+  {
+   "sprite": "balloon_blue",
+   "x": 161,
+   "y": 144,
+   "phase": 1.3
+  },
+  {
+   "sprite": "balloon_yellow",
+   "x": 171,
+   "y": 150,
+   "phase": 2.6
+  },
+  {
+   "sprite": "balloon_green",
+   "x": 157,
+   "y": 158,
+   "phase": 3.9000000000000004
+  },
+  {
+   "sprite": "balloon_purple",
+   "x": 167,
+   "y": 158,
+   "phase": 5.2
+  }
+ ],
+ "friends": [
+  {
+   "sheet": "sprites/bunny/bunny_lavender.png",
+   "frame": [
+    0,
+    0
+   ],
+   "x": 60,
+   "y": 226
+  },
+  {
+   "sheet": "sprites/bunny/bunny_mint.png",
+   "frame": [
+    0,
+    1
+   ],
+   "x": 78,
+   "y": 232
+  }
+ ],
+ "rows": {
+  "bunting": [
+   {
+    "sprite": "bunting_a",
+    "x": 0,
+    "y": 64
+   },
+   {
+    "sprite": "bunting_b",
+    "x": 16,
+    "y": 64
+   },
+   {
+    "sprite": "bunting_a",
+    "x": 32,
+    "y": 64
+   },
+   {
+    "sprite": "bunting_b",
+    "x": 48,
+    "y": 64
+   },
+   {
+    "sprite": "bunting_a",
+    "x": 64,
+    "y": 64
+   },
+   {
+    "sprite": "bunting_b",
+    "x": 80,
+    "y": 64
+   },
+   {
+    "sprite": "bunting_a",
+    "x": 96,
+    "y": 64
+   },
+   {
+    "sprite": "bunting_b",
+    "x": 112,
+    "y": 64
+   },
+   {
+    "sprite": "bunting_a",
+    "x": 128,
+    "y": 64
+   },
+   {
+    "sprite": "bunting_b",
+    "x": 144,
+    "y": 64
+   },
+   {
+    "sprite": "bunting_a",
+    "x": 160,
+    "y": 64
+   },
+   {
+    "sprite": "bunting_b",
+    "x": 176,
+    "y": 64
+   },
+   {
+    "sprite": "bunting_a",
+    "x": 192,
+    "y": 64
+   },
+   {
+    "sprite": "bunting_b",
+    "x": 208,
+    "y": 64
+   },
+   {
+    "sprite": "bunting_a",
+    "x": 224,
+    "y": 64
+   },
+   {
+    "sprite": "bunting_b",
+    "x": 240,
+    "y": 64
+   },
+   {
+    "sprite": "bunting_a",
+    "x": 256,
+    "y": 64
+   },
+   {
+    "sprite": "bunting_b",
+    "x": 272,
+    "y": 64
+   },
+   {
+    "sprite": "bunting_a",
+    "x": 288,
+    "y": 64
+   },
+   {
+    "sprite": "bunting_b",
+    "x": 304,
+    "y": 64
+   },
+   {
+    "sprite": "bunting_a",
+    "x": 320,
+    "y": 64
+   },
+   {
+    "sprite": "bunting_b",
+    "x": 336,
+    "y": 64
+   },
+   {
+    "sprite": "bunting_a",
+    "x": 352,
+    "y": 64
+   },
+   {
+    "sprite": "bunting_b",
+    "x": 368,
+    "y": 64
+   },
+   {
+    "sprite": "bunting_a",
+    "x": 384,
+    "y": 64
+   },
+   {
+    "sprite": "bunting_b",
+    "x": 400,
+    "y": 64
+   },
+   {
+    "sprite": "bunting_a",
+    "x": 416,
+    "y": 64
+   },
+   {
+    "sprite": "bunting_b",
+    "x": 432,
+    "y": 64
+   },
+   {
+    "sprite": "bunting_a",
+    "x": 448,
+    "y": 64
+   },
+   {
+    "sprite": "bunting_b",
+    "x": 464,
+    "y": 64
+   }
+  ],
+  "lights": [
+   {
+    "x": 0,
+    "y": 242
+   },
+   {
+    "x": 16,
+    "y": 242
+   },
+   {
+    "x": 32,
+    "y": 242
+   },
+   {
+    "x": 48,
+    "y": 242
+   },
+   {
+    "x": 64,
+    "y": 242
+   },
+   {
+    "x": 80,
+    "y": 242
+   },
+   {
+    "x": 96,
+    "y": 242
+   },
+   {
+    "x": 112,
+    "y": 242
+   },
+   {
+    "x": 128,
+    "y": 242
+   },
+   {
+    "x": 144,
+    "y": 242
+   },
+   {
+    "x": 160,
+    "y": 242
+   },
+   {
+    "x": 176,
+    "y": 242
+   },
+   {
+    "x": 192,
+    "y": 242
+   },
+   {
+    "x": 272,
+    "y": 242
+   },
+   {
+    "x": 288,
+    "y": 242
+   },
+   {
+    "x": 304,
+    "y": 242
+   },
+   {
+    "x": 320,
+    "y": 242
+   },
+   {
+    "x": 336,
+    "y": 242
+   },
+   {
+    "x": 352,
+    "y": 242
+   },
+   {
+    "x": 368,
+    "y": 242
+   },
+   {
+    "x": 384,
+    "y": 242
+   },
+   {
+    "x": 400,
+    "y": 242
+   },
+   {
+    "x": 416,
+    "y": 242
+   },
+   {
+    "x": 432,
+    "y": 242
+   },
+   {
+    "x": 448,
+    "y": 242
+   },
+   {
+    "x": 464,
+    "y": 242
+   }
+  ]
+ },
+ "pond": {
+  "center": [
+   402,
+   222
+  ],
+  "rx": 48,
+  "ry": 22
+ },
+ "ducklings": [
+  [
+   372,
+   214
+  ],
+  [
+   388,
+   238
+  ],
+  [
+   430,
+   232
+  ]
+ ],
+ "butterflies": 5,
+ "games": [
+  {
+   "id": "derby",
+   "title": "Bunny Derby"
+  },
+  {
+   "id": "snake",
+   "title": "Caterpillar Crawl"
+  },
+  {
+   "id": "ducklings",
+   "title": "Duckling Herder"
+  },
+  {
+   "id": "fox",
+   "title": "Fox Showdown"
+  }
+ ]
+}
