@@ -15,6 +15,7 @@ class SnakeScene extends Scene {
       num: 1,
       name: 'Sprout Garden',
       nbFruits: 4,
+      nbRotten: 0,
       vHead: 1.35,
       vNorm: 0.55,
       vEvade: 0.95,
@@ -25,6 +26,7 @@ class SnakeScene extends Scene {
       num: 2,
       name: 'Dewdrop Patch',
       nbFruits: 6,
+      nbRotten: 2,
       vHead: 1.55,
       vNorm: 0.70,
       vEvade: 1.15,
@@ -38,6 +40,7 @@ class SnakeScene extends Scene {
       num: 3,
       name: 'Mushroom Ring',
       nbFruits: 8,
+      nbRotten: 3,
       vHead: 1.75,
       vNorm: 0.85,
       vEvade: 1.35,
@@ -53,6 +56,7 @@ class SnakeScene extends Scene {
       num: 4,
       name: 'Berry Frenzy',
       nbFruits: 10,
+      nbRotten: 4,
       vHead: 1.95,
       vNorm: 0.95,
       vEvade: 1.50,
@@ -69,6 +73,7 @@ class SnakeScene extends Scene {
       num: 5,
       name: 'Butterfly Bloom',
       nbFruits: 12,
+      nbRotten: 6,
       vHead: 2.15,
       vNorm: 1.05,
       vEvade: 1.65,
@@ -158,13 +163,17 @@ class SnakeScene extends Scene {
     this.caterpillar.maxSpeed = cfg.vHead;
     this.caterpillar.setControlMode(this.controlMode);
 
-    // Génération des fruits du niveau (loin des 4 coins, des obstacles et du centre)
+    // Génération des bons fruits fuyants + fruits pourris immobiles du niveau
     this.fruits = [];
     const types = ['berry', 'berry', 'shy', 'blueberry', 'golden'];
     for (let i = 0; i < cfg.nbFruits; i++) {
       const pos = this.findSafeFruitPos();
       const type = types[i % types.length];
       this.fruits.push(new GardenFruit(pos.x, pos.y, type, this.game.assets, this.bounds));
+    }
+    for (let i = 0; i < (cfg.nbRotten || 0); i++) {
+      const pos = this.findSafeFruitPos();
+      this.fruits.push(new GardenFruit(pos.x, pos.y, 'rotten', this.game.assets, this.bounds));
     }
   }
 
@@ -248,27 +257,35 @@ class SnakeScene extends Scene {
       }
     }
 
-    // 4. Dégustation des fruits -> la chenille grandit !
+    // 4. Dégustation des fruits -> bons fruits font grandir, fruits pourris rétrécissent de 1 anneau
     for (let i = this.fruits.length - 1; i >= 0; i--) {
       const f = this.fruits[i];
       if (p5.Vector.dist(this.caterpillar.pos, f.pos) < this.caterpillar.r + f.r + 3) {
-        const gain = f.type === 'golden' ? 2 : 1;
-        this.caterpillar.grow(gain);
-        if (f.type === 'blueberry') this.caterpillar.activateBoost(180);
-        this.fruitsEatenLevel++;
-        this.totalEatenRun++;
-        this.game.sound.playSfx('squeak_double_1', 0.65);
+        if (f.type === 'rotten') {
+          this.caterpillar.shrink(1);
+          this.game.sound.playSfx('hit_1', 0.75);
+          for (let k = 0; k < 5; k++) this.fx.push(new SparkleFX(f.pos.x, f.pos.y, 'sparkle'));
+          this.fx.push(new SparkleFX(f.pos.x, f.pos.y - 6, 'text', 'ROTTEN! -1', color(180, 200, 105)));
+        } else {
+          const gain = f.type === 'golden' ? 2 : 1;
+          this.caterpillar.grow(gain);
+          if (f.type === 'blueberry') this.caterpillar.activateBoost(180);
+          this.fruitsEatenLevel++;
+          this.totalEatenRun++;
+          this.game.sound.playSfx('squeak_double_1', 0.65);
 
-        for (let k = 0; k < 6; k++) this.fx.push(new SparkleFX(f.pos.x, f.pos.y, 'sparkle'));
-        const lbl = f.type === 'blueberry' ? 'BOOST!' : (gain > 1 ? '+' + gain + ' ★' : 'NOM!');
-        this.fx.push(new SparkleFX(f.pos.x, f.pos.y - 6, 'text', lbl, color(255, 232, 110)));
+          for (let k = 0; k < 6; k++) this.fx.push(new SparkleFX(f.pos.x, f.pos.y, 'sparkle'));
+          const lbl = f.type === 'blueberry' ? 'BOOST!' : (gain > 1 ? '+' + gain + ' ★' : 'NOM!');
+          this.fx.push(new SparkleFX(f.pos.x, f.pos.y - 6, 'text', lbl, color(255, 232, 110)));
+        }
 
         this.fruits.splice(i, 1);
       }
     }
 
-    // 5. Niveau terminé quand tous les fruits du niveau sont mangés !
-    if (this.fruits.length === 0) {
+    // 5. Niveau terminé quand tous les BONS fruits du niveau sont mangés (les pourris ne comptent pas)
+    const remainingGood = this.fruits.filter((f) => f.type !== 'rotten').length;
+    if (remainingGood === 0) {
       this.game.sound.playSfx('success_bell', 0.9);
       this.winButterfly = new HubButterfly(this.caterpillar.pos.x, this.caterpillar.pos.y, this.game.assets);
       for (let i = 0; i < 20; i++) {
@@ -327,20 +344,59 @@ class SnakeScene extends Scene {
       g.pop();
     }
 
-    // 2. Obstacles du niveau
+    // 2. Obstacles mortels du niveau (visuellement très reconnaissables : anneau rouge pulsant + épines)
     for (const obs of this.obstacles) {
       const px = Math.round(obs.pos.x);
       const py = Math.round(obs.pos.y);
+      const pulse = Math.sin(frameCount * 0.12 + px * 0.1) * 0.5 + 0.5;
+
+      // Zone de danger rouge-corail pulsante + épines autour de l'obstacle
+      g.push();
+      g.noStroke();
+      g.fill(220, 68, 88, 55 + pulse * 40);
+      g.circle(px, py, obs.r * 2.5);
+
+      g.noFill();
+      g.stroke(235, 65, 85, 190 + pulse * 65);
+      g.strokeWeight(1.5);
+      g.circle(px, py, obs.r * 2.25);
+
+      // 8 petites épines pixelisées autour du cercle pour signaler le danger au premier coup d'œil
+      g.stroke(107, 45, 62);
+      g.strokeWeight(1);
+      for (let k = 0; k < 8; k++) {
+        const a = (TWO_PI * k) / 8;
+        const rIn = obs.r * 1.05;
+        const rOut = obs.r * 1.38;
+        g.line(
+          Math.round(px + Math.cos(a) * rIn),
+          Math.round(py + Math.sin(a) * rIn),
+          Math.round(px + Math.cos(a) * rOut),
+          Math.round(py + Math.sin(a) * rOut)
+        );
+      }
+      g.pop();
+
+      // Sprite de l'obstacle au centre
       if (obs.kind === 'puddle') {
         g.noStroke();
         g.fill(130, 192, 214);
-        g.ellipse(px, py, obs.r * 2.2, obs.r * 1.5);
+        g.ellipse(px, py, obs.r * 2.0, obs.r * 1.4);
         g.fill(164, 218, 234);
-        g.ellipse(px - 2, py - 1, obs.r * 1.3, obs.r * 0.8);
+        g.ellipse(px - 2, py - 1, obs.r * 1.2, obs.r * 0.7);
       } else {
         const sp = assets.getSprite(obs.kind);
         if (sp) g.image(sp, px - Math.floor(sp.width / 2), py - Math.floor(sp.height / 2));
       }
+
+      // Petit '!' rouge pulsant au-dessus de l'obstacle mortel
+      g.noStroke();
+      g.fill(255, 245, 245);
+      g.rect(px - 2, py - obs.r - 8, 4, 7);
+      g.fill(225, 55, 78);
+      g.rect(px - 1, py - obs.r - 7, 2, 3);
+      g.rect(px - 1, py - obs.r - 3, 2, 1);
+
       obs.showDebug(g);
     }
 
@@ -352,11 +408,12 @@ class SnakeScene extends Scene {
 
     // 4. HUD supérieur
     const cfg = this.getLevelCfg(this.currentLevel);
+    const goodLeft = this.fruits.filter((f) => f.type !== 'rotten').length;
     PixelUI.panel(g, 8, 5, 114, 16);
     PixelUI.txt(g, font, 'LVL ' + cfg.num + '/5 ' + cfg.name.split(' ')[0], 13, 8, g.color(107, 75, 91));
 
     PixelUI.panel(g, 130, 5, 86, 16);
-    PixelUI.txt(g, font, 'FRUIT ' + this.fruits.length + '/' + cfg.nbFruits, 136, 8, g.color(107, 75, 91));
+    PixelUI.txt(g, font, 'FRUIT ' + goodLeft + '/' + cfg.nbFruits, 136, 8, g.color(107, 75, 91));
 
     PixelUI.panel(g, 224, 5, 76, 16);
     const rings = this.caterpillar ? this.caterpillar.getRingCount() : 1;
@@ -387,8 +444,8 @@ class SnakeScene extends Scene {
 
     PixelUI.txt(g, font, 'Start with 1 ring & eat all fleeing fruit to advance!', 240, 86, g.color(107, 75, 91), CENTER);
     PixelUI.txt(g, font, 'Arrows/WASD to steer (press M to switch Mouse Arrive).', 240, 106, g.color(107, 75, 91), CENTER);
-    PixelUI.txt(g, font, "Don't hit the fence, obstacles, or your own tail!", 240, 126, g.color(144, 98, 93), CENTER);
-    PixelUI.txt(g, font, 'Fruit stay away from corners so you can catch them!', 240, 150, g.color(107, 75, 91), CENTER);
+    PixelUI.txt(g, font, "Don't hit red spiky hazards, fence, or your tail!", 240, 126, g.color(189, 75, 90), CENTER);
+    PixelUI.txt(g, font, 'Avoid stationary rotten fruit (-1 ring)!', 240, 150, g.color(107, 75, 91), CENTER);
 
     PixelUI.drawButton(g, font, this.startBtn, 'START (Space)', PixelUI.pointInRect(mx, my, this.startBtn), g.color(223, 240, 187));
   }

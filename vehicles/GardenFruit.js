@@ -36,9 +36,18 @@ class GardenFruit extends Vehicle {
       shy: [3, 10],       // Fruit timide rapide (+2)
       golden: [3, 7],     // Ananas doré (+3)
       blueberry: [3, 5],  // Myrtille (+1 + boost)
-      lemon: [3, 0]       // Citron (-1)
+      lemon: [3, 0],      // Citron (-1)
+      rotten: [1, 3]      // Fruit pourri immobile (-1 anneau, teinte verdâtre + mouches)
     };
     this.cell = spriteMap[type] || [1, 3];
+
+    if (this.type === 'rotten') {
+      // Les fruits pourris restent strictement immobiles (maxSpeed = 0)
+      this.maxSpeed = 0;
+      this.maxForce = 0;
+      this.vel.set(0, 0);
+      return;
+    }
 
     // Comportements gérés par BehaviorManager
     this.behaviors.add('evade', (v) => {
@@ -152,6 +161,9 @@ class GardenFruit extends Vehicle {
 
   /** Met à jour le fruit et renvoie true s'il vient d'entrer en panique (son squeak). */
   step(head, obstacles, vNorm, vEvade, vision) {
+    // Un fruit pourri ne bouge jamais
+    if (this.type === 'rotten') return false;
+
     this.headRef = head;
     this.obstaclesRef = obstacles;
     this.normalSpeed = this.type === 'shy' ? vNorm * 1.15 : vNorm;
@@ -182,8 +194,44 @@ class GardenFruit extends Vehicle {
   }
 
   show(g) {
-    const bob = Math.sin(frameCount * 0.12 + this.phase) * 1.2;
     const px = Math.round(this.pos.x);
+
+    // Rendu spécial bien reconnaissable pour les fruits pourris immobiles
+    if (this.type === 'rotten') {
+      const py = Math.round(this.pos.y);
+
+      // Halo toxique olive/violet au sol
+      g.noStroke();
+      g.fill(118, 128, 66, 95);
+      g.ellipse(px, py + 4, 16, 8);
+
+      // Sprite de baie teinté marron-olive pourri
+      const img = this.assets.getSheetFrame('items/plants_items.png', 16, 16, this.cell[0], this.cell[1]);
+      if (img) {
+        g.push();
+        g.tint(148, 138, 86);
+        g.image(img, px - 8, py - 8);
+        g.noTint();
+        g.pop();
+      }
+
+      // Petites lignes d'odeur ondulantes + 2 moucherons qui tournent autour
+      g.stroke(140, 165, 78, 190);
+      g.strokeWeight(1);
+      const sway = Math.sin(frameCount * 0.14 + this.phase) * 1.5;
+      g.line(px - 3, py - 7, Math.round(px - 3 + sway), py - 11);
+      g.line(px + 3, py - 8, Math.round(px + 3 - sway), py - 12);
+
+      g.noStroke();
+      g.fill(58, 42, 62);
+      const a1 = frameCount * 0.12 + this.phase;
+      const a2 = -frameCount * 0.15 + this.phase + 2;
+      g.rect(Math.round(px + Math.cos(a1) * 7), Math.round(py - 4 + Math.sin(a1) * 4), 2, 2);
+      g.rect(Math.round(px + Math.cos(a2) * 6), Math.round(py - 5 + Math.sin(a2) * 3), 1, 1);
+      return;
+    }
+
+    const bob = Math.sin(frameCount * 0.12 + this.phase) * 1.2;
     const py = Math.round(this.pos.y + bob);
 
     if (this.type === 'golden') {
