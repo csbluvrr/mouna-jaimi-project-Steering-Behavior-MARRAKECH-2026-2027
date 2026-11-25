@@ -210,6 +210,21 @@ class HubScene extends Scene {
       items.push({ sortY: d.pos.y, draw: () => d.show(g) });
     });
 
+    // Ficelles des ballons dessinées juste derrière le chat (sortY = 206.5 < 207)
+    items.push({
+      sortY: 206.5,
+      draw: () => {
+        g.push();
+        g.stroke(107, 75, 91, 190);
+        g.strokeWeight(1);
+        layout.balloons.forEach((b) => {
+          const by = b.y + Math.sin(frameCount * 0.05 + b.phase) * 2;
+          g.line(Math.round(b.x + 6), Math.round(by + 13), 167, 196);
+        });
+        g.pop();
+      }
+    });
+
     items.sort((a, b) => a.sortY - b.sortY).forEach((it) => it.draw());
 
     // 3. Éléments toujours au premier plan (guirlandes, lumières, ballons, papillons)
@@ -221,16 +236,6 @@ class HubScene extends Scene {
       const sp = assets.getSprite((Math.floor(frameCount / 30) + i) % 2 ? 'lights_on' : 'lights_dim');
       if (sp) g.image(sp, l.x, l.y);
     });
-    // Ficelles reliant les ballons directement à la patte du chat (167, 196)
-    g.push();
-    g.stroke(107, 75, 91, 190);
-    g.strokeWeight(1);
-    layout.balloons.forEach((b) => {
-      const by = b.y + Math.sin(frameCount * 0.05 + b.phase) * 2;
-      g.line(Math.round(b.x + 6), Math.round(by + 13), 167, 196);
-    });
-    g.pop();
-
     layout.balloons.forEach((b) => {
       const sp = assets.getSprite(b.sprite);
       if (sp) g.image(sp, b.x, Math.round(b.y + Math.sin(frameCount * 0.05 + b.phase) * 2));
