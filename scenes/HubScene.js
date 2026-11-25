@@ -26,9 +26,37 @@ class HubScene extends Scene {
     this.overlay = false;
     this.promptTrigger = null;
 
+    // Ajustements propres de position/collision du décor (sans altérer le fichier source)
+    this.posterOffsetX = -16; // Décale le panneau d'affiches à gauche pour ne plus chevaucher la mare
+    this.solids = layout.solids.map(([sx, sy, sw, sh]) => {
+      // Décaler la collision du panneau d'affiches avec lui
+      if (sx === 304 && sy === 220 && sw === 58) {
+        return [sx + this.posterOffsetX, sy, sw, sh];
+      }
+      // Élargir et recaler la collision du chat aux ballons pour empêcher de le traverser
+      if (sx === 158 && sy === 196 && sw === 14) {
+        return [157, 192, 20, 15];
+      }
+      return [sx, sy, sw, sh];
+    });
+    // Ajouter une boîte de collision solide sur le panier de pique-nique (36, 210, 16x16)
+    this.solids.push([36, 214, 16, 12]);
+
+    // Triggers ajustés (avec le panneau d'affiches décalé)
+    this.triggers = layout.triggers.map((t) => {
+      if (t.id === 'poster') {
+        return {
+          ...t,
+          rect: [t.rect[0] + this.posterOffsetX, t.rect[1], t.rect[2], t.rect[3]],
+          stand: [t.stand[0] + this.posterOffsetX, t.stand[1]]
+        };
+      }
+      return t;
+    });
+
     // Convertir les zones solides du hub en Obstacles circulaires (Vehicle fixes)
     this.obstacles = [];
-    layout.solids.forEach(([sx, sy, sw, sh]) => {
+    this.solids.forEach(([sx, sy, sw, sh]) => {
       const obsList = Obstacle.fromRect(sx, sy, sw, sh);
       for (const o of obsList) {
         this.obstacles.push(o);
@@ -39,7 +67,7 @@ class HubScene extends Scene {
     let spawnX = layout.spawn[0];
     let spawnY = layout.spawn[1];
     if (data && data.fromBooth) {
-      const trig = layout.triggers.find((t) => t.id === data.fromBooth);
+      const trig = this.triggers.find((t) => t.id === data.fromBooth);
       if (trig && trig.stand) {
         spawnX = trig.stand[0];
         spawnY = trig.stand[1];
@@ -79,7 +107,7 @@ class HubScene extends Scene {
     const layout = this.game.assets.hubLayout;
 
     // Mise à jour de Moo (déplacement normal de personnage principal)
-    this.moo.step(layout.solids, layout.walk_bounds);
+    this.moo.step(this.solids, layout.walk_bounds);
 
     // Mise à jour de la faune d'ambiance (100% Steering Behaviors)
     for (const d of this.ducklings) {
@@ -92,7 +120,7 @@ class HubScene extends Scene {
     // Détection de la zone de stand devant laquelle Moo se tient
     const prevTrigger = this.promptTrigger;
     this.promptTrigger =
-      layout.triggers.find(({ rect: [x, y, w, h] }) =>
+      this.triggers.find(({ rect: [x, y, w, h] }) =>
         this.moo.pos.x > x &&
         this.moo.pos.x < x + w &&
         this.moo.pos.y > y &&
@@ -118,22 +146,37 @@ class HubScene extends Scene {
     const layout = assets.hubLayout;
     const font = assets.font;
 
-    // 1. Sol pré-rendu du parc
+    // 1. Sol pré-rendu du parc + nappe de pique-nique toujours à plat au sol
     const ground = assets.getImage('hub/hub_ground.png');
     if (ground) g.image(ground, 0, 0);
 
-    // 2. Objets triés en Y (stands, arbres, panneau, Moo, amis lapins, canetons)
-    const items = layout.objects.map((o) => ({
-      sortY: o.sortY,
-      draw: () => {
-        const sp = assets.getSprite(o.sprite);
-        if (sp) g.image(sp, o.x, o.y);
-      }
-    }));
+    const blanketObj = layout.objects.find((o) => o.id === 'picnic_blanket');
+    if (blanketObj) {
+      const bSp = assets.getSprite(blanketObj.sprite);
+      if (bSp) g.image(bSp, blanketObj.x, blanketObj.y);
+    }
 
-    // Miniatures des 4 jeux collées sur le panneau d'affiches
+    // 2. Objets triés en Y (stands, arbres, panneau, chat, panier, Moo, amis lapins, canetons)
+    const items = layout.objects
+      .filter((o) => o.id !== 'picnic_blanket')
+      .map((o) => {
+        const ox = o.id === 'poster' ? o.x + this.posterOffsetX : o.x;
+        let sortY = o.sortY;
+        if (o.id === 'kid_balloon') sortY = 207;
+        if (o.id === 'picnic_basket') sortY = 226;
+        return {
+          sortY,
+          draw: () => {
+            const sp = assets.getSprite(o.sprite);
+            if (sp) g.image(sp, ox, o.y);
+          }
+        };
+      });
+
+    // Miniatures des 4 jeux collées sur le panneau d'affiches (décalé avec le panneau)
     const pb = layout.objects.find((o) => o.id === 'poster');
     if (pb) {
+      const pbx = pb.x + this.posterOffsetX;
       items.push({
         sortY: pb.sortY + 0.1,
         draw: () => {
@@ -141,7 +184,7 @@ class HubScene extends Scene {
             const [sx, sy] = layout.poster.slots_in_sprite[i];
             const bSp = assets.getSprite('booth_' + gm.id);
             if (bSp) {
-              g.image(bSp, pb.x + sx + 4, pb.y + sy + 2, 14, 12, 18, 1, 14, 12);
+              g.image(bSp, pbx + sx + 4, pb.y + sy + 2, 14, 12, 18, 1, 14, 12);
             }
           });
         }
@@ -178,9 +221,19 @@ class HubScene extends Scene {
       const sp = assets.getSprite((Math.floor(frameCount / 30) + i) % 2 ? 'lights_on' : 'lights_dim');
       if (sp) g.image(sp, l.x, l.y);
     });
+    // Ficelles reliant les ballons directement à la patte du chat (167, 196)
+    g.push();
+    g.stroke(107, 75, 91, 190);
+    g.strokeWeight(1);
+    layout.balloons.forEach((b) => {
+      const by = b.y + Math.sin(frameCount * 0.05 + b.phase) * 2;
+      g.line(Math.round(b.x + 6), Math.round(by + 13), 167, 196);
+    });
+    g.pop();
+
     layout.balloons.forEach((b) => {
       const sp = assets.getSprite(b.sprite);
-      if (sp) g.image(sp, b.x, b.y + Math.sin(frameCount * 0.05 + b.phase) * 2);
+      if (sp) g.image(sp, b.x, Math.round(b.y + Math.sin(frameCount * 0.05 + b.phase) * 2));
     });
     for (const bf of this.butterflies) {
       bf.show(g);
@@ -320,19 +373,20 @@ class HubScene extends Scene {
       return;
     }
 
-    // Clic sur le panneau d'affiches -> ouvre directement "Today's Games" si proche, ou y marche
+    // Clic sur le panneau d'affiches -> ouvre directement "Today's Games"
     const posterObj = layout.objects.find((o) => o.id === 'poster');
     if (posterObj) {
       const sp = this.game.assets.getSprite(posterObj.sprite);
-      if (sp && mx >= posterObj.x && mx <= posterObj.x + sp.width && my >= posterObj.y && my <= posterObj.y + sp.height) {
+      const pbx = posterObj.x + this.posterOffsetX;
+      if (sp && mx >= pbx && mx <= pbx + sp.width && my >= posterObj.y && my <= posterObj.y + sp.height) {
         this.game.sound.playSfx('ui_click');
         this.overlay = true;
         return;
       }
     }
 
-    // Clic sur un stand -> Moo utilise arrive + avoid pour s'y rendre
-    const t = layout.triggers.find(
+    // Clic sur un stand -> Moo s'y rend
+    const t = this.triggers.find(
       ({ rect: [x, y, w, h] }) => mx > x - 10 && mx < x + w + 10 && my > y - 70 && my < y + h + 4
     );
     if (t) {
