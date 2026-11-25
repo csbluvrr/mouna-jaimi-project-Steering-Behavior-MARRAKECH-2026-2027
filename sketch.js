@@ -106,10 +106,10 @@ function setup() {
   game.sound = new SoundManager(ASSET_BASE);
   game.scenes = new SceneManager();
 
-  // Enregistrement des scènes (Title, Hub, et placeholders pour les étapes 2 à 5)
+  // Enregistrement des scènes (Title, Hub, Caterpillar Crawl + placeholders étapes 3 à 5)
   game.scenes.register('title', new TitleScene(game));
   game.scenes.register('hub', new HubScene(game));
-  game.scenes.register('snake', new PlaceholderGameScene(game, 'snake', 'Caterpillar Crawl', 'Coming in Step 2'));
+  game.scenes.register('snake', new SnakeScene(game));
   game.scenes.register('ducklings', new PlaceholderGameScene(game, 'ducklings', 'Duckling Herder', 'Coming in Step 3'));
   game.scenes.register('derby', new PlaceholderGameScene(game, 'derby', 'Bunny Derby', 'Coming in Step 4'));
   game.scenes.register('fox', new PlaceholderGameScene(game, 'fox', 'Fox Showdown', 'Coming in Step 5'));

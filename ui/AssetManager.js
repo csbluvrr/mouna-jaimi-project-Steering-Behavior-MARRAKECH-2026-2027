@@ -45,6 +45,16 @@ class AssetManager {
       files.add('generated/ambient/butterfly_2frames_12x10.png');
       files.add('generated/hub/stamp_empty_full_16x16.png');
 
+      // Ressources Caterpillar Crawl (Snake) + effets communs
+      ['green', 'pink', 'blue', 'gold'].forEach((col) => {
+        files.add('generated/snake/caterpillar_head_' + col + '.png');
+        files.add('generated/snake/caterpillar_body_' + col + '.png');
+        files.add('generated/snake/caterpillar_tail_' + col + '.png');
+      });
+      files.add('items/plants_items.png');
+      files.add('generated/fx/sparkle_4frames_9x9.png');
+      files.add('generated/fx/confetti_6colors_3x3.png');
+
       files.forEach((relPath) => this.loadImageKey(relPath));
       this.checkDone();
     });
