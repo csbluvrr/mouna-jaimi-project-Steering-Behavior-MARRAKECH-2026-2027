@@ -249,7 +249,7 @@ class HubScene extends Scene {
       for (const obs of this.obstacles) {
         obs.showDebug(g);
       }
-      PixelUI.drawTag(g, font, 'DEBUG ON [D] - Vehicles & Avoid', 382, 22, g.color(223, 240, 187));
+      PixelUI.drawTag(g, font, 'DEBUG ON [H] - Vehicles & Avoid', 382, 22, g.color(223, 240, 187));
     }
 
     // 5. HUD en haut à gauche (tickets)

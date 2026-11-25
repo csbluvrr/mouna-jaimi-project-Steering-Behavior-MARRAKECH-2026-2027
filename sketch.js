@@ -158,8 +158,8 @@ function mousePressed(event) {
 function keyPressed() {
   if (!game.assets.ready) return;
 
-  // Touche D : bascule globale du mode debug des Steering Behaviors
-  if (key === 'd' || key === 'D') {
+  // Touche H : bascule globale du mode debug des Steering Behaviors (évite conflit avec D/WASD)
+  if (key === 'h' || key === 'H') {
     Vehicle.debug = !Vehicle.debug;
   }
 
