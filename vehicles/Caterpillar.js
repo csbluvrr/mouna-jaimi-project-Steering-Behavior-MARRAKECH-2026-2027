@@ -1,50 +1,81 @@
 /**
- * Chenille principale du mini-jeu Caterpillar Crawl (sous-classe de Vehicle).
- * Reprend directement l'architecture du Snake de 3-Arrival :
- * - La tête (this) utilise BehaviorManager : arrive(souris) + avoid(obstacles) + boundaries.
- * - Les segments (CaterpillarSegment extends Vehicle) suivent en chaîne avec arrive().
+ * Chenille principale de Caterpillar Crawl (sous-classe de Vehicle).
+ * Reprend exactement la logique du TP 3 (3-Arrival/snake.js) :
+ * - Démarre avec 1 seul anneau (initialSegments = 1) et grandit à chaque fruit mangé.
+ * - Mode hybride : Flèches / WASD / ZQSD (pilotage continu d'Euler sans demi-tour 180°)
+ *   OU Souris (comportement arrive() via BehaviorManager).
+ * - Règles classiques du Snake : collision avec les bords du jardin, auto-collision
+ *   (à partir du 4e anneau) et collision avec les obstacles du niveau.
  */
 class Caterpillar extends Vehicle {
-  constructor(x, y, initialSegments, assets) {
-    super(x, y, 1.85, 0.16);
+  constructor(x, y, initialSegments = 1, assets = null, bounds = [14, 30, 452, 228]) {
+    super(x, y, 1.5, 0.16);
     this.assets = assets;
-    this.r = 7;
-    this.rayonZoneDeFreinage = 28;
-    this.aheadScale = 18;
-    this.spacing = 9;
+    this.r = 6;
+    this.rayonZoneDeFreinage = 26;
+    this.spacing = 8;
+    this.bounds = bounds;
 
-    this.baseSpeed = 1.85;
+    this.baseSpeed = 1.5;
     this.boostFrames = 0;
-    this.bonkCooldown = 0;
 
-    this.mouseTarget = createVector(x + 20, y);
-    this.obstaclesRef = [];
-    this.bounds = [14, 30, 452, 228];
+    // Mode de contrôle : 'KEYBOARD' (flèches par défaut, comme TP 3) ou 'MOUSE' (arrive)
+    this.controlMode = 'KEYBOARD';
+    this.direction = createVector(1, 0);
+    this.vel = this.direction.copy().mult(this.baseSpeed);
+    this.mouseTarget = createVector(x + 30, y);
 
-    // Chaîne des anneaux derrière la tête
+    // Anneaux soudés derrière la tête (1 seul anneau au départ !)
     this.segments = [];
-    for (let i = 0; i < initialSegments; i++) {
-      const isTail = i === initialSegments - 1;
+    this.buildBody(x, y, initialSegments);
+
+    // Comportements enregistrés dans BehaviorManager
+    this.behaviors.add('keyboardSteer', (v) => {
+      const desired = v.direction.copy().setMag(v.maxSpeed);
+      const steer = p5.Vector.sub(desired, v.vel);
+      steer.limit(v.maxForce);
+      return steer;
+    }, 1.0, true);
+
+    this.behaviors.add('mouseArrive', (v) => v.arrive(v.mouseTarget, 0), 1.0, false);
+  }
+
+  buildBody(x, y, count) {
+    this.segments = [];
+    for (let i = 0; i < count; i++) {
+      const isTail = i === count - 1;
       this.segments.push(
-        new CaterpillarSegment(x - (i + 1) * this.spacing, y, assets, isTail, i)
+        new CaterpillarSegment(x - (i + 1) * this.spacing, y, this.assets, isTail, i)
       );
     }
-
-    // Enregistrement des comportements de la tête dans BehaviorManager
-    this.behaviors.add('arrive', (v) => v.arrive(v.mouseTarget, 0), 1.0, true);
-    this.behaviors.add('avoid', (v) => v.avoid(v.obstaclesRef), 2.3, true);
-    this.behaviors.add('boundaries', (v) => {
-      const [bx, by, bw, bh] = v.bounds;
-      return v.boundaries(bx, by, bw, bh, 12);
-    }, 2.0, true);
   }
 
-  /** Longueur totale (tête + segments). */
-  getLength() {
-    return 1 + this.segments.length;
+  setControlMode(mode) {
+    this.controlMode = mode;
+    if (mode === 'MOUSE') {
+      this.behaviors.deactivate('keyboardSteer');
+      this.behaviors.activate('mouseArrive');
+    } else {
+      this.behaviors.deactivate('mouseArrive');
+      this.behaviors.activate('keyboardSteer');
+    }
   }
 
-  /** Ajoute n segments à la chenille (et met à jour la queue). */
+  /** Change la direction au clavier en bloquant le demi-tour instantané à 180°. */
+  setDirection(dx, dy) {
+    const newDir = createVector(dx, dy).normalize();
+    if (this.direction.dot(newDir) >= -0.1) {
+      this.direction = newDir;
+      if (this.controlMode !== 'KEYBOARD') {
+        this.setControlMode('KEYBOARD');
+      }
+    }
+  }
+
+  getRingCount() {
+    return this.segments.length;
+  }
+
   grow(count = 1) {
     for (let c = 0; c < count; c++) {
       const last = this.segments[this.segments.length - 1];
@@ -52,7 +83,7 @@ class Caterpillar extends Vehicle {
       const sy = last ? last.pos.y : this.pos.y;
       if (last) {
         last.isTail = false;
-        last.r = 6;
+        last.r = 5.5;
       }
       this.segments.push(
         new CaterpillarSegment(sx, sy, this.assets, true, this.segments.length)
@@ -60,86 +91,86 @@ class Caterpillar extends Vehicle {
     }
   }
 
-  /** Réduit la chenille (citron ou bonk contre un obstacle), minimum 2 segments. */
   shrink(count = 1) {
     for (let c = 0; c < count; c++) {
-      if (this.segments.length <= 2) break;
+      if (this.segments.length <= 1) break;
       this.segments.pop();
     }
     if (this.segments.length > 0) {
       const last = this.segments[this.segments.length - 1];
       last.isTail = true;
-      last.r = 5;
+      last.r = 4.5;
     }
   }
 
-  /** Active un boost de vitesse temporaire (myrtille). */
-  activateBoost(frames = 210) {
+  activateBoost(frames = 180) {
     this.boostFrames = Math.max(this.boostFrames, frames);
   }
 
-  /**
-   * Met à jour la tête (BehaviorManager) puis propage le mouvement à toute la chaîne.
-   * Retourne l'obstacle touché s'il y a eu un "bonk" (collision douce, jamais de mort).
-   */
-  step(mx, my, obstacles) {
+  step(mx, my) {
     this.mouseTarget.set(
       constrain(mx, this.bounds[0], this.bounds[0] + this.bounds[2]),
       constrain(my, this.bounds[1], this.bounds[1] + this.bounds[3])
     );
-    this.obstaclesRef = obstacles;
 
     if (this.boostFrames > 0) {
       this.boostFrames--;
-      this.maxSpeed = this.baseSpeed * 1.45;
+      this.maxSpeed = this.baseSpeed * 1.35;
     } else {
       this.maxSpeed = this.baseSpeed;
-    }
-
-    if (this.bonkCooldown > 0) {
-      this.bonkCooldown--;
     }
 
     this.applyManagedBehaviors();
     this.update();
 
-    // Confinement souple dans le jardin
-    this.pos.x = constrain(this.pos.x, this.bounds[0] + 6, this.bounds[0] + this.bounds[2] - 6);
-    this.pos.y = constrain(this.pos.y, this.bounds[1] + 6, this.bounds[1] + this.bounds[3] - 6);
-
-    // Vérification des "bonks" contre les obstacles du jardin (repousse + perte de 1 segment)
-    let bonkedObstacle = null;
-    for (let i = 0; i < obstacles.length; i++) {
-      const obs = obstacles[i];
-      const d = p5.Vector.dist(this.pos, obs.pos);
-      const minD = this.r + obs.r;
-      if (d < minD) {
-        const pushOut = p5.Vector.sub(this.pos, obs.pos);
-        if (pushOut.magSq() < 1e-4) pushOut.set(1, 0);
-        pushOut.setMag(minD + 2);
-        this.pos.set(obs.pos.x + pushOut.x, obs.pos.y + pushOut.y);
-        // Rebond doux vers l'extérieur
-        this.vel.set(pushOut.normalize().mult(this.maxSpeed * 0.9));
-
-        if (this.bonkCooldown === 0) {
-          this.bonkCooldown = 45;
-          this.shrink(1);
-          bonkedObstacle = obs;
-        }
-      }
-    }
-
-    // Mise à jour en chaîne des anneaux
+    // Suivi soudé des anneaux (identique à 3-Arrival/snake.js)
     for (let i = 0; i < this.segments.length; i++) {
       const prev = i === 0 ? this : this.segments[i - 1];
+      this.segments[i].maxSpeed = this.maxSpeed * 1.25;
       this.segments[i].follow(prev, this.spacing);
     }
+  }
 
-    return bonkedObstacle;
+  /** Collision mortelle avec la bordure en bois du jardin (comme TP 3). */
+  checkWallCollision() {
+    const [bx, by, bw, bh] = this.bounds;
+    const margin = this.r * 0.7;
+    return (
+      this.pos.x - margin <= bx ||
+      this.pos.x + margin >= bx + bw ||
+      this.pos.y - margin <= by ||
+      this.pos.y + margin >= by + bh
+    );
+  }
+
+  /** Auto-collision : la tête touche un de ses anneaux (à partir du 4e, comme TP 3). */
+  checkSelfCollision() {
+    for (let i = 4; i < this.segments.length; i++) {
+      const seg = this.segments[i];
+      const dx = this.pos.x - seg.pos.x;
+      const dy = this.pos.y - seg.pos.y;
+      const minD = this.r * 0.65 + seg.r * 0.65;
+      if (dx * dx + dy * dy < minD * minD) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  /** Collision avec un obstacle rocheux/champignon du niveau (comme TP 3). */
+  checkObstacleCollision(obstacles) {
+    for (const obs of obstacles) {
+      const dx = this.pos.x - obs.pos.x;
+      const dy = this.pos.y - obs.pos.y;
+      const minD = this.r * 0.75 + obs.r * 0.85;
+      if (dx * dx + dy * dy < minD * minD) {
+        return true;
+      }
+    }
+    return false;
   }
 
   getActiveColor() {
-    if (this.bonkCooldown > 30) return 'pink';
     if (this.boostFrames > 0) return 'blue';
     return 'green';
   }
@@ -147,16 +178,15 @@ class Caterpillar extends Vehicle {
   show(g) {
     const colName = this.getActiveColor();
 
-    // Dessin de la queue vers la tête pour un recouvrement naturel
+    // Dessin de la queue vers la tête
     for (let i = this.segments.length - 1; i >= 0; i--) {
       this.segments[i].show(g, colName);
     }
 
-    // Tête de la chenille (légèrement orientée selon la vitesse)
     const headImg = this.assets.getImage('generated/snake/caterpillar_head_' + colName + '.png');
     g.push();
     g.translate(Math.round(this.pos.x), Math.round(this.pos.y));
-    if (this.vel.x < -0.15) {
+    if (this.vel.x < -0.1) {
       g.scale(-1, 1);
     }
     if (headImg) {
@@ -168,14 +198,15 @@ class Caterpillar extends Vehicle {
     }
     g.pop();
 
-    // Affichage debug [H] : zone de freinage arrive + vecteurs steering
     if (Vehicle.debug) {
-      g.push();
-      g.noFill();
-      g.stroke(255, 235, 130, 160);
-      g.strokeWeight(1);
-      g.circle(this.mouseTarget.x, this.mouseTarget.y, this.rayonZoneDeFreinage * 2);
-      g.pop();
+      if (this.controlMode === 'MOUSE') {
+        g.push();
+        g.noFill();
+        g.stroke(255, 235, 130, 160);
+        g.strokeWeight(1);
+        g.circle(this.mouseTarget.x, this.mouseTarget.y, this.rayonZoneDeFreinage * 2);
+        g.pop();
+      }
       this.drawDebugVectors(g);
     }
   }

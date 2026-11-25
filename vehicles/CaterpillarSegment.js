@@ -1,8 +1,8 @@
 /**
  * Anneau (segment) du corps ou de la queue de la chenille (sous-classe de Vehicle).
- * Reprend la logique de l'exercice 3-Arrival : chaque anneau suit un point
- * situé à distance fixe (spacing) derrière l'anneau précédent via arrive(),
- * géré par son BehaviorManager.
+ * Reprend exactement la logique cinématique soudée de 3-Arrival/snakeSegment.js :
+ * chaque anneau reste collé à une distance fixe (spacing) derrière le précédent
+ * sans jamais s'étirer ou se détacher dans les virages serrés.
  */
 class CaterpillarSegment extends Vehicle {
   constructor(x, y, assets, isTail = false, index = 0) {
@@ -10,41 +10,30 @@ class CaterpillarSegment extends Vehicle {
     this.assets = assets;
     this.isTail = isTail;
     this.index = index;
-    this.r = isTail ? 5 : 6;
-    this.rayonZoneDeFreinage = 18;
-    this.targetPos = createVector(x, y);
-
-    // Comportement arrive vers le point d'ancrage derrière le segment précédent
-    this.behaviors.add('arrive', (v) => v.arrive(v.targetPos, 0), 1.0, true);
+    this.r = isTail ? 4.5 : 5.5;
+    this.currentHeading = 0;
   }
 
   /**
-   * Suit le segment précédent en maintenant un espacement régulier (spacing).
-   * Combine le steering arrive() du cours avec un rappel doux pour éviter
-   * que les perles de la chenille ne s'étirent trop dans les virages rapides.
+   * Liaison cinématique rigide et collée à l'anneau précédent (identique à 3-Arrival).
    */
-  follow(prevVehicle, spacing = 9) {
-    const toMe = p5.Vector.sub(this.pos, prevVehicle.pos);
-    const d = toMe.mag();
+  follow(prevVehicle, spacing = 8) {
+    const dir = p5.Vector.sub(prevVehicle.pos, this.pos);
+    const currentDist = dir.mag();
 
-    if (d > 0.001) {
-      toMe.setMag(spacing);
-      this.targetPos.set(prevVehicle.pos.x + toMe.x, prevVehicle.pos.y + toMe.y);
-    } else {
-      this.targetPos.set(prevVehicle.pos.x - spacing, prevVehicle.pos.y);
+    if (currentDist > 0.001) {
+      this.currentHeading = dir.heading();
     }
 
-    this.maxSpeed = Math.max(2.0, prevVehicle.maxSpeed * 1.25);
-    this.applyManagedBehaviors();
-    this.update();
-
-    // Contrainte souple pour garder les perles bien collées (style chenille)
-    const afterVec = p5.Vector.sub(this.pos, prevVehicle.pos);
-    const afterDist = afterVec.mag();
-    if (afterDist > spacing * 1.15 && afterDist > 0.001) {
-      afterVec.setMag(spacing);
-      this.pos.set(prevVehicle.pos.x + afterVec.x, prevVehicle.pos.y + afterVec.y);
+    // Contrainte de distance directe : aucun étirement élastique mou
+    if (currentDist > spacing) {
+      const pull = p5.Vector.sub(prevVehicle.pos, dir.copy().setMag(spacing));
+      this.pos.set(pull);
     }
+
+    // Vitesse alignée avec le déplacement pour cohérence Vehicle
+    this.vel = p5.Vector.sub(prevVehicle.pos, this.pos);
+    this.vel.limit(this.maxSpeed);
   }
 
   show(g, colorName = 'green') {
@@ -53,8 +42,7 @@ class CaterpillarSegment extends Vehicle {
       : 'generated/snake/caterpillar_body_' + colorName + '.png';
     const img = this.assets.getImage(file);
 
-    // Petit dandinement sinusoïdal mignon (sans redimensionner les sprites)
-    const wiggle = Math.sin(frameCount * 0.22 - this.index * 0.7) * 1.0;
+    const wiggle = Math.sin(frameCount * 0.2 - this.index * 0.65) * 0.7;
     const ox = Math.round(this.pos.x);
     const oy = Math.round(this.pos.y + wiggle);
 

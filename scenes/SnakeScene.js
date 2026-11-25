@@ -1,401 +1,376 @@
 /**
- * Mini-jeu 2 : Caterpillar Crawl (sous-classe de Scene).
- * Reprend le fonctionnement du Snake de 3-Arrival dans un jardin chaleureux :
- * - Tête de la chenille : arrive(souris) + avoid(obstacles) + boundaries
- * - Segments : arrive() en chaîne derrière le segment précédent
- * - Fruits : baies fixes, fruits timides (flee + wander + avoid), ananas doré (+3),
- *   myrtille (boost vitesse), citron (-1 segment)
- * - Obstacles de jardin (flaques, champignons, rochers) : bonk doux sans mort
- * - Objectif : atteindre 16 segments avant la fin du chrono de 60s -> éclosion en papillon !
+ * Mini-jeu 2 : Caterpillar Crawl — Logique complète du TP 3 (3-Arrival) !
+ * - Démarre à 1 seul anneau et grandit à chaque fruit dévoré.
+ * - 5 niveaux à difficulté croissante (4 -> 12 fruits, vitesse, vision, 0 -> 6 obstacles).
+ * - Contrôle hybride : Flèches / WASD / ZQSD (Snake classique) OU Souris (Arrival),
+ *   commutable à tout moment avec la touche M ou dans le menu Pause.
+ * - Règles classiques du TP 3 : bordures du jardin, auto-collision (dès le 4e anneau)
+ *   et obstacles rocheux/champignons provoquent une fin de manche (ton doux "Try again?").
+ * - Fruits fuyants (evade) protégés contre les 4 coins (avoidCorners + containAndBounce).
+ * - Redémarrage / niveau suivant 100% manuel (ESPACE ou clic, jamais automatique).
  */
 class SnakeScene extends Scene {
+  static LEVELS = [
+    {
+      num: 1,
+      name: 'Sprout Garden',
+      nbFruits: 4,
+      vHead: 1.35,
+      vNorm: 0.55,
+      vEvade: 0.95,
+      vision: 48,
+      obstacles: []
+    },
+    {
+      num: 2,
+      name: 'Dewdrop Patch',
+      nbFruits: 6,
+      vHead: 1.55,
+      vNorm: 0.70,
+      vEvade: 1.15,
+      vision: 58,
+      obstacles: [
+        { rx: 0.28, ry: 0.34, r: 9, kind: 'puddle' },
+        { rx: 0.72, ry: 0.66, r: 9, kind: 'mush_red' }
+      ]
+    },
+    {
+      num: 3,
+      name: 'Mushroom Ring',
+      nbFruits: 8,
+      vHead: 1.75,
+      vNorm: 0.85,
+      vEvade: 1.35,
+      vision: 68,
+      obstacles: [
+        { rx: 0.26, ry: 0.30, r: 9, kind: 'mush_red' },
+        { rx: 0.74, ry: 0.30, r: 9, kind: 'rock_big' },
+        { rx: 0.26, ry: 0.72, r: 9, kind: 'puddle' },
+        { rx: 0.74, ry: 0.72, r: 9, kind: 'mush_purple_b' }
+      ]
+    },
+    {
+      num: 4,
+      name: 'Berry Frenzy',
+      nbFruits: 10,
+      vHead: 1.95,
+      vNorm: 0.95,
+      vEvade: 1.50,
+      vision: 76,
+      obstacles: [
+        { rx: 0.24, ry: 0.30, r: 9, kind: 'rock_big' },
+        { rx: 0.76, ry: 0.30, r: 9, kind: 'mush_red' },
+        { rx: 0.24, ry: 0.72, r: 9, kind: 'mush_purple_b' },
+        { rx: 0.76, ry: 0.72, r: 9, kind: 'puddle' },
+        { rx: 0.50, ry: 0.26, r: 8, kind: 'rock_big' }
+      ]
+    },
+    {
+      num: 5,
+      name: 'Butterfly Bloom',
+      nbFruits: 12,
+      vHead: 2.15,
+      vNorm: 1.05,
+      vEvade: 1.65,
+      vision: 86,
+      obstacles: [
+        { rx: 0.24, ry: 0.28, r: 9, kind: 'mush_red' },
+        { rx: 0.76, ry: 0.28, r: 9, kind: 'rock_big' },
+        { rx: 0.24, ry: 0.74, r: 9, kind: 'puddle' },
+        { rx: 0.76, ry: 0.74, r: 9, kind: 'mush_purple_b' },
+        { rx: 0.50, ry: 0.24, r: 8, kind: 'rock_big' },
+        { rx: 0.50, ry: 0.78, r: 8, kind: 'puddle' }
+      ]
+    }
+  ];
+
   constructor(game) {
     super(game);
-    this.state = 'INTRO'; // 'INTRO' | 'PLAYING' | 'PAUSED' | 'WIN' | 'TIMEUP'
+    this.bounds = [14, 30, 452, 228];
+    this.state = 'INTRO'; // 'INTRO' | 'PLAYING' | 'PAUSED' | 'LEVEL_CLEAR' | 'VICTORY_ALL' | 'CRASH'
     this.seenIntro = false;
 
-    this.targetLength = 16;
-    this.totalTime = 60; // secondes
-    this.timeLeft = this.totalTime;
-    this.fruitsEaten = 0;
+    this.currentLevel = 1;
+    this.controlMode = 'KEYBOARD';
+    this.crashReason = '';
+    this.fruitsEatenLevel = 0;
+    this.totalEatenRun = 0;
 
     this.caterpillar = null;
     this.fruits = [];
     this.obstacles = [];
     this.gardenDecor = [];
     this.fx = [];
-
-    // Animation de victoire (papillon qui sort du cocon)
     this.winButterfly = null;
-    this.cocoonPos = null;
-    this.earnedStars = 0;
-    this.earnedTickets = 0;
 
-    // Boutons des overlays
-    this.startBtn = { x: 185, y: 184, w: 110, h: 22 };
-    this.resumeBtn = { x: 180, y: 112, w: 120, h: 20 };
-    this.restartBtn = { x: 180, y: 138, w: 120, h: 20 };
-    this.exitBtn = { x: 180, y: 164, w: 120, h: 20 };
-    this.retryEndBtn = { x: 130, y: 192, w: 104, h: 22 };
-    this.hubEndBtn = { x: 246, y: 192, w: 104, h: 22 };
+    this.startBtn = { x: 185, y: 186, w: 110, h: 22 };
+    this.resumeBtn = { x: 170, y: 98, w: 140, h: 18 };
+    this.modeBtn = { x: 170, y: 120, w: 140, h: 18 };
+    this.restartBtn = { x: 170, y: 142, w: 140, h: 18 };
+    this.exitBtn = { x: 170, y: 164, w: 140, h: 18 };
+    this.actionEndBtn = { x: 126, y: 190, w: 110, h: 22 };
+    this.hubEndBtn = { x: 246, y: 190, w: 108, h: 22 };
   }
 
   init() {
     this.game.sound.playMusic('snake');
     this.game.sound.playSfx('jingle_snake', 0.7);
-    this.resetRound(!this.seenIntro);
+    this.totalEatenRun = 0;
+    this.loadLevel(1, !this.seenIntro ? 'INTRO' : 'PLAYING');
   }
 
-  resetRound(showIntro = false) {
-    this.state = showIntro ? 'INTRO' : 'PLAYING';
-    this.timeLeft = this.totalTime;
-    this.fruitsEaten = 0;
+  getLevelCfg(num) {
+    return SnakeScene.LEVELS[constrain(num - 1, 0, SnakeScene.LEVELS.length - 1)];
+  }
+
+  loadLevel(num, targetState = 'PLAYING') {
+    this.currentLevel = constrain(num, 1, SnakeScene.LEVELS.length);
+    const cfg = this.getLevelCfg(this.currentLevel);
+
+    this.state = targetState;
+    this.crashReason = '';
+    this.fruitsEatenLevel = 0;
     this.fx = [];
     this.winButterfly = null;
-    this.cocoonPos = null;
-    this.earnedStars = 0;
-    this.earnedTickets = 0;
 
-    // Obstacles fixes du jardin (tous des Obstacle extends Vehicle avec maxSpeed = 0)
-    this.obstacles = [
-      this.makeGardenObstacle(128, 96, 10, 'puddle'),
-      this.makeGardenObstacle(352, 100, 9, 'mush_red'),
-      this.makeGardenObstacle(152, 198, 9, 'rock_big'),
-      this.makeGardenObstacle(332, 194, 10, 'puddle'),
-      this.makeGardenObstacle(240, 148, 8, 'mush_purple_b')
-    ];
+    // Obstacles fixes du niveau (Obstacle extends Vehicle, maxSpeed = 0)
+    const [bx, by, bw, bh] = this.bounds;
+    this.obstacles = cfg.obstacles.map((o) => {
+      const obs = new Obstacle(bx + o.rx * bw, by + o.ry * bh, o.r, o.kind);
+      obs.kind = o.kind;
+      return obs;
+    });
 
-    // Touffes d'herbe et fleurs purement décoratives sur le sol du jardin
+    // Touffes d'herbe et fleurs décoratives
     this.gardenDecor = [];
     const decorSprites = ['tuft_a', 'tuft_b', 'flower_yellow_s', 'flower_pink_s', 'flower_blue'];
-    for (let i = 0; i < 26; i++) {
+    for (let i = 0; i < 22; i++) {
       this.gardenDecor.push({
         sprite: decorSprites[i % decorSprites.length],
-        x: Math.round(random(20, 452)),
-        y: Math.round(random(34, 248))
+        x: Math.round(random(bx + 8, bx + bw - 16)),
+        y: Math.round(random(by + 8, by + bh - 16))
       });
     }
 
-    // Chenille démarrant à gauche du centre (3 segments = longueur 4 avec la tête)
-    this.caterpillar = new Caterpillar(92, 148, 3, this.game.assets);
+    // Chenille démarrant au centre avec 1 SEUL ANNEAU (exactement comme TP 3 !)
+    this.caterpillar = new Caterpillar(bx + bw / 2, by + bh / 2, 1, this.game.assets, this.bounds);
+    this.caterpillar.baseSpeed = cfg.vHead;
+    this.caterpillar.maxSpeed = cfg.vHead;
+    this.caterpillar.setControlMode(this.controlMode);
 
-    // Génération initiale des fruits variés
+    // Génération des fruits du niveau (loin des 4 coins, des obstacles et du centre)
     this.fruits = [];
-    this.spawnFruit('berry');
-    this.spawnFruit('berry');
-    this.spawnFruit('shy');
-    this.spawnFruit('blueberry');
-    this.spawnFruit('golden');
-    this.spawnFruit('lemon');
+    const types = ['berry', 'berry', 'shy', 'blueberry', 'golden'];
+    for (let i = 0; i < cfg.nbFruits; i++) {
+      const pos = this.findSafeFruitPos();
+      const type = types[i % types.length];
+      this.fruits.push(new GardenFruit(pos.x, pos.y, type, this.game.assets, this.bounds));
+    }
   }
 
-  makeGardenObstacle(x, y, r, kind) {
-    const obs = new Obstacle(x, y, r, kind);
-    obs.kind = kind;
-    return obs;
-  }
+  /** Position sûre pour un fruit : loin des 4 coins (> 55 px), des obstacles et de la tête. */
+  findSafeFruitPos() {
+    const [bx, by, bw, bh] = this.bounds;
+    const corners = [
+      createVector(bx, by),
+      createVector(bx + bw, by),
+      createVector(bx, by + bh),
+      createVector(bx + bw, by + bh)
+    ];
 
-  /** Trouve une position sûre dans le jardin (loin des obstacles et de la tête). */
-  findSafePos(minDistFromHead = 52) {
-    for (let attempt = 0; attempt < 60; attempt++) {
-      const x = random(28, 452);
-      const y = random(42, 244);
+    for (let attempt = 0; attempt < 80; attempt++) {
+      const x = random(bx + 26, bx + bw - 26);
+      const y = random(by + 24, by + bh - 24);
       let ok = true;
-
-      for (const obs of this.obstacles) {
-        if (dist(x, y, obs.pos.x, obs.pos.y) < obs.r + 22) {
-          ok = false;
-          break;
-        }
-      }
-      if (ok && this.caterpillar && dist(x, y, this.caterpillar.pos.x, this.caterpillar.pos.y) < minDistFromHead) {
-        ok = false;
+      for (const c of corners) {
+        if (dist(x, y, c.x, c.y) < 58) { ok = false; break; }
       }
       if (ok) {
-        for (const f of this.fruits) {
-          if (dist(x, y, f.pos.x, f.pos.y) < 22) {
-            ok = false;
-            break;
-          }
+        for (const obs of this.obstacles) {
+          if (dist(x, y, obs.pos.x, obs.pos.y) < obs.r + 24) { ok = false; break; }
         }
+      }
+      if (ok && this.caterpillar && dist(x, y, this.caterpillar.pos.x, this.caterpillar.pos.y) < 55) {
+        ok = false;
       }
       if (ok) return createVector(x, y);
     }
-    return createVector(random(40, 440), random(50, 230));
+    return createVector(bx + bw * 0.72, by + bh * 0.5);
   }
 
-  spawnFruit(type) {
-    const pos = this.findSafePos();
-    this.fruits.push(new GardenFruit(pos.x, pos.y, type, this.game.assets));
-  }
-
-  /** Choisit un type de fruit équilibré pour renouveler le jardin. */
-  pickNextFruitType() {
-    const r = random();
-    if (r < 0.42) return 'berry';
-    if (r < 0.65) return 'shy';
-    if (r < 0.80) return 'blueberry';
-    if (r < 0.92) return 'golden';
-    return 'lemon';
-  }
-
-  spawnBurst(x, y, label, col, count = 6, kind = 'sparkle') {
-    for (let i = 0; i < count; i++) {
-      this.fx.push(new SparkleFX(x, y, kind));
+  triggerCrash(reason) {
+    this.state = 'CRASH';
+    this.crashReason = reason;
+    this.game.sound.playSfx('fail_soft', 0.8);
+    for (let i = 0; i < 10; i++) {
+      this.fx.push(new SparkleFX(this.caterpillar.pos.x, this.caterpillar.pos.y, 'sparkle'));
     }
-    if (label) {
-      this.fx.push(new SparkleFX(x, y - 6, 'text', label, col));
-    }
+    this.fx.push(new SparkleFX(this.caterpillar.pos.x, this.caterpillar.pos.y - 8, 'text', 'BONK!', color(255, 130, 145)));
   }
 
   update() {
-    // Mise à jour des effets visuels (même pendant l'écran de victoire)
     for (let i = this.fx.length - 1; i >= 0; i--) {
       this.fx[i].update();
       if (this.fx[i].isDead) this.fx.splice(i, 1);
     }
 
-    if (this.state === 'WIN' && this.winButterfly) {
+    if (this.winButterfly) {
       this.winButterfly.step(null);
-      return;
     }
 
     if (this.state !== 'PLAYING') return;
 
-    // Décompte du chrono (60s)
-    this.timeLeft = Math.max(0, this.timeLeft - deltaTime / 1000);
-    if (this.timeLeft <= 0) {
-      this.finishRound(false);
+    const cfg = this.getLevelCfg(this.currentLevel);
+    const { mx, my } = this.game.getMouseBufferPos();
+
+    // 1. Déplacement de la chenille (clavier ou souris arrive)
+    this.caterpillar.step(mx, my);
+
+    // 2. Vérifications classiques du Snake (TP 3) : murs, auto-collision, obstacles
+    if (this.caterpillar.checkWallCollision()) {
+      this.triggerCrash('Bonked the garden fence!');
+      return;
+    }
+    if (this.caterpillar.checkSelfCollision()) {
+      this.triggerCrash('Tangled in your own tail!');
+      return;
+    }
+    if (this.caterpillar.checkObstacleCollision(this.obstacles)) {
+      this.triggerCrash('Bonked a garden obstacle!');
       return;
     }
 
-    // 1. Déplacement de la chenille vers la souris + évitement d'obstacles
-    const { mx, my } = this.game.getMouseBufferPos();
-    const bonked = this.caterpillar.step(mx, my, this.obstacles);
-    if (bonked) {
-      this.game.sound.playSfx('hit_2', 0.8);
-      this.spawnBurst(this.caterpillar.pos.x, this.caterpillar.pos.y, 'BONK! -1', color(255, 130, 145), 5);
-    }
-
-    // 2. Mise à jour des fruits timides (flee + wander + avoid)
+    // 3. Mise à jour des fruits fuyants (evade + avoidCorners + avoidObstacles)
     for (const f of this.fruits) {
-      f.step(this.caterpillar, this.obstacles);
+      const panicked = f.step(this.caterpillar, this.obstacles, cfg.vNorm, cfg.vEvade, cfg.vision);
+      if (panicked) {
+        this.game.sound.playSfx('squeak_1', 0.35);
+      }
     }
 
-    // 3. Détection de dégustation de fruits
+    // 4. Dégustation des fruits -> la chenille grandit !
     for (let i = this.fruits.length - 1; i >= 0; i--) {
       const f = this.fruits[i];
-      const d = p5.Vector.dist(this.caterpillar.pos, f.pos);
-      if (d < this.caterpillar.r + f.r + 2) {
-        this.handleEatFruit(f);
+      if (p5.Vector.dist(this.caterpillar.pos, f.pos) < this.caterpillar.r + f.r + 3) {
+        const gain = f.type === 'golden' ? 2 : 1;
+        this.caterpillar.grow(gain);
+        if (f.type === 'blueberry') this.caterpillar.activateBoost(180);
+        this.fruitsEatenLevel++;
+        this.totalEatenRun++;
+        this.game.sound.playSfx('squeak_double_1', 0.65);
+
+        for (let k = 0; k < 6; k++) this.fx.push(new SparkleFX(f.pos.x, f.pos.y, 'sparkle'));
+        const lbl = f.type === 'blueberry' ? 'BOOST!' : (gain > 1 ? '+' + gain + ' ★' : 'NOM!');
+        this.fx.push(new SparkleFX(f.pos.x, f.pos.y - 6, 'text', lbl, color(255, 232, 110)));
+
         this.fruits.splice(i, 1);
-
-        // Maintenir toujours assez de bons fruits (et au plus 1 citron)
-        const lemonCount = this.fruits.filter((fr) => fr.type === 'lemon').length;
-        let nextType = this.pickNextFruitType();
-        if (nextType === 'lemon' && lemonCount >= 1) nextType = 'berry';
-        this.spawnFruit(nextType);
       }
     }
 
-    // 4. Victoire dès que la longueur cible est atteinte !
-    if (this.caterpillar.getLength() >= this.targetLength) {
-      this.finishRound(true);
-    }
-  }
-
-  handleEatFruit(fruit) {
-    const x = fruit.pos.x;
-    const y = fruit.pos.y;
-
-    if (fruit.type === 'berry') {
-      this.caterpillar.grow(1);
-      this.fruitsEaten++;
-      this.game.sound.playSfx('squeak_1', 0.7);
-      this.spawnBurst(x, y, '+1', color(223, 240, 187), 5);
-    } else if (fruit.type === 'shy') {
-      this.caterpillar.grow(2);
-      this.fruitsEaten++;
-      this.game.sound.playSfx('squeak_double_1', 0.8);
-      this.spawnBurst(x, y, '+2 SHY!', color(255, 195, 210), 7);
-    } else if (fruit.type === 'golden') {
-      this.caterpillar.grow(3);
-      this.fruitsEaten++;
-      this.game.sound.playSfx('success_bell', 0.8);
-      this.spawnBurst(x, y, '+3 GOLD!', color(255, 232, 110), 10);
-    } else if (fruit.type === 'blueberry') {
-      this.caterpillar.grow(1);
-      this.caterpillar.activateBoost(210);
-      this.fruitsEaten++;
-      this.game.sound.playSfx('squeak_2', 0.8);
-      this.spawnBurst(x, y, 'BOOST!', color(145, 215, 255), 8);
-    } else if (fruit.type === 'lemon') {
-      this.caterpillar.shrink(1);
-      this.game.sound.playSfx('hit_1', 0.7);
-      this.spawnBurst(x, y, 'SOUR! -1', color(255, 220, 95), 5);
-    }
-  }
-
-  finishRound(won) {
-    if (won) {
-      this.state = 'WIN';
-      if (this.timeLeft >= 20) {
-        this.earnedStars = 3;
-        this.earnedTickets = 15;
-      } else if (this.timeLeft >= 10) {
-        this.earnedStars = 2;
-        this.earnedTickets = 10;
-      } else {
-        this.earnedStars = 1;
-        this.earnedTickets = 6;
-      }
-      this.game.save.recordGameResult('snake', this.earnedStars, this.earnedTickets);
+    // 5. Niveau terminé quand tous les fruits du niveau sont mangés !
+    if (this.fruits.length === 0) {
       this.game.sound.playSfx('success_bell', 0.9);
+      this.winButterfly = new HubButterfly(this.caterpillar.pos.x, this.caterpillar.pos.y, this.game.assets);
+      for (let i = 0; i < 20; i++) {
+        this.fx.push(new SparkleFX(this.caterpillar.pos.x, this.caterpillar.pos.y, 'confetti'));
+      }
 
-      // Éclosion du cocon en papillon + pluie de confettis !
-      this.cocoonPos = this.caterpillar.pos.copy();
-      this.winButterfly = new HubButterfly(this.cocoonPos.x, this.cocoonPos.y, this.game.assets);
-      this.winButterfly.maxSpeed = 1.0;
-      this.spawnBurst(this.cocoonPos.x, this.cocoonPos.y, 'BUTTERFLY!', color(255, 232, 110), 26, 'confetti');
-    } else {
-      this.state = 'TIMEUP';
-      this.earnedStars = 0;
-      this.earnedTickets = 2; // Ton bienveillant : toujours un petit bonus
-      this.game.save.addTickets(this.earnedTickets);
-      this.game.sound.playSfx('fail_soft', 0.8);
+      if (this.currentLevel < SnakeScene.LEVELS.length) {
+        this.state = 'LEVEL_CLEAR';
+        const stars = this.currentLevel >= 3 ? 2 : 1;
+        this.game.save.recordGameResult('snake', stars, 4 + this.currentLevel);
+      } else {
+        this.state = 'VICTORY_ALL';
+        this.game.save.recordGameResult('snake', 3, 18);
+      }
     }
   }
 
   draw(g) {
     const assets = this.game.assets;
     const font = assets.font;
+    const [bx, by, bw, bh] = this.bounds;
 
-    // 1. Fond du jardin pastel (herbe douce + bordure en bois)
-    this.drawGardenBackground(g);
-
-    // 2. Obstacles du jardin (flaques, champignons, rochers)
-    for (const obs of this.obstacles) {
-      this.drawGardenObstacle(g, obs);
-      obs.showDebug(g);
-    }
-
-    // 3. Fruits du jardin
-    for (const f of this.fruits) {
-      f.show(g);
-    }
-
-    // 4. Chenille (ou cocon + papillon éclos en cas de victoire)
-    if (this.state === 'WIN' && this.cocoonPos) {
-      g.noStroke();
-      g.fill(235, 224, 185);
-      g.ellipse(Math.round(this.cocoonPos.x), Math.round(this.cocoonPos.y), 14, 10);
-      g.stroke(144, 98, 93);
-      g.strokeWeight(1);
-      g.noFill();
-      g.ellipse(Math.round(this.cocoonPos.x), Math.round(this.cocoonPos.y), 14, 10);
-      if (this.winButterfly) this.winButterfly.show(g);
-    } else if (this.caterpillar) {
-      this.caterpillar.show(g);
-    }
-
-    // 5. Effets (étincelles, confettis, textes flottants)
-    for (const fx of this.fx) {
-      fx.show(g, assets);
-    }
-
-    // 6. HUD supérieur (Chrono, barre de longueur, fruits mangés)
-    this.drawHud(g);
-
-    // 7. Overlays (Intro, Pause, Victoire / Essai encore)
-    if (this.state === 'INTRO') this.drawIntroCard(g);
-    else if (this.state === 'PAUSED') this.drawPauseMenu(g);
-    else if (this.state === 'WIN' || this.state === 'TIMEUP') this.drawEndCard(g);
-
-    if (Vehicle.debug) {
-      PixelUI.drawTag(g, font, 'DEBUG [H]: arrive + avoid + flee', 376, 266, g.color(223, 240, 187));
-    }
-  }
-
-  drawGardenBackground(g) {
-    const assets = this.game.assets;
-    // Pelouse douce en damier discret 16x16
+    // 1. Pelouse du jardin + clôture (murs mortels)
     g.noStroke();
     g.fill(157, 198, 126);
     g.rect(0, 0, 480, 272);
     g.fill(149, 191, 118);
-    for (let y = 24; y < 264; y += 16) {
-      for (let x = 8; x < 472; x += 16) {
-        if (((x + y) / 16) % 2 === 0) {
-          g.rect(x, y, 16, 16);
-        }
+    for (let y = by; y < by + bh; y += 16) {
+      for (let x = bx; x < bx + bw; x += 16) {
+        if (((x - bx + y - by) / 16) % 2 === 0) g.rect(x, y, 16, 16);
       }
     }
 
-    // Cadre boisé autour du jardin
-    g.noFill();
-    g.stroke(107, 75, 91);
-    g.strokeWeight(4);
-    g.rect(10, 26, 460, 236);
-    g.stroke(182, 137, 98);
-    g.strokeWeight(2);
-    g.rect(10, 26, 460, 236);
-
-    // Fleurs et touffes d'herbe décoratives
     for (const dec of this.gardenDecor) {
       const sp = assets.getSprite(dec.sprite);
       if (sp) g.image(sp, dec.x, dec.y);
     }
-  }
 
-  drawGardenObstacle(g, obs) {
-    const px = Math.round(obs.pos.x);
-    const py = Math.round(obs.pos.y);
+    // Bordure du jardin (teinte corail douce pour rappeler que toucher le bord arrête la manche)
+    g.noFill();
+    g.stroke(189, 117, 126);
+    g.strokeWeight(3);
+    g.rect(bx, by, bw, bh);
 
-    if (obs.kind === 'puddle') {
-      g.noStroke();
-      g.fill(130, 192, 214);
-      g.ellipse(px, py, obs.r * 2.2, obs.r * 1.5);
-      g.fill(164, 218, 234);
-      g.ellipse(px - 2, py - 1, obs.r * 1.4, obs.r * 0.8);
-    } else {
-      const sp = this.game.assets.getSprite(obs.kind);
-      if (sp) {
-        g.image(sp, px - Math.floor(sp.width / 2), py - Math.floor(sp.height / 2));
-      } else {
-        g.noStroke();
-        g.fill(160, 130, 120);
-        g.circle(px, py, obs.r * 2);
-      }
+    // En mode debug [H], afficher les 4 arcs d'exclusion des coins (comme TP 3 !)
+    if (Vehicle.debug) {
+      g.push();
+      g.noFill();
+      g.stroke(255, 165, 95, 180);
+      g.strokeWeight(1);
+      const rD = 38 * 2;
+      g.arc(bx, by, rD, rD, 0, HALF_PI);
+      g.arc(bx + bw, by, rD, rD, HALF_PI, PI);
+      g.arc(bx, by + bh, rD, rD, -HALF_PI, 0);
+      g.arc(bx + bw, by + bh, rD, rD, PI, PI + HALF_PI);
+      g.pop();
     }
-  }
 
-  drawHud(g) {
-    const font = this.game.assets.font;
-    const len = this.caterpillar ? this.caterpillar.getLength() : 0;
+    // 2. Obstacles du niveau
+    for (const obs of this.obstacles) {
+      const px = Math.round(obs.pos.x);
+      const py = Math.round(obs.pos.y);
+      if (obs.kind === 'puddle') {
+        g.noStroke();
+        g.fill(130, 192, 214);
+        g.ellipse(px, py, obs.r * 2.2, obs.r * 1.5);
+        g.fill(164, 218, 234);
+        g.ellipse(px - 2, py - 1, obs.r * 1.3, obs.r * 0.8);
+      } else {
+        const sp = assets.getSprite(obs.kind);
+        if (sp) g.image(sp, px - Math.floor(sp.width / 2), py - Math.floor(sp.height / 2));
+      }
+      obs.showDebug(g);
+    }
 
-    // Chrono
-    const secs = Math.ceil(this.timeLeft);
-    const timeCol = secs <= 10 ? g.color(255, 200, 195) : g.color(247, 235, 170);
-    PixelUI.panel(g, 8, 5, 64, 16, timeCol);
-    PixelUI.txt(g, font, 'TIME ' + secs + 's', 14, 8, g.color(107, 75, 91));
+    // 3. Fruits + Chenille + Papillon de victoire + FX
+    for (const f of this.fruits) f.show(g);
+    if (this.caterpillar) this.caterpillar.show(g);
+    if (this.winButterfly) this.winButterfly.show(g);
+    for (const fx of this.fx) fx.show(g, assets);
 
-    // Barre de progression de longueur
-    PixelUI.panel(g, 82, 5, 178, 16);
-    const ratio = constrain(len / this.targetLength, 0, 1);
-    g.noStroke();
-    g.fill(218, 205, 164);
-    g.rect(86, 9, 108, 8);
-    g.fill(128, 198, 114);
-    g.rect(86, 9, Math.round(108 * ratio), 8);
-    PixelUI.txt(g, font, len + '/' + this.targetLength, 200, 8, g.color(107, 75, 91));
+    // 4. HUD supérieur
+    const cfg = this.getLevelCfg(this.currentLevel);
+    PixelUI.panel(g, 8, 5, 114, 16);
+    PixelUI.txt(g, font, 'LVL ' + cfg.num + '/5 ' + cfg.name.split(' ')[0], 13, 8, g.color(107, 75, 91));
 
-    // Compteur de fruits
-    PixelUI.panel(g, 270, 5, 86, 16);
-    PixelUI.txt(g, font, 'FRUIT ' + this.fruitsEaten, 276, 8, g.color(107, 75, 91));
+    PixelUI.panel(g, 130, 5, 86, 16);
+    PixelUI.txt(g, font, 'FRUIT ' + this.fruits.length + '/' + cfg.nbFruits, 136, 8, g.color(107, 75, 91));
 
-    // Indice Pause
-    PixelUI.panel(g, 366, 5, 66, 16);
-    PixelUI.txt(g, font, 'Esc Pause', 371, 8, g.color(144, 98, 93));
+    PixelUI.panel(g, 224, 5, 76, 16);
+    const rings = this.caterpillar ? this.caterpillar.getRingCount() : 1;
+    PixelUI.txt(g, font, 'RINGS: ' + rings, 230, 8, g.color(107, 75, 91));
+
+    PixelUI.panel(g, 308, 5, 108, 16);
+    const modeTxt = this.controlMode === 'KEYBOARD' ? '[M] Arrows' : '[M] Mouse';
+    PixelUI.txt(g, font, modeTxt + ' | Esc', 313, 8, g.color(144, 98, 93));
+
+    if (this.state === 'INTRO') this.drawIntroCard(g);
+    else if (this.state === 'PAUSED') this.drawPauseMenu(g);
+    else if (this.state === 'LEVEL_CLEAR' || this.state === 'VICTORY_ALL' || this.state === 'CRASH') {
+      this.drawEndCard(g);
+    }
   }
 
   drawIntroCard(g) {
@@ -405,27 +380,17 @@ class SnakeScene extends Scene {
     g.fill(0, 0, 0, 115);
     g.rect(0, 0, 480, 272);
 
-    PixelUI.panel(g, 74, 52, 332, 164);
+    PixelUI.panel(g, 68, 50, 344, 166);
     g.fill(122, 174, 112);
-    g.rect(74, 52, 332, 22);
-    PixelUI.txt(g, font, 'CATERPILLAR CRAWL', 240, 58, g.color(243, 244, 231), CENTER);
+    g.rect(68, 50, 344, 22);
+    PixelUI.txt(g, font, 'CATERPILLAR CRAWL (5 LEVELS)', 240, 56, g.color(243, 244, 231), CENTER);
 
-    PixelUI.txt(g, font, 'Guide your caterpillar with the mouse to eat fruit!', 240, 88, g.color(107, 75, 91), CENTER);
-    PixelUI.txt(g, font, 'Reach length ' + this.targetLength + ' in 60s. Watch shy fruit & lemons!', 240, 108, g.color(107, 75, 91), CENTER);
-    PixelUI.txt(g, font, 'Puddles & mushrooms bonk you back (no game over!).', 240, 128, g.color(144, 98, 93), CENTER);
+    PixelUI.txt(g, font, 'Start with 1 ring & eat all fleeing fruit to advance!', 240, 86, g.color(107, 75, 91), CENTER);
+    PixelUI.txt(g, font, 'Arrows/WASD to steer (press M to switch Mouse Arrive).', 240, 106, g.color(107, 75, 91), CENTER);
+    PixelUI.txt(g, font, "Don't hit the fence, obstacles, or your own tail!", 240, 126, g.color(144, 98, 93), CENTER);
+    PixelUI.txt(g, font, 'Fruit stay away from corners so you can catch them!', 240, 150, g.color(107, 75, 91), CENTER);
 
-    // Mini légende colorée
-    PixelUI.txt(g, font, 'Gold=+3  Blue=Boost  Pink=Shy(+2)  Lemon=-1', 240, 152, g.color(107, 75, 91), CENTER);
-
-    PixelUI.drawButton(
-      g,
-      font,
-      this.startBtn,
-      'START (Space)',
-      PixelUI.pointInRect(mx, my, this.startBtn),
-      g.color(223, 240, 187),
-      g.color(200, 232, 150)
-    );
+    PixelUI.drawButton(g, font, this.startBtn, 'START (Space)', PixelUI.pointInRect(mx, my, this.startBtn), g.color(223, 240, 187));
   }
 
   drawPauseMenu(g) {
@@ -435,51 +400,71 @@ class SnakeScene extends Scene {
     g.fill(0, 0, 0, 115);
     g.rect(0, 0, 480, 272);
 
-    PixelUI.panel(g, 148, 72, 184, 128);
-    g.fill(189, 117, 126);
-    g.rect(148, 72, 184, 22);
-    PixelUI.txt(g, font, 'PAUSED', 240, 78, g.color(243, 244, 231), CENTER);
+    PixelUI.panel(g, 138, 66, 204, 140);
+    g.fill(122, 174, 112);
+    g.rect(138, 66, 204, 22);
+    PixelUI.txt(g, font, 'PAUSED — LEVEL ' + this.currentLevel, 240, 72, g.color(243, 244, 231), CENTER);
 
     PixelUI.drawButton(g, font, this.resumeBtn, 'Resume (Esc)', PixelUI.pointInRect(mx, my, this.resumeBtn), g.color(223, 240, 187));
-    PixelUI.drawButton(g, font, this.restartBtn, 'Restart', PixelUI.pointInRect(mx, my, this.restartBtn));
+    const mLbl = this.controlMode === 'KEYBOARD' ? 'Mode: Arrows [M]' : 'Mode: Mouse [M]';
+    PixelUI.drawButton(g, font, this.modeBtn, mLbl, PixelUI.pointInRect(mx, my, this.modeBtn));
+    PixelUI.drawButton(g, font, this.restartBtn, 'Restart Level', PixelUI.pointInRect(mx, my, this.restartBtn));
     PixelUI.drawButton(g, font, this.exitBtn, 'Back to Fair', PixelUI.pointInRect(mx, my, this.exitBtn));
   }
 
   drawEndCard(g) {
     const font = this.game.assets.font;
     const { mx, my } = this.game.getMouseBufferPos();
-    const won = this.state === 'WIN';
+    const isClear = this.state === 'LEVEL_CLEAR';
+    const isAll = this.state === 'VICTORY_ALL';
 
     g.noStroke();
     g.fill(0, 0, 0, 100);
     g.rect(0, 0, 480, 272);
 
-    PixelUI.panel(g, 92, 58, 296, 166);
-    g.fill(won ? g.color(122, 174, 112) : g.color(189, 117, 126));
-    g.rect(92, 58, 296, 22);
-    PixelUI.txt(
-      g,
-      font,
-      won ? 'A BUTTERFLY HATCHED!' : 'SO CLOSE! TRY AGAIN?',
-      240,
-      64,
-      g.color(243, 244, 231),
-      CENTER
-    );
+    PixelUI.panel(g, 84, 58, 312, 164);
+    g.fill(isAll ? g.color(235, 190, 75) : (isClear ? g.color(122, 174, 112) : g.color(189, 117, 126)));
+    g.rect(84, 58, 312, 22);
+    const title = isAll
+      ? 'ALL 5 LEVELS CLEARED!'
+      : (isClear ? 'LEVEL ' + this.currentLevel + ' COMPLETE!' : 'SO CLOSE! TRY AGAIN?');
+    PixelUI.txt(g, font, title, 240, 64, g.color(243, 244, 231), CENTER);
 
-    if (won) {
-      const starStr = '★'.repeat(this.earnedStars) + '☆'.repeat(3 - this.earnedStars);
-      PixelUI.txt(g, font, 'Stars: ' + starStr + '  (' + Math.ceil(this.timeLeft) + 's left)', 240, 96, g.color(107, 75, 91), CENTER);
-      PixelUI.txt(g, font, 'Length reached: ' + this.caterpillar.getLength() + '  |  Fruit: ' + this.fruitsEaten, 240, 120, g.color(144, 98, 93), CENTER);
+    if (isAll) {
+      PixelUI.txt(g, font, 'Butterfly Master! ★★★  (+18 tickets)', 240, 102, g.color(107, 75, 91), CENTER);
+      PixelUI.txt(g, font, 'Total fruit eaten: ' + this.totalEatenRun, 240, 124, g.color(144, 98, 93), CENTER);
+    } else if (isClear) {
+      const nextCfg = this.getLevelCfg(this.currentLevel + 1);
+      PixelUI.txt(g, font, 'Next: Level ' + nextCfg.num + ' - ' + nextCfg.name, 240, 102, g.color(107, 75, 91), CENTER);
+      PixelUI.txt(g, font, '(' + nextCfg.nbFruits + ' fruit, ' + nextCfg.obstacles.length + ' obstacles)', 240, 124, g.color(144, 98, 93), CENTER);
     } else {
-      PixelUI.txt(g, font, 'You reached length ' + this.caterpillar.getLength() + ' / ' + this.targetLength + '!', 240, 102, g.color(107, 75, 91), CENTER);
-      PixelUI.txt(g, font, 'Tip: grab Golden (+3) & Shy (+2) fruit!', 240, 124, g.color(144, 98, 93), CENTER);
+      PixelUI.txt(g, font, this.crashReason, 240, 102, g.color(107, 75, 91), CENTER);
+      PixelUI.txt(g, font, 'Rings reached: ' + this.caterpillar.getRingCount(), 240, 124, g.color(144, 98, 93), CENTER);
     }
 
-    PixelUI.drawTag(g, font, '+' + this.earnedTickets + ' Tickets earned!', 240, 166, g.color(223, 240, 187));
+    PixelUI.txt(g, font, 'Press Space or click below', 240, 162, g.color(144, 98, 93), CENTER);
 
-    PixelUI.drawButton(g, font, this.retryEndBtn, 'Play Again', PixelUI.pointInRect(mx, my, this.retryEndBtn), g.color(223, 240, 187));
+    const primaryLbl = isAll ? 'Play Level 1' : (isClear ? 'Next Level ->' : 'Retry Level');
+    PixelUI.drawButton(g, font, this.actionEndBtn, primaryLbl, PixelUI.pointInRect(mx, my, this.actionEndBtn), g.color(223, 240, 187));
     PixelUI.drawButton(g, font, this.hubEndBtn, 'Back to Fair', PixelUI.pointInRect(mx, my, this.hubEndBtn));
+  }
+
+  toggleControlMode() {
+    this.controlMode = this.controlMode === 'KEYBOARD' ? 'MOUSE' : 'KEYBOARD';
+    if (this.caterpillar) this.caterpillar.setControlMode(this.controlMode);
+    this.game.sound.playSfx('ui_click');
+  }
+
+  handleEndPrimaryAction() {
+    this.game.sound.playSfx('ui_click');
+    if (this.state === 'LEVEL_CLEAR') {
+      this.loadLevel(this.currentLevel + 1, 'PLAYING');
+    } else if (this.state === 'VICTORY_ALL') {
+      this.totalEatenRun = 0;
+      this.loadLevel(1, 'PLAYING');
+    } else if (this.state === 'CRASH') {
+      this.loadLevel(this.currentLevel, 'PLAYING');
+    }
   }
 
   backToHub() {
@@ -496,34 +481,22 @@ class SnakeScene extends Scene {
       }
       return;
     }
-
     if (this.state === 'PAUSED') {
-      if (PixelUI.pointInRect(mx, my, this.resumeBtn)) {
-        this.game.sound.playSfx('ui_click');
-        this.state = 'PLAYING';
-      } else if (PixelUI.pointInRect(mx, my, this.restartBtn)) {
-        this.game.sound.playSfx('ui_click');
-        this.resetRound(false);
-      } else if (PixelUI.pointInRect(mx, my, this.exitBtn)) {
-        this.backToHub();
-      }
+      if (PixelUI.pointInRect(mx, my, this.resumeBtn)) this.state = 'PLAYING';
+      else if (PixelUI.pointInRect(mx, my, this.modeBtn)) this.toggleControlMode();
+      else if (PixelUI.pointInRect(mx, my, this.restartBtn)) this.loadLevel(this.currentLevel, 'PLAYING');
+      else if (PixelUI.pointInRect(mx, my, this.exitBtn)) this.backToHub();
       return;
     }
-
-    if (this.state === 'WIN' || this.state === 'TIMEUP') {
-      if (PixelUI.pointInRect(mx, my, this.retryEndBtn)) {
-        this.game.sound.playSfx('ui_click');
-        this.resetRound(false);
-      } else if (PixelUI.pointInRect(mx, my, this.hubEndBtn)) {
-        this.backToHub();
-      }
+    if (this.state === 'LEVEL_CLEAR' || this.state === 'VICTORY_ALL' || this.state === 'CRASH') {
+      if (PixelUI.pointInRect(mx, my, this.actionEndBtn)) this.handleEndPrimaryAction();
+      else if (PixelUI.pointInRect(mx, my, this.hubEndBtn)) this.backToHub();
     }
   }
 
   keyPressed(k, kc) {
     if (this.state === 'INTRO') {
       if (k === ' ' || kc === ENTER) {
-        this.game.sound.playSfx('ui_click');
         this.seenIntro = true;
         this.state = 'PLAYING';
       } else if (kc === ESCAPE) {
@@ -533,21 +506,37 @@ class SnakeScene extends Scene {
     }
 
     if (kc === ESCAPE) {
-      if (this.state === 'PLAYING') {
-        this.game.sound.playSfx('ui_click');
-        this.state = 'PAUSED';
-      } else if (this.state === 'PAUSED') {
-        this.game.sound.playSfx('ui_click');
-        this.state = 'PLAYING';
-      } else {
-        this.backToHub();
+      if (this.state === 'PLAYING') this.state = 'PAUSED';
+      else if (this.state === 'PAUSED') this.state = 'PLAYING';
+      else this.backToHub();
+      return;
+    }
+
+    if (k === 'm' || k === 'M') {
+      this.toggleControlMode();
+      return;
+    }
+
+    if (this.state === 'PLAYING') {
+      if (kc === UP_ARROW || k === 'z' || k === 'Z' || k === 'w' || k === 'W') {
+        this.controlMode = 'KEYBOARD';
+        this.caterpillar.setDirection(0, -1);
+      } else if (kc === DOWN_ARROW || k === 's' || k === 'S') {
+        this.controlMode = 'KEYBOARD';
+        this.caterpillar.setDirection(0, 1);
+      } else if (kc === LEFT_ARROW || k === 'q' || k === 'Q' || k === 'a' || k === 'A') {
+        this.controlMode = 'KEYBOARD';
+        this.caterpillar.setDirection(-1, 0);
+      } else if (kc === RIGHT_ARROW || k === 'd' || k === 'D') {
+        this.controlMode = 'KEYBOARD';
+        this.caterpillar.setDirection(1, 0);
       }
       return;
     }
 
-    if ((this.state === 'WIN' || this.state === 'TIMEUP') && (k === ' ' || kc === ENTER)) {
-      this.game.sound.playSfx('ui_click');
-      this.resetRound(false);
+    if ((this.state === 'LEVEL_CLEAR' || this.state === 'VICTORY_ALL' || this.state === 'CRASH')
+        && (k === ' ' || kc === ENTER)) {
+      this.handleEndPrimaryAction();
     }
   }
 }
