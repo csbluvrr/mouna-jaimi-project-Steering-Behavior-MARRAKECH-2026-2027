@@ -17,7 +17,6 @@ canvas {
   image-rendering: -webkit-crisp-edges;
   image-rendering: pixelated;
   image-rendering: crisp-edges;
-  box-shadow: 0 14px 42px rgba(0, 0, 0, 0.55);
 }
 
 /* Bouton Plein Écran assorti à la palette bois pastel Sprout Lands */

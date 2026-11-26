@@ -27,27 +27,14 @@ const game = {
 };
 
 /**
- * Calcule la meilleure taille d'affichage nette (respectant exactement 480:272).
- * Utilise un facteur entier si possible pour des pixels 100% uniformes,
- * sinon s'adapte proprement à la fenêtre en gardant le ratio exact.
+ * Remplit toujours tout l'écran (largeur et hauteur complètes de la fenêtre)
+ * sans bandes sombres sur les côtés, tout en conservant le rendu pixel-art net.
  */
 function computeCrispCanvasSize() {
-  const maxW = window.innerWidth;
-  const maxH = window.innerHeight;
-  const exactScale = Math.min(maxW / BUFFER_W, maxH / BUFFER_H);
-  const intScale = Math.floor(exactScale);
-
-  // Si un facteur entier couvre >= 78% de la fenêtre, on le préfère pour des pixels parfaits
-  if (intScale >= 1 && intScale / exactScale >= 0.78) {
-    displayScale = intScale;
-  } else {
-    displayScale = exactScale;
-  }
-
-  return {
-    w: Math.round(BUFFER_W * displayScale),
-    h: Math.round(BUFFER_H * displayScale)
-  };
+  const w = Math.max(1, window.innerWidth);
+  const h = Math.max(1, window.innerHeight);
+  displayScale = Math.min(w / BUFFER_W, h / BUFFER_H);
+  return { w, h };
 }
 
 function applyPixelCrispness() {
