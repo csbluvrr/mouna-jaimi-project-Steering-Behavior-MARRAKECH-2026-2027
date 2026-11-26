@@ -19,6 +19,10 @@ class Caterpillar extends Vehicle {
     this.baseSpeed = 1.5;
     this.boostFrames = 0;
 
+    // Virages instantanés au clavier par défaut (sans inertie molle),
+    // désactivable dans le panneau debug [H] pour tester maxForce.
+    this.instantTurn = true;
+
     // Mode de contrôle : 'KEYBOARD' (flèches par défaut, comme TP 3) ou 'MOUSE' (arrive)
     this.controlMode = 'KEYBOARD';
     this.direction = createVector(1, 0);
@@ -120,8 +124,16 @@ class Caterpillar extends Vehicle {
       this.maxSpeed = this.baseSpeed;
     }
 
-    this.applyManagedBehaviors();
-    this.update();
+    if (this.controlMode === 'KEYBOARD' && this.instantTurn) {
+      // Mouvement direct et net au clavier par défaut (réactivité Snake classique)
+      this.vel.set(this.direction.x * this.maxSpeed, this.direction.y * this.maxSpeed);
+      this.acc.set(0, 0);
+      this.pos.add(this.vel);
+    } else {
+      // Pilotage par force de steering (mode Souris arrive ou si Force Max activée en debug)
+      this.applyManagedBehaviors();
+      this.update();
+    }
 
     // Suivi soudé des anneaux (identique à 3-Arrival/snake.js)
     for (let i = 0; i < this.segments.length; i++) {

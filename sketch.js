@@ -148,8 +148,12 @@ function windowResized() {
 
 function mousePressed(event) {
   if (!game.assets.ready) return;
-  // Ignorer les clics sur le bouton Fullscreen ou le panneau latéral Bunny Derby
-  if (event && event.target && (event.target.id === 'fullscreen-btn' || event.target.closest('#derby-panel'))) {
+  // Ignorer les clics sur le bouton Fullscreen ou les panneaux latéraux (Derby / Debug)
+  if (event && event.target && (
+    event.target.id === 'fullscreen-btn' ||
+    event.target.closest('#derby-panel') ||
+    event.target.closest('.debug-side-panel')
+  )) {
     return;
   }
   const { mx, my } = game.getMouseBufferPos();

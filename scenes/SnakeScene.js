@@ -101,6 +101,20 @@ class SnakeScene extends Scene {
     this.fruitsEatenLevel = 0;
     this.totalEatenRun = 0;
 
+    // Paramètres dynamiques réglables via le panneau debug [H] (identiques au TP 3)
+    this.tuning = {
+      instantTurn: true,
+      vHead: 1.35,
+      maxForce: 0.16,
+      slowingRadius: 26,
+      spacing: 8,
+      startRings: 1,
+      vNorm: 0.55,
+      vEvade: 0.95,
+      vision: 48
+    };
+    this.debugPanelEl = null;
+
     this.caterpillar = null;
     this.fruits = [];
     this.obstacles = [];
@@ -121,7 +135,15 @@ class SnakeScene extends Scene {
     this.game.sound.playMusic('snake');
     this.game.sound.playSfx('jingle_snake', 0.7);
     this.totalEatenRun = 0;
+    this.createDebugPanel();
     this.loadLevel(1, !this.seenIntro ? 'INTRO' : 'PLAYING');
+  }
+
+  cleanup() {
+    if (this.debugPanelEl) {
+      this.debugPanelEl.remove();
+      this.debugPanelEl = null;
+    }
   }
 
   getLevelCfg(num) {
@@ -157,10 +179,21 @@ class SnakeScene extends Scene {
       });
     }
 
-    // Chenille démarrant au centre avec 1 SEUL ANNEAU (exactement comme TP 3 !)
-    this.caterpillar = new Caterpillar(bx + bw / 2, by + bh / 2, 1, this.game.assets, this.bounds);
-    this.caterpillar.baseSpeed = cfg.vHead;
-    this.caterpillar.maxSpeed = cfg.vHead;
+    // Synchroniser les réglages par défaut du niveau dans le panneau debug
+    this.tuning.vHead = cfg.vHead;
+    this.tuning.vNorm = cfg.vNorm;
+    this.tuning.vEvade = cfg.vEvade;
+    this.tuning.vision = cfg.vision;
+    this.syncDebugPanelValues();
+
+    // Chenille démarrant au centre avec 1 SEUL ANNEAU (ou valeur du slider debug)
+    this.caterpillar = new Caterpillar(bx + bw / 2, by + bh / 2, this.tuning.startRings, this.game.assets, this.bounds);
+    this.caterpillar.instantTurn = this.tuning.instantTurn;
+    this.caterpillar.baseSpeed = this.tuning.vHead;
+    this.caterpillar.maxSpeed = this.tuning.vHead;
+    this.caterpillar.maxForce = this.tuning.maxForce;
+    this.caterpillar.rayonZoneDeFreinage = this.tuning.slowingRadius;
+    this.caterpillar.spacing = this.tuning.spacing;
     this.caterpillar.setControlMode(this.controlMode);
 
     // Génération des bons fruits fuyants + fruits pourris immobiles du niveau
@@ -218,6 +251,11 @@ class SnakeScene extends Scene {
   }
 
   update() {
+    // Afficher ou masquer le panneau de sliders uniquement quand le mode debug [H] est actif
+    if (this.debugPanelEl) {
+      this.debugPanelEl.style.display = Vehicle.debug ? 'flex' : 'none';
+    }
+
     for (let i = this.fx.length - 1; i >= 0; i--) {
       this.fx[i].update();
       if (this.fx[i].isDead) this.fx.splice(i, 1);
@@ -229,10 +267,16 @@ class SnakeScene extends Scene {
 
     if (this.state !== 'PLAYING') return;
 
-    const cfg = this.getLevelCfg(this.currentLevel);
     const { mx, my } = this.game.getMouseBufferPos();
 
-    // 1. Déplacement de la chenille (clavier ou souris arrive)
+    // Appliquer en direct les curseurs du panneau debug [H]
+    this.caterpillar.instantTurn = this.tuning.instantTurn;
+    this.caterpillar.baseSpeed = this.tuning.vHead;
+    this.caterpillar.maxForce = this.tuning.maxForce;
+    this.caterpillar.rayonZoneDeFreinage = this.tuning.slowingRadius;
+    this.caterpillar.spacing = this.tuning.spacing;
+
+    // 1. Déplacement de la chenille (instantané au clavier par défaut, ou steering force)
     this.caterpillar.step(mx, my);
 
     // 2. Vérifications classiques du Snake (TP 3) : murs, auto-collision, obstacles
@@ -251,7 +295,7 @@ class SnakeScene extends Scene {
 
     // 3. Mise à jour des fruits fuyants (evade + avoidCorners + avoidObstacles)
     for (const f of this.fruits) {
-      const panicked = f.step(this.caterpillar, this.obstacles, cfg.vNorm, cfg.vEvade, cfg.vision);
+      const panicked = f.step(this.caterpillar, this.obstacles, this.tuning.vNorm, this.tuning.vEvade, this.tuning.vision);
       if (panicked) {
         this.game.sound.playSfx('squeak_1', 0.35);
       }
@@ -504,6 +548,112 @@ class SnakeScene extends Scene {
     const primaryLbl = isAll ? 'Play Level 1' : (isClear ? 'Next Level ->' : 'Retry Level');
     PixelUI.drawButton(g, font, this.actionEndBtn, primaryLbl, PixelUI.pointInRect(mx, my, this.actionEndBtn), g.color(223, 240, 187));
     PixelUI.drawButton(g, font, this.hubEndBtn, 'Back to Fair', PixelUI.pointInRect(mx, my, this.hubEndBtn));
+  }
+
+  /** Crée le panneau de curseurs TP 3 (visible uniquement quand Debug [H] est activé). */
+  createDebugPanel() {
+    if (this.debugPanelEl) this.debugPanelEl.remove();
+    const el = document.createElement('div');
+    el.id = 'snake-debug-panel';
+    el.className = 'debug-side-panel';
+    el.style.display = Vehicle.debug ? 'flex' : 'none';
+    el.innerHTML = `
+      <div class="dp-title">SNAKE DEBUG [H]</div>
+      <div class="dp-row">
+        <button id="sd-mode" class="dp-btn">Mode: Arrows</button>
+      </div>
+      <label class="dp-check">
+        <input id="sd-instant" type="checkbox" checked> Instant Keyboard Turn
+      </label>
+      <label>Speed: <span id="sd-v-head">${this.tuning.vHead}</span>
+        <input id="sd-head" type="range" min="0.8" max="3.5" step="0.05" value="${this.tuning.vHead}">
+      </label>
+      <label>Max Force: <span id="sd-v-force">${this.tuning.maxForce}</span>
+        <input id="sd-force" type="range" min="0.04" max="0.6" step="0.02" value="${this.tuning.maxForce}">
+      </label>
+      <label>Slow Radius: <span id="sd-v-slow">${this.tuning.slowingRadius}</span>
+        <input id="sd-slow" type="range" min="10" max="80" step="2" value="${this.tuning.slowingRadius}">
+      </label>
+      <label>Ring Gap: <span id="sd-v-gap">${this.tuning.spacing}</span>
+        <input id="sd-gap" type="range" min="5" max="16" step="1" value="${this.tuning.spacing}">
+      </label>
+      <label>Start Rings: <span id="sd-v-rings">${this.tuning.startRings}</span>
+        <input id="sd-rings" type="range" min="1" max="10" step="1" value="${this.tuning.startRings}">
+      </label>
+      <label>Fruit Speed: <span id="sd-v-fnorm">${this.tuning.vNorm}</span>
+        <input id="sd-fnorm" type="range" min="0.2" max="2.0" step="0.05" value="${this.tuning.vNorm}">
+      </label>
+      <label>Fruit Evade: <span id="sd-v-fevade">${this.tuning.vEvade}</span>
+        <input id="sd-fevade" type="range" min="0.4" max="2.6" step="0.05" value="${this.tuning.vEvade}">
+      </label>
+      <label>Fruit Vision: <span id="sd-v-fvis">${this.tuning.vision}</span>
+        <input id="sd-fvis" type="range" min="20" max="140" step="4" value="${this.tuning.vision}">
+      </label>
+      <div class="dp-row">
+        <button class="dp-btn" data-lv="1">L1</button>
+        <button class="dp-btn" data-lv="2">L2</button>
+        <button class="dp-btn" data-lv="3">L3</button>
+        <button class="dp-btn" data-lv="4">L4</button>
+        <button class="dp-btn" data-lv="5">L5</button>
+      </div>
+    `;
+    document.body.appendChild(el);
+    this.debugPanelEl = el;
+
+    const bind = (sel, lbl, key, onExtra) => {
+      const inp = el.querySelector(sel);
+      inp.addEventListener('input', () => {
+        this.tuning[key] = Number(inp.value);
+        el.querySelector(lbl).textContent = inp.value;
+        if (onExtra) onExtra();
+      });
+    };
+
+    bind('#sd-head', '#sd-v-head', 'vHead');
+    bind('#sd-force', '#sd-v-force', 'maxForce', () => {
+      // Si l'utilisateur ajuste Max Force, on désactive le virage instantané pour sentir la force
+      this.tuning.instantTurn = false;
+      el.querySelector('#sd-instant').checked = false;
+    });
+    bind('#sd-slow', '#sd-v-slow', 'slowingRadius');
+    bind('#sd-gap', '#sd-v-gap', 'spacing');
+    bind('#sd-rings', '#sd-v-rings', 'startRings', () => this.loadLevel(this.currentLevel, 'PLAYING'));
+    bind('#sd-fnorm', '#sd-v-fnorm', 'vNorm');
+    bind('#sd-fevade', '#sd-v-fevade', 'vEvade');
+    bind('#sd-fvis', '#sd-v-fvis', 'vision');
+
+    el.querySelector('#sd-instant').addEventListener('change', (e) => {
+      this.tuning.instantTurn = e.target.checked;
+    });
+    el.querySelector('#sd-mode').onclick = () => {
+      this.toggleControlMode();
+      this.syncDebugPanelValues();
+    };
+    el.querySelectorAll('[data-lv]').forEach((btn) => {
+      btn.onclick = () => this.loadLevel(Number(btn.getAttribute('data-lv')), 'PLAYING');
+    });
+  }
+
+  syncDebugPanelValues() {
+    if (!this.debugPanelEl) return;
+    const setVal = (sel, lbl, val) => {
+      const inp = this.debugPanelEl.querySelector(sel);
+      if (inp) inp.value = val;
+      const sp = this.debugPanelEl.querySelector(lbl);
+      if (sp) sp.textContent = val;
+    };
+    setVal('#sd-head', '#sd-v-head', this.tuning.vHead);
+    setVal('#sd-force', '#sd-v-force', this.tuning.maxForce);
+    setVal('#sd-slow', '#sd-v-slow', this.tuning.slowingRadius);
+    setVal('#sd-gap', '#sd-v-gap', this.tuning.spacing);
+    setVal('#sd-rings', '#sd-v-rings', this.tuning.startRings);
+    setVal('#sd-fnorm', '#sd-v-fnorm', this.tuning.vNorm);
+    setVal('#sd-fevade', '#sd-v-fevade', this.tuning.vEvade);
+    setVal('#sd-fvis', '#sd-v-fvis', this.tuning.vision);
+    const modeBtn = this.debugPanelEl.querySelector('#sd-mode');
+    if (modeBtn) modeBtn.textContent = this.controlMode === 'KEYBOARD' ? 'Mode: Arrows' : 'Mode: Mouse';
+    const inst = this.debugPanelEl.querySelector('#sd-instant');
+    if (inst) inst.checked = this.tuning.instantTurn;
   }
 
   toggleControlMode() {

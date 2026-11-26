@@ -49,8 +49,9 @@ canvas {
   box-shadow: inset 0 0 0 2px #b68962, 0 1px 0 #6b4b5b;
 }
 
-/* Panneau latéral de réglage pour Bunny Derby (palette bois Sprout Lands) */
-#derby-panel {
+/* Panneaux latéraux de réglage (Bunny Derby & Snake Debug [H], palette bois Sprout Lands) */
+#derby-panel,
+.debug-side-panel {
   position: fixed;
   top: 52px;
   right: 14px;
@@ -70,7 +71,8 @@ canvas {
   box-shadow: inset 0 0 0 2px #b68962, 0 5px 0 #6b4b5b;
 }
 
-#derby-panel .dp-title {
+#derby-panel .dp-title,
+.debug-side-panel .dp-title {
   text-align: center;
   font-weight: 700;
   font-size: 12px;
@@ -81,7 +83,8 @@ canvas {
 }
 
 #derby-panel .dp-tabs,
-#derby-panel .dp-row {
+#derby-panel .dp-row,
+.debug-side-panel .dp-row {
   display: flex;
   gap: 4px;
 }
@@ -94,22 +97,32 @@ canvas {
   text-align: center;
 }
 
-#derby-panel label {
+#derby-panel label,
+.debug-side-panel label {
   display: flex;
   flex-direction: column;
   gap: 2px;
   font-weight: 700;
 }
 
+.debug-side-panel label.dp-check {
+  flex-direction: row;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+}
+
 #derby-panel input[type="range"],
-#derby-panel select {
+#derby-panel select,
+.debug-side-panel input[type="range"] {
   width: 100%;
   accent-color: #bd757e;
   font-family: monospace;
   font-size: 11px;
 }
 
-#derby-panel .dp-btn {
+#derby-panel .dp-btn,
+.debug-side-panel .dp-btn {
   flex: 1;
   font-family: monospace;
   font-size: 11px;
@@ -121,7 +134,8 @@ canvas {
   cursor: pointer;
 }
 
-#derby-panel .dp-btn:hover {
+#derby-panel .dp-btn:hover,
+.debug-side-panel .dp-btn:hover {
   background: #dff0bb;
 }
 
