@@ -18,6 +18,7 @@ const game = {
   save: null,
   sound: null,
   scenes: null,
+  pauseMenu: null,
   viewW: BUFFER_W,
   viewH: BUFFER_H,
   offsetX: 0,
@@ -149,10 +150,28 @@ function applyPixelCrispness() {
   }
 }
 
+/** Verrouille Échap en plein écran (Chrome/Opera/Edge) pour ouvrir le menu au lieu de quitter le plein écran. */
+function lockEscapeInFullscreen() {
+  if (navigator.keyboard && typeof navigator.keyboard.lock === 'function') {
+    navigator.keyboard.lock(['Escape']).catch(() => {});
+  }
+}
+
+function unlockEscapeFromFullscreen() {
+  if (navigator.keyboard && typeof navigator.keyboard.unlock === 'function') {
+    try {
+      navigator.keyboard.unlock();
+    } catch (e) {}
+  }
+}
+
 function toggleFullscreen() {
   if (!document.fullscreenElement) {
-    document.documentElement.requestFullscreen().catch(() => {});
+    document.documentElement.requestFullscreen()
+      .then(() => lockEscapeInFullscreen())
+      .catch(() => {});
   } else {
+    unlockEscapeFromFullscreen();
     document.exitFullscreen().catch(() => {});
   }
 }
@@ -172,8 +191,20 @@ function setupFullscreenButton() {
   });
 
   document.addEventListener('fullscreenchange', () => {
+    if (document.fullscreenElement) {
+      lockEscapeInFullscreen();
+    } else {
+      unlockEscapeFromFullscreen();
+    }
     updateLabel();
     setTimeout(windowResized, 60);
+  });
+
+  // Empêcher le comportement navigateur par défaut sur Échap (géré par notre menu pause)
+  window.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+      e.preventDefault();
+    }
   });
 
   updateLabel();
@@ -194,6 +225,7 @@ function setup() {
   game.assets = new AssetManager();
   game.sound = new SoundManager(ASSET_BASE);
   game.scenes = new SceneManager();
+  game.pauseMenu = new PauseMenu(game);
 
   // Enregistrement de toutes les scènes du jeu (Title, Hub et les 4 mini-jeux)
   game.scenes.register('title', new TitleScene(game));
@@ -224,7 +256,10 @@ function draw() {
     return;
   }
 
-  game.scenes.update();
+  // Met le jeu en pause tant que le menu Échap est ouvert
+  if (!game.pauseMenu || !game.pauseMenu.open) {
+    game.scenes.update();
+  }
 
   const cur = game.scenes.current;
   if (cur && cur.usesWideCamera) {
@@ -239,6 +274,11 @@ function draw() {
     g.translate(game.offsetX, game.offsetY);
     game.scenes.draw(g);
     g.pop();
+  }
+
+  // Menu pause global dessiné par-dessus la scène
+  if (game.pauseMenu && game.pauseMenu.open) {
+    game.pauseMenu.draw(g);
   }
 
   image(g, 0, 0, width, height);
@@ -261,6 +301,15 @@ function mousePressed(event) {
   )) {
     return;
   }
+
+  // Si le menu Échap est ouvert, il intercepte les clics
+  if (game.pauseMenu && game.pauseMenu.open) {
+    const rawX = (mouseX / Math.max(1, width)) * game.viewW;
+    const rawY = (mouseY / Math.max(1, height)) * game.viewH;
+    game.pauseMenu.mousePressed(rawX, rawY);
+    return;
+  }
+
   const { mx, my } = game.getMouseBufferPos();
   const cur = game.scenes.current;
   if (cur && cur.usesWideCamera) {
@@ -280,9 +329,33 @@ function keyPressed() {
     return false;
   }
 
+  // Touche Échap : ferme un sous-panneau éventuel, sinon ouvre/ferme le menu pause
+  // (sans jamais quitter le plein écran grâce à Keyboard Lock API)
+  if (keyCode === ESCAPE) {
+    const cur = game.scenes.current;
+    if (cur && cur.showCredits) {
+      cur.showCredits = false;
+      return false;
+    }
+    if (cur && cur.overlay) {
+      cur.overlay = false;
+      return false;
+    }
+    if (game.pauseMenu) {
+      game.pauseMenu.toggle();
+    }
+    return false;
+  }
+
   // Touche H : bascule globale du mode debug des Steering Behaviors (évite conflit avec D/WASD)
   if (key === 'h' || key === 'H') {
     Vehicle.debug = !Vehicle.debug;
+  }
+
+  // Si le menu Échap est ouvert, la navigation clavier reste dans le menu
+  if (game.pauseMenu && game.pauseMenu.open) {
+    game.pauseMenu.keyPressed(key, keyCode);
+    return false;
   }
 
   game.scenes.keyPressed(key, keyCode);
