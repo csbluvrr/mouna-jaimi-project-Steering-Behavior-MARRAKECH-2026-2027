@@ -567,6 +567,7 @@ class SnakeScene extends Scene {
       <div class="dp-title">SNAKE DEBUG [H]</div>
       <div class="dp-row">
         <button id="sd-mode" class="dp-btn">Mode: Arrows</button>
+        <button id="sd-pause" class="dp-btn">Pause [P]</button>
       </div>
       <label class="dp-check">
         <input id="sd-instant" type="checkbox" checked> Instant Keyboard Turn
@@ -635,9 +636,23 @@ class SnakeScene extends Scene {
       this.toggleControlMode();
       this.syncDebugPanelValues();
     };
+    el.querySelector('#sd-pause').onclick = () => {
+      this.togglePause();
+    };
     el.querySelectorAll('[data-lv]').forEach((btn) => {
       btn.onclick = () => this.loadLevel(Number(btn.getAttribute('data-lv')), 'PLAYING');
     });
+  }
+
+  togglePause() {
+    if (this.state === 'PLAYING') {
+      this.game.sound.playSfx('ui_click');
+      this.state = 'PAUSED';
+    } else if (this.state === 'PAUSED') {
+      this.game.sound.playSfx('ui_click');
+      this.state = 'PLAYING';
+    }
+    this.syncDebugPanelValues();
   }
 
   syncDebugPanelValues() {
@@ -658,8 +673,14 @@ class SnakeScene extends Scene {
     setVal('#sd-fvis', '#sd-v-fvis', this.tuning.vision);
     const modeBtn = this.debugPanelEl.querySelector('#sd-mode');
     if (modeBtn) modeBtn.textContent = this.controlMode === 'KEYBOARD' ? 'Mode: Arrows' : 'Mode: Mouse';
+    const pauseBtn = this.debugPanelEl.querySelector('#sd-pause');
+    if (pauseBtn) pauseBtn.textContent = this.state === 'PAUSED' ? 'Resume [P]' : 'Pause [P]';
     const inst = this.debugPanelEl.querySelector('#sd-instant');
     if (inst) inst.checked = this.tuning.instantTurn;
+    this.debugPanelEl.querySelectorAll('[data-lv]').forEach((btn) => {
+      const lv = Number(btn.getAttribute('data-lv'));
+      btn.classList.toggle('dp-active', lv === this.currentLevel);
+    });
   }
 
   toggleControlMode() {
@@ -719,10 +740,21 @@ class SnakeScene extends Scene {
     }
 
     if (kc === ESCAPE) {
-      if (this.state === 'PLAYING') this.state = 'PAUSED';
-      else if (this.state === 'PAUSED') this.state = 'PLAYING';
+      if (this.state === 'PLAYING' || this.state === 'PAUSED') this.togglePause();
       else this.backToHub();
       return;
+    }
+
+    // En mode debug [H], la touche P met en pause / reprend et 1-5 sélectionne un niveau
+    if (Vehicle.debug) {
+      if (k === 'p' || k === 'P') {
+        this.togglePause();
+        return;
+      }
+      if (k >= '1' && k <= '5') {
+        this.loadLevel(parseInt(k, 10), 'PLAYING');
+        return;
+      }
     }
 
     if (k === 'm' || k === 'M') {
