@@ -17,9 +17,15 @@ class DerbyScene extends Scene {
     this.seenIntro = false;
 
     this.meta = null;
+    this.trackImg = null;
     this.maskPixels = null;
     this.maskW = 640;
     this.maskH = 360;
+    this.trackId = 'clover'; // 'clover' (défaut complexe) | 'twister' | 'classic'
+    this.spectators = [];
+    this.balloons = [];
+    this.pond = null;
+    this.pollen = [];
 
     // Paramètres neuro-évolution réglables par les curseurs (slides 53 & 56)
     this.config = {
@@ -56,26 +62,80 @@ class DerbyScene extends Scene {
   init() {
     this.game.sound.playMusic('derby');
     this.game.sound.playSfx('jingle_derby', 0.7);
-    this.meta = this.game.assets.derbyMeta;
 
-    // Extraire les pixels du masque de collision une seule fois (performance 60 FPS)
-    const maskImg = this.game.assets.getImage('derby/track_01_mask.png');
-    if (maskImg) {
-      maskImg.loadPixels();
-      this.maskPixels = maskImg.pixels;
-      this.maskW = maskImg.width;
-      this.maskH = maskImg.height;
+    // Petits grains de pollen flottants pour un circuit vivant
+    this.pollen = [];
+    for (let i = 0; i < 14; i++) {
+      this.pollen.push({
+        x: random(12, 468),
+        y: random(24, 260),
+        vx: random(-0.12, 0.16),
+        vy: random(-0.08, 0.08),
+        phase: random(TWO_PI)
+      });
     }
 
     this.hayObstacles = [];
     this.fx = [];
     this.createSidePanel();
-    this.startTraining(true);
+    this.loadTrack(this.trackId, true);
     this.state = this.seenIntro ? 'RUNNING' : 'INTRO';
+  }
+
+  /** Charge un des 3 circuits (Clover S-Curve, Twister Pro, ou Meadow Classic). */
+  loadTrack(trackId, resetStats = true) {
+    this.trackId = trackId;
+    if (this.trackImg && typeof this.trackImg.remove === 'function') {
+      this.trackImg.remove();
+      this.trackImg = null;
+    }
+
+    if (trackId === 'classic') {
+      this.meta = this.game.assets.derbyMeta;
+      this.trackImg = this.game.assets.getImage('derby/track_01.png');
+      const maskImg = this.game.assets.getImage('derby/track_01_mask.png');
+      if (maskImg) {
+        maskImg.loadPixels();
+        this.maskPixels = maskImg.pixels;
+        this.maskW = maskImg.width;
+        this.maskH = maskImg.height;
+      }
+      this.spectators = [
+        { x: 280, y: 175, colour: 'peach', phase: 0.4, facingLeft: false },
+        { x: 320, y: 165, colour: 'mint', phase: 1.8, facingLeft: true },
+        { x: 350, y: 180, colour: 'lavender', phase: 3.1, facingLeft: true }
+      ];
+      this.balloons = [
+        { x: 36, y: 54, sprite: 'balloon_red', phase: 0 },
+        { x: 600, y: 54, sprite: 'balloon_blue', phase: 1.5 },
+        { x: 594, y: 310, sprite: 'balloon_yellow', phase: 3.0 }
+      ];
+      this.pond = null;
+    } else {
+      const built = TrackBuilder.buildCustomTrack(trackId, this.game.assets);
+      this.meta = built;
+      this.trackImg = built.trackImg;
+      this.maskPixels = built.maskPixels;
+      this.maskW = built.maskW;
+      this.maskH = built.maskH;
+      this.spectators = built.spectators;
+      this.balloons = built.balloons;
+      this.pond = built.pond;
+    }
+
+    if (this.mode === 'RACE') {
+      this.startRaceDay();
+    } else {
+      this.startTraining(resetStats);
+    }
   }
 
   cleanup() {
     this.disposePopulation();
+    if (this.trackImg && typeof this.trackImg.remove === 'function') {
+      this.trackImg.remove();
+      this.trackImg = null;
+    }
     if (this.panelEl) {
       this.panelEl.remove();
       this.panelEl = null;
@@ -317,11 +377,10 @@ class DerbyScene extends Scene {
   draw(g) {
     const assets = this.game.assets;
     const font = assets.font;
-    const trackImg = assets.getImage('derby/track_01.png');
 
     // 1. Piste de course (640x360 mappé proprement sur 480x272)
-    if (trackImg) {
-      g.image(trackImg, 0, 0, 480, 272);
+    if (this.trackImg) {
+      g.image(this.trackImg, 0, 0, 480, 272);
     } else {
       g.background(148, 188, 126);
     }
@@ -329,11 +388,45 @@ class DerbyScene extends Scene {
     const scaleX = 480 / this.maskW;
     const scaleY = 272 / this.maskH;
 
+    // Ondes animées dans la mare centrale du circuit
+    if (this.pond) {
+      const px = Math.round(this.pond.x * scaleX);
+      const py = Math.round(this.pond.y * scaleY);
+      const rip = (frameCount * 0.25) % 24;
+      g.noFill();
+      g.stroke(235, 250, 255, map(rip, 0, 24, 170, 0));
+      g.strokeWeight(1);
+      g.ellipse(px, py, rip * 1.4, rip * 0.8);
+    }
+
+    // Guirlandes festives animées le long du haut de la piste
+    for (let gx = 4; gx < 476; gx += 16) {
+      const sp = assets.getSprite((gx / 16) % 2 === 0 ? 'bunting_a' : 'bunting_b');
+      if (sp) g.image(sp, gx, 18 + Math.round(Math.sin(frameCount * 0.05 + gx * 0.05) * 0.6));
+    }
+
+    // Lapins spectateurs qui sautillent et encouragent les coureurs !
+    for (const spc of this.spectators) {
+      const sx = Math.round(spc.x * scaleX);
+      const sy = Math.round(spc.y * scaleY);
+      const hop = Math.abs(Math.sin(frameCount * 0.14 + spc.phase)) * -3;
+      const frameCol = Math.floor(frameCount / 10 + spc.phase) % 4;
+      const img = assets.getSheetFrame('sprites/bunny/bunny_' + spc.colour + '.png', 32, 32, frameCol, 0);
+      g.push();
+      g.translate(sx, Math.round(sy + hop));
+      if (spc.facingLeft) g.scale(-1, 1);
+      if (img) g.image(img, -16, -27);
+      g.pop();
+    }
+
     // Drapeau de départ/arrivée
     if (this.meta) {
       const flag = assets.getImage('generated/derby/finish_flag.png');
       const [sx, sy] = this.meta.start;
-      if (flag) g.image(flag, Math.round(sx * scaleX) - 6, Math.round(sy * scaleY) - 18);
+      if (flag) {
+        const wave = Math.round(Math.sin(frameCount * 0.12) * 0.7);
+        g.image(flag, Math.round(sx * scaleX) - 6 + wave, Math.round(sy * scaleY) - 18);
+      }
     }
 
     // Bottes de foin placées au clic (évitement avoid)
@@ -349,10 +442,31 @@ class DerbyScene extends Scene {
       }
     }
 
-    // 2. Lapins coureurs + rayons capteurs du leader
+    // 2. Lapins coureurs + rayons capteurs du leader + petite poussière derrière le leader
     const leader = this.getLeaderBunny();
+    if (leader && !leader.dead && this.state === 'RUNNING' && frameCount % 7 === 0) {
+      this.fx.push(new SparkleFX(leader.pos.x * scaleX, leader.pos.y * scaleY + 2, 'sparkle'));
+    }
     for (const b of this.bunnies) {
       b.show(g, scaleX, scaleY, b === leader, (this.showRays || Vehicle.debug) && b === leader);
+    }
+
+    // Ballons colorés qui flottent autour du circuit + pollen doré
+    for (const bl of this.balloons) {
+      const bsp = assets.getSprite(bl.sprite);
+      if (bsp) {
+        const bx = Math.round(bl.x * scaleX);
+        const by = Math.round(bl.y * scaleY + Math.sin(frameCount * 0.06 + bl.phase) * 2);
+        g.image(bsp, bx - Math.floor(bsp.width / 2), by - Math.floor(bsp.height / 2));
+      }
+    }
+    g.noStroke();
+    for (const p of this.pollen) {
+      p.x = (p.x + p.vx + 480) % 480;
+      p.y = 22 + ((p.y - 22 + p.vy + 244) % 244);
+      const a = 90 + Math.sin(frameCount * 0.08 + p.phase) * 80;
+      g.fill(255, 246, 185, a);
+      g.rect(Math.round(p.x), Math.round(p.y), 2, 2);
     }
 
     // 3. Mini visualisation du réseau de neurones du leader (en bas à gauche)
@@ -448,6 +562,13 @@ class DerbyScene extends Scene {
         <button id="dp-tab-train" class="dp-btn dp-active">Training</button>
         <button id="dp-tab-race" class="dp-btn">Race Day</button>
       </div>
+      <label>Track:
+        <select id="dp-track">
+          <option value="clover" selected>Clover S-Curve (Hard)</option>
+          <option value="twister">Twister Pro (Expert)</option>
+          <option value="classic">Meadow Classic (Easy)</option>
+        </select>
+      </label>
       <div class="dp-stats" id="dp-stats">Gen 1 | Best: 0</div>
       <label>Rays: <span id="dp-v-rays">${this.config.rayCount}</span>
         <input id="dp-rays" type="range" min="3" max="11" step="2" value="${this.config.rayCount}">
@@ -507,6 +628,9 @@ class DerbyScene extends Scene {
     el.querySelector('#dp-act').addEventListener('change', (e) => {
       this.config.activation = e.target.value;
       if (this.mode === 'TRAINING') this.startTraining(true);
+    });
+    el.querySelector('#dp-track').addEventListener('change', (e) => {
+      this.loadTrack(e.target.value, true);
     });
 
     el.querySelector('#dp-tab-train').onclick = () => {
