@@ -41,7 +41,7 @@ class AssetManager {
       data.friends.forEach((f) => files.add(f.sheet));
 
       // Personnages & éléments d'ambiance du hub + écran titre
-      files.add('sprites/moo/moo_sheet.png');
+      files.add('sprites/moo/better sprite.png');
       files.add('sprites/ducklings/duckling_sheet.png');
       files.add('generated/ambient/butterfly_2frames_12x10.png');
       files.add('generated/hub/stamp_empty_full_16x16.png');

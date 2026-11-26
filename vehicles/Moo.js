@@ -122,13 +122,16 @@ class Moo extends Vehicle {
   }
 
   show(g) {
-    // Cycle de marche 4 frames (2, 0, 3, 0) ou clignement d'yeux au repos
-    const walkCycle = [2, 0, 3, 0];
+    // Cycle de marche adapté à better sprite.png (4x4 cellules 32x40) :
+    // - Haut/Bas (lignes 0 et 3) : [2, 0, 3, 0]
+    // - Gauche/Droite (lignes 1 et 2) : [1, 2, 3, 0]
+    // - Repos : clignement d'yeux sur la ligne 0 (face)
+    const walkCycle = (this.dir === 1 || this.dir === 2) ? [1, 2, 3, 0] : [2, 0, 3, 0];
     const col = this.isMoving
       ? walkCycle[Math.floor(frameCount / 7) % 4]
-      : (Math.floor(frameCount / 90) % 4 === 3 ? 1 : 0);
+      : (this.dir === 0 && Math.floor(frameCount / 90) % 4 === 3 ? 1 : 0);
 
-    const img = this.assets.getSheetFrame('sprites/moo/moo_sheet.png', 32, 40, col, this.dir);
+    const img = this.assets.getSheetFrame('sprites/moo/better sprite.png', 32, 40, col, this.dir);
     if (img) {
       g.image(img, Math.round(this.pos.x) - 16, Math.round(this.pos.y) - 40);
     }
