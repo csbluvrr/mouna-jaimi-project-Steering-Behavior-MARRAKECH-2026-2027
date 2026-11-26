@@ -162,7 +162,7 @@ class PauseMenu {
     PixelUI.txt(
       g,
       font,
-      'Esc: Resume  |  F: Fullscreen',
+      'Esc / M: Resume  |  F: Fullscreen',
       px + Math.round(panelW / 2),
       py + panelH - 14,
       g.color(144, 98, 93),

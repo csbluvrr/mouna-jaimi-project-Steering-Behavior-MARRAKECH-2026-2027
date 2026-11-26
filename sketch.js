@@ -336,9 +336,9 @@ function keyPressed() {
     return false;
   }
 
-  // Touche Échap : ferme un sous-panneau éventuel, sinon ouvre/ferme le menu pause
+  // Touches Échap ou M : ferme un sous-panneau éventuel, sinon ouvre/ferme le menu pause
   // (sans jamais quitter le plein écran grâce à Keyboard Lock API)
-  if (keyCode === ESCAPE) {
+  if (keyCode === ESCAPE || key === 'm' || key === 'M') {
     const cur = game.scenes.current;
     if (cur && cur.showCredits) {
       cur.showCredits = false;

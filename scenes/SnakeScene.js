@@ -920,7 +920,7 @@ class SnakeScene extends Scene {
       }
     }
 
-    if (k === 'm' || k === 'M') {
+    if (k === 'c' || k === 'C') {
       this.toggleControlMode();
       return;
     }
