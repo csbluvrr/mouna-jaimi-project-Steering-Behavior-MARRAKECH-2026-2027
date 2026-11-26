@@ -119,8 +119,13 @@ class SnakeScene extends Scene {
     this.fruits = [];
     this.obstacles = [];
     this.gardenDecor = [];
+    this.pollen = [];
+    this.dirtPatches = [];
     this.fx = [];
     this.winButterfly = null;
+    this.shakeFrames = 0;
+    this.shakeMag = 0;
+    this.bannerFrames = 0;
 
     this.startBtn = { x: 185, y: 186, w: 110, h: 22 };
     this.resumeBtn = { x: 170, y: 98, w: 140, h: 18 };
@@ -168,16 +173,43 @@ class SnakeScene extends Scene {
       return obs;
     });
 
-    // Touffes d'herbe et fleurs décoratives
+    // Touffes d'herbe et fleurs décoratives (animées par une douce brise)
     this.gardenDecor = [];
-    const decorSprites = ['tuft_a', 'tuft_b', 'flower_yellow_s', 'flower_pink_s', 'flower_blue'];
-    for (let i = 0; i < 22; i++) {
+    const decorSprites = ['tuft_a', 'tuft_b', 'flower_yellow_s', 'flower_pink_s', 'flower_blue', 'flower_yellow', 'flower_pink'];
+    for (let i = 0; i < 30; i++) {
       this.gardenDecor.push({
         sprite: decorSprites[i % decorSprites.length],
-        x: Math.round(random(bx + 8, bx + bw - 16)),
-        y: Math.round(random(by + 8, by + bh - 16))
+        x: Math.round(random(bx + 10, bx + bw - 18)),
+        y: Math.round(random(by + 10, by + bh - 18)),
+        phase: random(TWO_PI)
       });
     }
+
+    // Petits îlots de terre douce dans la pelouse pour casser la monotonie
+    this.dirtPatches = [];
+    for (let i = 0; i < 6; i++) {
+      this.dirtPatches.push({
+        x: Math.round(random(bx + 36, bx + bw - 36)),
+        y: Math.round(random(by + 28, by + bh - 28)),
+        w: Math.round(random(24, 46)),
+        h: Math.round(random(12, 22))
+      });
+    }
+
+    // Pollen / lucioles d'ambiance dérivant lentement au-dessus du jardin
+    this.pollen = [];
+    for (let i = 0; i < 16; i++) {
+      this.pollen.push({
+        x: random(bx + 8, bx + bw - 8),
+        y: random(by + 8, by + bh - 8),
+        vx: random(-0.14, 0.18),
+        vy: random(-0.12, 0.08),
+        phase: random(TWO_PI)
+      });
+    }
+
+    this.bannerFrames = 110;
+    this.shakeFrames = 0;
 
     // Synchroniser les réglages par défaut du niveau dans le panneau debug
     this.tuning.vHead = cfg.vHead;
@@ -243,6 +275,8 @@ class SnakeScene extends Scene {
   triggerCrash(reason) {
     this.state = 'CRASH';
     this.crashReason = reason;
+    this.shakeFrames = 14;
+    this.shakeMag = 3;
     this.game.sound.playSfx('fail_soft', 0.8);
     for (let i = 0; i < 10; i++) {
       this.fx.push(new SparkleFX(this.caterpillar.pos.x, this.caterpillar.pos.y, 'sparkle'));
@@ -254,6 +288,20 @@ class SnakeScene extends Scene {
     // Afficher ou masquer le panneau de sliders uniquement quand le mode debug [H] est actif
     if (this.debugPanelEl) {
       this.debugPanelEl.style.display = Vehicle.debug ? 'flex' : 'none';
+    }
+
+    if (this.shakeFrames > 0) this.shakeFrames--;
+    if (this.bannerFrames > 0 && this.state === 'PLAYING') this.bannerFrames--;
+
+    // Dérive douce du pollen / lucioles d'ambiance
+    const [bx, by, bw, bh] = this.bounds;
+    for (const p of this.pollen) {
+      p.x += p.vx + Math.sin(frameCount * 0.03 + p.phase) * 0.08;
+      p.y += p.vy + Math.cos(frameCount * 0.025 + p.phase) * 0.06;
+      if (p.x < bx + 4) p.x = bx + bw - 4;
+      if (p.x > bx + bw - 4) p.x = bx + 4;
+      if (p.y < by + 4) p.y = by + bh - 4;
+      if (p.y > by + bh - 4) p.y = by + 4;
     }
 
     for (let i = this.fx.length - 1; i >= 0; i--) {
@@ -278,6 +326,12 @@ class SnakeScene extends Scene {
 
     // 1. Déplacement de la chenille (instantané au clavier par défaut, ou steering force)
     this.caterpillar.step(mx, my);
+
+    // Discrète traînée étincelante pendant le boost myrtille
+    if (this.caterpillar.boostFrames > 0 && frameCount % 5 === 0) {
+      const tail = this.caterpillar.segments[this.caterpillar.segments.length - 1] || this.caterpillar;
+      this.fx.push(new SparkleFX(tail.pos.x, tail.pos.y, 'sparkle'));
+    }
 
     // 2. Vérifications classiques du Snake (TP 3) : murs, auto-collision, obstacles
     if (this.caterpillar.checkWallCollision()) {
@@ -322,6 +376,8 @@ class SnakeScene extends Scene {
           if (f.type === 'blueberry') this.caterpillar.activateBoost(180);
           this.fruitsEatenLevel++;
           this.totalEatenRun++;
+          this.shakeFrames = 5;
+          this.shakeMag = 1.2;
           this.game.sound.playSfx('squeak_double_1', 0.65);
 
           for (let k = 0; k < 6; k++) this.fx.push(new SparkleFX(f.pos.x, f.pos.y, 'sparkle'));
@@ -358,27 +414,105 @@ class SnakeScene extends Scene {
     const font = assets.font;
     const [bx, by, bw, bh] = this.bounds;
 
-    // 1. Pelouse du jardin + clôture (murs mortels)
+    g.push();
+    if (this.shakeFrames > 0) {
+      g.translate(Math.round(random(-this.shakeMag, this.shakeMag)), Math.round(random(-this.shakeMag, this.shakeMag)));
+    }
+
+    // 1. Palette d'ambiance dynamique par niveau (du matin printanier au jardin luciole !)
+    const themes = [
+      { bg: [134, 178, 108], c1: [160, 202, 128], c2: [151, 195, 120], dirt: [216, 194, 146], tint: null },
+      { bg: [122, 174, 122], c1: [148, 196, 140], c2: [140, 188, 132], dirt: [204, 192, 148], tint: [110, 200, 220, 14] },
+      { bg: [142, 176, 104], c1: [168, 200, 120], c2: [159, 192, 113], dirt: [218, 190, 138], tint: [255, 220, 130, 16] },
+      { bg: [146, 162, 108], c1: [172, 188, 122], c2: [163, 180, 114], dirt: [216, 180, 138], tint: [245, 155, 120, 22] },
+      { bg: [110, 134, 120], c1: [134, 164, 136], c2: [126, 156, 128], dirt: [190, 168, 148], tint: [130, 92, 175, 28] }
+    ];
+    const th = themes[constrain(this.currentLevel - 1, 0, themes.length - 1)];
+
+    // Fond extérieur + pelouse en damier organique
     g.noStroke();
-    g.fill(157, 198, 126);
+    g.fill(th.bg[0], th.bg[1], th.bg[2]);
     g.rect(0, 0, 480, 272);
-    g.fill(149, 191, 118);
+    g.fill(th.c1[0], th.c1[1], th.c1[2]);
+    g.rect(bx, by, bw, bh);
+    g.fill(th.c2[0], th.c2[1], th.c2[2]);
     for (let y = by; y < by + bh; y += 16) {
       for (let x = bx; x < bx + bw; x += 16) {
         if (((x - bx + y - by) / 16) % 2 === 0) g.rect(x, y, 16, 16);
       }
     }
 
-    for (const dec of this.gardenDecor) {
-      const sp = assets.getSprite(dec.sprite);
-      if (sp) g.image(sp, dec.x, dec.y);
+    // Petits îlots de terre douce
+    g.fill(th.dirt[0], th.dirt[1], th.dirt[2], 125);
+    for (const dp of this.dirtPatches) {
+      g.ellipse(dp.x, dp.y, dp.w, dp.h);
     }
 
-    // Bordure du jardin (teinte corail douce pour rappeler que toucher le bord arrête la manche)
+    // Fleurs et herbes qui se balancent doucement dans la brise
+    for (const dec of this.gardenDecor) {
+      const sp = assets.getSprite(dec.sprite);
+      if (sp) {
+        const sway = Math.round(Math.sin(frameCount * 0.045 + dec.phase) * 0.8);
+        g.image(sp, dec.x + sway, dec.y);
+      }
+    }
+
+    // Ombre intérieure douce sous la clôture supérieure
+    g.noStroke();
+    g.fill(68, 96, 62, 55);
+    g.rect(bx + 2, by + 2, bw - 4, 4);
+
+    // Clôture en bois illustrée + poteaux d'angle (style Sprout Lands)
     g.noFill();
-    g.stroke(189, 117, 126);
-    g.strokeWeight(3);
-    g.rect(bx, by, bw, bh);
+    g.stroke(107, 75, 91);
+    g.strokeWeight(5);
+    g.rect(bx - 1, by - 1, bw + 2, bh + 2);
+    g.stroke(182, 137, 98);
+    g.strokeWeight(2);
+    g.rect(bx - 1, by - 1, bw + 2, bh + 2);
+
+    // Poteaux de clôture réguliers sur les bords
+    g.noStroke();
+    const posts = [
+      [bx - 3, by - 3], [bx + bw - 3, by - 3],
+      [bx - 3, by + bh - 3], [bx + bw - 3, by + bh - 3]
+    ];
+    for (const [px, py] of posts) {
+      g.fill(107, 75, 91);
+      g.rect(px, py, 6, 6);
+      g.fill(218, 174, 126);
+      g.rect(px + 1, py + 1, 4, 4);
+    }
+
+    // Alerte visuelle dynamique sur le bord le plus proche quand la chenille s'approche d'un mur !
+    if (this.caterpillar && this.state === 'PLAYING') {
+      const warnDist = 26;
+      const hx = this.caterpillar.pos.x;
+      const hy = this.caterpillar.pos.y;
+      g.strokeWeight(2);
+      if (hx - bx < warnDist) {
+        g.stroke(235, 70, 90, map(hx - bx, 0, warnDist, 240, 0, true));
+        g.line(bx + 1, by + 2, bx + 1, by + bh - 2);
+      }
+      if (bx + bw - hx < warnDist) {
+        g.stroke(235, 70, 90, map(bx + bw - hx, 0, warnDist, 240, 0, true));
+        g.line(bx + bw - 1, by + 2, bx + bw - 1, by + bh - 2);
+      }
+      if (hy - by < warnDist) {
+        g.stroke(235, 70, 90, map(hy - by, 0, warnDist, 240, 0, true));
+        g.line(bx + 2, by + 1, bx + bw - 2, by + 1);
+      }
+      if (by + bh - hy < warnDist) {
+        g.stroke(235, 70, 90, map(by + bh - hy, 0, warnDist, 240, 0, true));
+        g.line(bx + 2, by + bh - 1, bx + bw - 2, by + bh - 1);
+      }
+    }
+
+    // Petites guirlandes festives en haut de l'arène
+    for (let gx = bx + 4; gx < bx + bw - 16; gx += 16) {
+      const sp = assets.getSprite(((gx - bx) / 16) % 2 === 0 ? 'bunting_a' : 'bunting_b');
+      if (sp) g.image(sp, gx, by - 4 + Math.round(Math.sin(frameCount * 0.05 + gx * 0.05) * 0.6));
+    }
 
     // En mode debug [H], afficher les 4 arcs d'exclusion des coins (comme TP 3 !)
     if (Vehicle.debug) {
@@ -427,13 +561,18 @@ class SnakeScene extends Scene {
       }
       g.pop();
 
-      // Sprite de l'obstacle au centre
+      // Sprite de l'obstacle au centre (avec petite onde animée pour les flaques)
       if (obs.kind === 'puddle') {
         g.noStroke();
         g.fill(130, 192, 214);
         g.ellipse(px, py, obs.r * 2.0, obs.r * 1.4);
         g.fill(164, 218, 234);
         g.ellipse(px - 2, py - 1, obs.r * 1.2, obs.r * 0.7);
+        const rip = (frameCount * 0.2 + px) % (obs.r * 1.6);
+        g.noFill();
+        g.stroke(235, 250, 255, map(rip, 0, obs.r * 1.6, 170, 0));
+        g.strokeWeight(1);
+        g.ellipse(px, py, rip, rip * 0.65);
       } else {
         const sp = assets.getSprite(obs.kind);
         if (sp) g.image(sp, px - Math.floor(sp.width / 2), py - Math.floor(sp.height / 2));
@@ -450,14 +589,38 @@ class SnakeScene extends Scene {
       obs.showDebug(g);
     }
 
-    // 3. Fruits + Chenille + Papillon de victoire + FX
+    // 3. Ombres sous les fruits + Fruits + Chenille + Papillon de victoire + FX
+    g.noStroke();
+    g.fill(68, 96, 62, 70);
+    for (const f of this.fruits) {
+      g.ellipse(Math.round(f.pos.x), Math.round(f.pos.y) + 6, 10, 4);
+    }
     for (const f of this.fruits) f.show(g);
     if (this.caterpillar) this.caterpillar.show(g);
     if (this.winButterfly) this.winButterfly.show(g);
     for (const fx of this.fx) fx.show(g, assets);
 
-    // 4. HUD supérieur
+    // 3.5. Pollen doré / lucioles flottantes + léger voile d'ambiance du niveau
+    g.noStroke();
+    for (const p of this.pollen) {
+      const a = 110 + Math.sin(frameCount * 0.09 + p.phase) * 90;
+      g.fill(255, 246, 185, a);
+      g.rect(Math.round(p.x), Math.round(p.y), 2, 2);
+    }
+    if (th.tint) {
+      g.fill(th.tint[0], th.tint[1], th.tint[2], th.tint[3]);
+      g.rect(bx, by, bw, bh);
+    }
+
+    g.pop();
+
+    // Bannière animée de début de niveau
     const cfg = this.getLevelCfg(this.currentLevel);
+    if (this.bannerFrames > 0 && this.state === 'PLAYING') {
+      PixelUI.drawTag(g, font, 'LEVEL ' + cfg.num + ' — ' + cfg.name.toUpperCase(), 240, 52, g.color(247, 235, 170));
+    }
+
+    // 4. HUD supérieur
     const goodLeft = this.fruits.filter((f) => f.type !== 'rotten').length;
     PixelUI.panel(g, 8, 5, 114, 16);
     PixelUI.txt(g, font, 'LVL ' + cfg.num + '/5 ' + cfg.name.split(' ')[0], 13, 8, g.color(107, 75, 91));

@@ -192,6 +192,15 @@ class Caterpillar extends Vehicle {
   show(g) {
     const colName = this.getActiveColor();
 
+    // Ombres douces au sol sous chaque anneau et la tête pour donner du relief
+    g.noStroke();
+    g.fill(68, 96, 62, 85);
+    for (let i = this.segments.length - 1; i >= 0; i--) {
+      const seg = this.segments[i];
+      g.ellipse(Math.round(seg.pos.x), Math.round(seg.pos.y) + 5, seg.r * 1.9, seg.r * 0.9);
+    }
+    g.ellipse(Math.round(this.pos.x), Math.round(this.pos.y) + 6, 13, 6);
+
     // Dessin de la queue vers la tête
     for (let i = this.segments.length - 1; i >= 0; i--) {
       this.segments[i].show(g, colName);
