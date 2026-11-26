@@ -149,22 +149,26 @@ function applyPixelCrispness() {
   }
 }
 
+function toggleFullscreen() {
+  if (!document.fullscreenElement) {
+    document.documentElement.requestFullscreen().catch(() => {});
+  } else {
+    document.exitFullscreen().catch(() => {});
+  }
+}
+
 function setupFullscreenButton() {
   const btn = document.getElementById('fullscreen-btn');
   if (!btn) return;
 
   const updateLabel = () => {
     const isFS = Boolean(document.fullscreenElement);
-    btn.textContent = isFS ? '[x] Exit Fullscreen' : '[ ] Fullscreen';
+    btn.textContent = isFS ? '[F] Exit Fullscreen' : '[F] Fullscreen';
   };
 
   btn.addEventListener('click', (e) => {
     e.stopPropagation();
-    if (!document.fullscreenElement) {
-      document.documentElement.requestFullscreen().catch(() => {});
-    } else {
-      document.exitFullscreen().catch(() => {});
-    }
+    toggleFullscreen();
   });
 
   document.addEventListener('fullscreenchange', () => {
@@ -269,6 +273,12 @@ function mousePressed(event) {
 
 function keyPressed() {
   if (!game.assets.ready) return;
+
+  // Touche F : bascule plein écran
+  if (key === 'f' || key === 'F') {
+    toggleFullscreen();
+    return false;
+  }
 
   // Touche H : bascule globale du mode debug des Steering Behaviors (évite conflit avec D/WASD)
   if (key === 'h' || key === 'H') {
