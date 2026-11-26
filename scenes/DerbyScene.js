@@ -286,8 +286,11 @@ class DerbyScene extends Scene {
 
     const steps = this.mode === 'TRAINING' ? this.speedMult : 1;
     const cps = this.meta.checkpoints_in_order;
+    const t0 = performance.now();
 
     for (let s = 0; s < steps; s++) {
+      // Budget temps par frame (10ms max) pour garantir 60 FPS même en 20x
+      if (s > 0 && performance.now() - t0 > 10) break;
       let aliveCount = 0;
       let finishedCount = 0;
 
@@ -537,7 +540,7 @@ class DerbyScene extends Scene {
     g.noStroke();
     for (let i = 0; i < inCount; i++) {
       const val = bunny.lastInputs[i] || 0;
-      g.fill(lerpColor(g.color(220, 90, 100), g.color(110, 195, 110), val));
+      g.fill(220 - 110 * val, 90 + 105 * val, 100 + 10 * val);
       g.circle(xIn, 214 + (i * 42) / Math.max(1, inCount - 1), 4);
     }
     g.fill(107, 75, 91);
@@ -546,7 +549,7 @@ class DerbyScene extends Scene {
     }
     for (let k = 0; k < outCount; k++) {
       const ov = bunny.lastOutputs[k] || 0.5;
-      g.fill(lerpColor(g.color(120, 160, 220), g.color(245, 200, 80), ov));
+      g.fill(120 + 125 * ov, 160 + 40 * ov, 220 - 140 * ov);
       g.circle(xOut, 224 + k * 22, 5);
     }
   }

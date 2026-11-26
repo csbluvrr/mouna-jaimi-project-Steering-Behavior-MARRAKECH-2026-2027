@@ -211,10 +211,16 @@ function setupFullscreenButton() {
 }
 
 function setup() {
-  // Utiliser le ratio physique de l'écran sur le canvas principal pour éviter le flou DPI Windows
-  pixelDensity(Math.min(2, window.devicePixelRatio || 1));
+  // Backend CPU pour TensorFlow.js (comme l'exemple 9 du cours : évite les blocages WebGL)
+  if (typeof tf !== 'undefined' && typeof tf.setBackend === 'function') {
+    tf.setBackend('cpu').catch(() => {});
+  }
+
+  // pixelDensity(1) + nearest-neighbor : pixel-art 100% net et 3-4x plus rapide à 60 FPS !
+  pixelDensity(1);
   const vp = computeViewportLayout();
   createCanvas(vp.canvasW, vp.canvasH);
+  applyPixelCrispness();
 
   // Buffer interne basse résolution (pixels carrés 1:1, aucun lissage)
   rebuildOffscreenBuffer(vp.viewW, vp.viewH);
@@ -242,8 +248,9 @@ function setup() {
 }
 
 function draw() {
-  applyPixelCrispness();
-  background(43, 35, 48);
+  if (drawingContext && drawingContext.imageSmoothingEnabled) {
+    drawingContext.imageSmoothingEnabled = false;
+  }
 
   if (!game.assets.ready) {
     g.background(140, 178, 128);

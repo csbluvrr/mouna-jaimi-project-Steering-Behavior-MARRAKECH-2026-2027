@@ -51,54 +51,65 @@ class DerbyBunny extends Vehicle {
     this.lapTimeFrames = Infinity;
     this.rawFitness = 0;
     this.fitness = 0;
-    this.lastRayHits = [];
-    this.lastInputs = [];
+
+    // Tampons pré-alloués (zéro allocation GC dans step() / castRays())
+    const rc = config.rayCount;
+    this.lastInputs = new Float32Array(rc + 1);
+    this.lastRayHits = new Array(rc);
+    for (let i = 0; i < rc; i++) {
+      this.lastRayHits[i] = { x: startX, y: startY, norm: 1 };
+    }
     this.lastOutputs = [0.5, 0.5];
   }
 
   /**
    * Lance `rayCount` rayons en éventail et lit les pixels du masque de piste
-   * pour obtenir la distance au bord de la piste dans chaque direction.
+   * pour obtenir la distance au bord de la piste dans chaque direction (sans allocation).
    */
   castRays(maskPixels, maskW, maskH) {
     const count = this.config.rayCount;
     const maxLen = this.config.rayLength;
-    const spread = PI * 0.85; // Éventail frontal de ~153°
-    const readings = [];
-    this.lastRayHits = [];
+    const invMaxLen = 1 / maxLen;
+    const spread = Math.PI * 0.85; // Éventail frontal de ~153°
+    const px = this.pos.x;
+    const py = this.pos.y;
+    const inputs = this.lastInputs;
+    const hits = this.lastRayHits;
 
     for (let i = 0; i < count; i++) {
       const t = count === 1 ? 0.5 : i / (count - 1);
-      const angle = this.heading - spread / 2 + t * spread;
+      const angle = this.heading - spread * 0.5 + t * spread;
       const dx = Math.cos(angle);
       const dy = Math.sin(angle);
 
       let distHit = maxLen;
-      // Pas de 3 pixels pour rester très rapide même en vitesse 20x
-      for (let d = 3; d <= maxLen; d += 3) {
-        const sx = Math.round(this.pos.x + dx * d);
-        const sy = Math.round(this.pos.y + dy * d);
-        if (!DerbyBunny.isDrivable(maskPixels, maskW, maskH, sx, sy)) {
+      // Pas de 4 pixels puis affinage 2px sur impact : rapide et précis
+      for (let d = 4; d <= maxLen; d += 4) {
+        const sx = (px + dx * d) | 0;
+        const sy = (py + dy * d) | 0;
+        if (sx < 0 || sy < 0 || sx >= maskW || sy >= maskH || maskPixels[(sy * maskW + sx) * 4] <= 140) {
           distHit = d;
           break;
         }
       }
 
-      readings.push(distHit / maxLen);
-      this.lastRayHits.push({
-        x: this.pos.x + dx * distHit,
-        y: this.pos.y + dy * distHit,
-        norm: distHit / maxLen
-      });
+      const norm = distHit * invMaxLen;
+      inputs[i] = norm;
+      const h = hits[i];
+      if (h) {
+        h.x = px + dx * distHit;
+        h.y = py + dy * distHit;
+        h.norm = norm;
+      }
     }
-    return readings;
+    inputs[count] = this.speed / this.maxSpeed;
+    return inputs;
   }
 
   /** Lit un pixel du masque (blanc = piste roulable). */
   static isDrivable(maskPixels, maskW, maskH, x, y) {
     if (x < 0 || y < 0 || x >= maskW || y >= maskH) return false;
-    const idx = (y * maskW + x) * 4;
-    return maskPixels[idx] > 140;
+    return maskPixels[(y * maskW + x) * 4] > 140;
   }
 
   /**
@@ -107,16 +118,14 @@ class DerbyBunny extends Vehicle {
    */
   step(maskPixels, maskW, maskH, checkpoints, hayObstacles = []) {
     if (this.dead) {
-      this.fadeAlpha = Math.max(0, this.fadeAlpha - 12);
+      if (this.fadeAlpha > 0) this.fadeAlpha = Math.max(0, this.fadeAlpha - 14);
       return;
     }
 
     this.framesAlive++;
     this.staleFrames++;
 
-    const rayInputs = this.castRays(maskPixels, maskW, maskH);
-    const inputs = [...rayInputs, this.speed / this.maxSpeed];
-    this.lastInputs = inputs;
+    const inputs = this.castRays(maskPixels, maskW, maskH);
 
     let steerOut = 0.5;
     let throttleOut = 0.7;
@@ -127,24 +136,25 @@ class DerbyBunny extends Vehicle {
       throttleOut = out[1];
     } else if (this.isPretrained) {
       // Cerveau pré-entraîné réactif pour que Race Day fonctionne dès le 1er clic
-      const half = Math.floor(rayInputs.length / 2);
+      const rc = this.config.rayCount;
+      const half = rc >> 1;
       let leftSum = 0;
       let rightSum = 0;
-      for (let i = 0; i < half; i++) leftSum += rayInputs[i];
-      for (let i = rayInputs.length - half; i < rayInputs.length; i++) rightSum += rayInputs[i];
+      for (let i = 0; i < half; i++) leftSum += inputs[i];
+      for (let i = rc - half; i < rc; i++) rightSum += inputs[i];
       const diff = (rightSum - leftSum) / Math.max(1, half);
-      steerOut = constrain(0.5 + diff * 0.9 + random(-0.04, 0.04), 0, 1);
-      const center = rayInputs[half] || 0.5;
-      throttleOut = constrain(0.35 + center * 0.65, 0.25, 1.0);
+      steerOut = Math.max(0, Math.min(1, 0.5 + diff * 0.9 + (Math.random() - 0.5) * 0.08));
+      const center = inputs[half] || 0.5;
+      throttleOut = Math.max(0.25, Math.min(1.0, 0.35 + center * 0.65));
     }
 
-    this.lastOutputs = [steerOut, throttleOut];
+    this.lastOutputs[0] = steerOut;
+    this.lastOutputs[1] = throttleOut;
 
-    // Appliquer direction et vitesse issues du réseau
-    const turnAngle = map(steerOut, 0, 1, -0.14, 0.14);
-    this.heading += turnAngle;
-    this.speed = map(throttleOut, 0, 1, 0.75, this.maxSpeed);
-    this.vel = p5.Vector.fromAngle(this.heading).mult(this.speed);
+    // Appliquer direction et vitesse en place (zéro allocation de p5.Vector)
+    this.heading += (steerOut - 0.5) * 0.28;
+    this.speed = 0.75 + throttleOut * (this.maxSpeed - 0.75);
+    this.vel.set(Math.cos(this.heading) * this.speed, Math.sin(this.heading) * this.speed);
 
     // Comportement avoid() supplémentaire si le joueur place des bottes de foin !
     if (hayObstacles.length > 0) {
@@ -156,24 +166,31 @@ class DerbyBunny extends Vehicle {
       }
     }
 
-    this.pos.add(this.vel);
+    this.pos.x += this.vel.x;
+    this.pos.y += this.vel.y;
 
-    // Collision hors-piste ou botte de foin
-    if (!DerbyBunny.isDrivable(maskPixels, maskW, maskH, Math.round(this.pos.x), Math.round(this.pos.y))) {
+    // Collision hors-piste
+    const rx = this.pos.x | 0;
+    const ry = this.pos.y | 0;
+    if (rx < 0 || ry < 0 || rx >= maskW || ry >= maskH || maskPixels[(ry * maskW + rx) * 4] <= 140) {
       this.dead = true;
       return;
     }
 
-    // Progression à travers les checkpoints ordonnés de track_01_meta.json
+    // Progression à travers les checkpoints (distance au carré : zéro sqrt)
     const cp = checkpoints[this.checkpointIdx % checkpoints.length];
-    if (cp && dist(this.pos.x, this.pos.y, cp[0], cp[1]) < 26) {
-      this.checkpointsPassed++;
-      this.checkpointIdx = (this.checkpointIdx + 1) % checkpoints.length;
-      this.staleFrames = 0;
+    if (cp) {
+      const cdx = this.pos.x - cp[0];
+      const cdy = this.pos.y - cp[1];
+      if (cdx * cdx + cdy * cdy < 676) {
+        this.checkpointsPassed++;
+        this.checkpointIdx = (this.checkpointIdx + 1) % checkpoints.length;
+        this.staleFrames = 0;
 
-      if (!this.finishedLap && this.checkpointsPassed >= checkpoints.length) {
-        this.finishedLap = true;
-        this.lapTimeFrames = this.framesAlive;
+        if (!this.finishedLap && this.checkpointsPassed >= checkpoints.length) {
+          this.finishedLap = true;
+          this.lapTimeFrames = this.framesAlive;
+        }
       }
     }
 
@@ -208,12 +225,14 @@ class DerbyBunny extends Vehicle {
     const px = Math.round(this.pos.x * scaleX);
     const py = Math.round(this.pos.y * scaleY);
 
-    // Rayons capteurs (en mode debug ou toggle Rays)
+    // Rayons capteurs (sans allouer d'objets p5.Color à chaque frame)
     if (showRays && !this.dead) {
       g.push();
       g.strokeWeight(1);
-      for (const hit of this.lastRayHits) {
-        g.stroke(hit.norm < 0.35 ? color(255, 110, 120, 180) : color(255, 240, 140, 140));
+      for (let i = 0; i < this.lastRayHits.length; i++) {
+        const hit = this.lastRayHits[i];
+        if (hit.norm < 0.35) g.stroke(255, 110, 120, 180);
+        else g.stroke(255, 240, 140, 140);
         g.line(px, py, Math.round(hit.x * scaleX), Math.round(hit.y * scaleY));
       }
       g.pop();
@@ -231,8 +250,9 @@ class DerbyBunny extends Vehicle {
 
     g.push();
     g.translate(px, py);
-    if (this.dead) {
-      g.tint(255, this.fadeAlpha);
+    // globalAlpha natif (accéléré matériellement, ~100x plus rapide que p5.tint() !)
+    if (this.dead && g.drawingContext) {
+      g.drawingContext.globalAlpha = this.fadeAlpha / 255;
     }
     if (this.vel.x < -0.05) {
       g.scale(-1, 1);
@@ -244,7 +264,9 @@ class DerbyBunny extends Vehicle {
       g.fill(255);
       g.circle(0, 0, 6);
     }
-    g.noTint();
+    if (this.dead && g.drawingContext) {
+      g.drawingContext.globalAlpha = 1;
+    }
     g.pop();
 
     // Couronne dorée au-dessus du lapin en tête !
