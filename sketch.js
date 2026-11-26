@@ -1,13 +1,15 @@
 /**
  * Point d'entrée principal de Moo's Funfair.
- * Tout le jeu est dessiné dans un buffer pixel-art 480x272 (createGraphics)
- * puis affiché en plein écran / haute netteté sans aucun lissage (nearest-neighbor)
- * pour un rendu pixel-art parfaitement net à toutes les résolutions.
+ * Le buffer interne garde des pixels carrés 1:1 (hauteur 272px, largeur adaptée au ratio
+ * de la fenêtre sans jamais étirer l'image) :
+ * - En mode fenêtré large : révèle du décor sur les côtés au lieu de bandes noires.
+ * - En plein écran (16:9) : revient exactement au cadrage classique 480x272 (et la caméra
+ *   du Hub suit Moo si le joueur marche vers les prairies latérales).
  */
 const BUFFER_W = 480;
 const BUFFER_H = 272;
 
-let g; // Buffer pixel-art interne 480x272
+let g; // Buffer pixel-art interne (viewW x viewH)
 let displayScale = 3;
 
 // Objet central partagé par toutes les scènes
@@ -16,25 +18,124 @@ const game = {
   save: null,
   sound: null,
   scenes: null,
+  viewW: BUFFER_W,
+  viewH: BUFFER_H,
+  offsetX: 0,
+  offsetY: 0,
 
-  /** Convertit la position de la souris vers les coordonnées exactes du buffer 480x272. */
+  /**
+   * Convertit la position de la souris vers les coordonnées du buffer.
+   * - Pour les scènes à caméra large (Hub) : coordonnées écran dans [0..viewW, 0..viewH].
+   * - Pour les scènes centrées 480x272 : coordonnées locales dans [0..480, 0..272].
+   */
   getMouseBufferPos() {
+    const rawX = (mouseX / Math.max(1, width)) * this.viewW;
+    const rawY = (mouseY / Math.max(1, height)) * this.viewH;
+    const cur = this.scenes ? this.scenes.current : null;
+    if (cur && cur.usesWideCamera) {
+      return { mx: rawX, my: rawY };
+    }
     return {
-      mx: (mouseX / width) * BUFFER_W,
-      my: (mouseY / height) * BUFFER_H
+      mx: rawX - this.offsetX,
+      my: rawY - this.offsetY
     };
   }
 };
 
 /**
- * Remplit toujours tout l'écran (largeur et hauteur complètes de la fenêtre)
- * sans bandes sombres sur les côtés, tout en conservant le rendu pixel-art net.
+ * Calcule la taille du canvas (plein écran sans bandes) ET la résolution logique
+ * du buffer pixel-art pour garantir des pixels strictement carrés (aucun étirement).
  */
-function computeCrispCanvasSize() {
-  const w = Math.max(1, window.innerWidth);
-  const h = Math.max(1, window.innerHeight);
-  displayScale = Math.min(w / BUFFER_W, h / BUFFER_H);
-  return { w, h };
+function computeViewportLayout() {
+  const winW = Math.max(1, window.innerWidth);
+  const winH = Math.max(1, window.innerHeight);
+  const winAspect = winW / winH;
+  const baseAspect = BUFFER_W / BUFFER_H;
+
+  let viewW = BUFFER_W;
+  let viewH = BUFFER_H;
+
+  if (winAspect >= baseAspect) {
+    // Fenêtre plus large que 480:272 -> on élargit la vue logique (décor sur les côtés)
+    viewH = BUFFER_H;
+    viewW = Math.min(720, Math.max(BUFFER_W, Math.round(BUFFER_H * winAspect)));
+    displayScale = winH / viewH;
+  } else {
+    // Fenêtre plus haute que 480:272 -> on agrandit verticalement sans écraser
+    viewW = BUFFER_W;
+    viewH = Math.min(420, Math.max(BUFFER_H, Math.round(BUFFER_W / winAspect)));
+    displayScale = winW / viewW;
+  }
+
+  game.viewW = viewW;
+  game.viewH = viewH;
+  game.offsetX = Math.floor((viewW - BUFFER_W) / 2);
+  game.offsetY = Math.floor((viewH - BUFFER_H) / 2);
+
+  return { canvasW: winW, canvasH: winH, viewW, viewH };
+}
+
+function rebuildOffscreenBuffer(viewW, viewH) {
+  if (g && g.width === viewW && g.height === viewH) return;
+  if (g) g.remove();
+  g = createGraphics(viewW, viewH);
+  g.hide();
+  g.pixelDensity(1);
+  applyPixelCrispness();
+}
+
+/**
+ * Remplit les marges latérales des mini-jeux / écran titre avec une bordure prairie
+ * assortie à Sprout Lands lorsqu'on est en mode fenêtré large (zéro bande noire).
+ */
+function drawCozySideDecor(buf) {
+  const ox = game.offsetX;
+  const oy = game.offsetY;
+  const vw = game.viewW;
+  const vh = game.viewH;
+
+  // Prairie pastel Sprout Lands
+  buf.background(156, 204, 102);
+
+  // Touffes d'herbe et fleurs discrètes sur les bandes latérales
+  const assets = game.assets;
+  if (assets && assets.ready) {
+    const treeRound = assets.getSprite('tree_round');
+    const treeApple = assets.getSprite('tree_apple');
+    const bush = assets.getSprite('bush_berry');
+    const flowerY = assets.getSprite('flower_yellow');
+    const flowerP = assets.getSprite('flower_pink');
+    const mush = assets.getSprite('mush_red');
+
+    // Décor à gauche
+    if (ox > 8) {
+      if (treeApple) buf.image(treeApple, Math.max(2, ox - 34), 20);
+      if (treeRound) buf.image(treeRound, Math.max(2, ox - 38), 118);
+      if (bush) buf.image(bush, Math.max(2, ox - 40), 214);
+      if (flowerP) buf.image(flowerP, Math.max(4, ox - 20), 76);
+      if (flowerY) buf.image(flowerY, Math.max(4, ox - 26), 178);
+      if (mush) buf.image(mush, Math.max(4, ox - 18), 246);
+    }
+
+    // Décor à droite
+    if (ox > 8) {
+      const rx = ox + BUFFER_W;
+      if (treeRound) buf.image(treeRound, rx + 8, 22);
+      if (treeApple) buf.image(treeApple, rx + 10, 124);
+      if (bush) buf.image(bush, rx + 6, 214);
+      if (flowerY) buf.image(flowerY, rx + 14, 82);
+      if (flowerP) buf.image(flowerP, rx + 18, 180);
+      if (mush) buf.image(mush, rx + 12, 246);
+    }
+  }
+
+  // Cadre bois fin séparant proprement le mini-jeu de la bordure prairie
+  buf.push();
+  buf.noFill();
+  buf.stroke(107, 75, 91);
+  buf.strokeWeight(2);
+  buf.rect(ox - 1, oy - 1, BUFFER_W + 2, BUFFER_H + 2);
+  buf.pop();
 }
 
 function applyPixelCrispness() {
@@ -77,14 +178,11 @@ function setupFullscreenButton() {
 function setup() {
   // Utiliser le ratio physique de l'écran sur le canvas principal pour éviter le flou DPI Windows
   pixelDensity(Math.min(2, window.devicePixelRatio || 1));
-  const sz = computeCrispCanvasSize();
-  createCanvas(sz.w, sz.h);
+  const vp = computeViewportLayout();
+  createCanvas(vp.canvasW, vp.canvasH);
 
-  // Buffer interne basse résolution (1:1 pixel logique, aucun lissage)
-  g = createGraphics(BUFFER_W, BUFFER_H);
-  g.hide();
-  g.pixelDensity(1);
-  applyPixelCrispness();
+  // Buffer interne basse résolution (pixels carrés 1:1, aucun lissage)
+  rebuildOffscreenBuffer(vp.viewW, vp.viewH);
 
   setupFullscreenButton();
 
@@ -117,19 +215,35 @@ function draw() {
     g.noStroke();
     g.textAlign(CENTER, CENTER);
     g.textSize(14);
-    g.text("Loading Moo's Funfair...", BUFFER_W / 2, BUFFER_H / 2);
+    g.text("Loading Moo's Funfair...", game.viewW / 2, game.viewH / 2);
     image(g, 0, 0, width, height);
     return;
   }
 
   game.scenes.update();
-  game.scenes.draw(g);
+
+  const cur = game.scenes.current;
+  if (cur && cur.usesWideCamera) {
+    // Scène à caméra large (Hub) : dessine directement sur toute la largeur viewW x viewH
+    game.scenes.draw(g);
+  } else {
+    // Scènes 480x272 centrées avec bordure prairie chaleureuse sur les côtés
+    if (game.offsetX > 0 || game.offsetY > 0) {
+      drawCozySideDecor(g);
+    }
+    g.push();
+    g.translate(game.offsetX, game.offsetY);
+    game.scenes.draw(g);
+    g.pop();
+  }
+
   image(g, 0, 0, width, height);
 }
 
 function windowResized() {
-  const sz = computeCrispCanvasSize();
-  resizeCanvas(sz.w, sz.h);
+  const vp = computeViewportLayout();
+  resizeCanvas(vp.canvasW, vp.canvasH);
+  rebuildOffscreenBuffer(vp.viewW, vp.viewH);
   applyPixelCrispness();
 }
 
@@ -144,7 +258,12 @@ function mousePressed(event) {
     return;
   }
   const { mx, my } = game.getMouseBufferPos();
-  if (mx < 0 || mx > BUFFER_W || my < 0 || my > BUFFER_H) return;
+  const cur = game.scenes.current;
+  if (cur && cur.usesWideCamera) {
+    if (mx < 0 || mx > game.viewW || my < 0 || my > game.viewH) return;
+  } else {
+    if (mx < 0 || mx > BUFFER_W || my < 0 || my > BUFFER_H) return;
+  }
   game.scenes.mousePressed(mx, my);
 }
 

@@ -11,10 +11,22 @@
 class HubScene extends Scene {
   constructor(game) {
     super(game);
+    // Active le rendu pleine largeur avec caméra horizontale fluide
+    this.usesWideCamera = true;
+    this.worldLeft = -120;
+    this.worldRight = 480 + 120;
+    this.camX = 0;
+
     this.moo = null;
     this.obstacles = [];
     this.butterflies = [];
     this.ducklings = [];
+    this.sideObjects = [];
+    this.sideBunting = [];
+    this.sideLights = [];
+    this.leftGroundImg = null;
+    this.rightGroundImg = null;
+    this.walkBounds = [10, 88, 470, 240];
     this.promptTrigger = null;
     this.overlay = false;
     this.toast = '';
@@ -42,6 +54,17 @@ class HubScene extends Scene {
     // Ajouter une boîte de collision solide sur le panier de pique-nique (36, 210, 16x16)
     this.solids.push([36, 214, 16, 12]);
 
+    // Construire les prairies latérales (gauche [-120..0] et droite [480..600])
+    this.buildSideMeadows();
+
+    // Limites de marche étendues aux prairies latérales
+    this.walkBounds = [
+      this.worldLeft + 14,
+      layout.walk_bounds[1],
+      this.worldRight - 14,
+      layout.walk_bounds[3]
+    ];
+
     // Triggers ajustés (avec le panneau d'affiches décalé)
     this.triggers = layout.triggers.map((t) => {
       if (t.id === 'poster') {
@@ -54,7 +77,7 @@ class HubScene extends Scene {
       return t;
     });
 
-    // Convertir les zones solides du hub en Obstacles circulaires (Vehicle fixes)
+    // Convertir les zones solides du hub (+ prairies latérales) en Obstacles circulaires
     this.obstacles = [];
     this.solids.forEach(([sx, sy, sw, sh]) => {
       const obsList = Obstacle.fromRect(sx, sy, sw, sh);
@@ -75,6 +98,7 @@ class HubScene extends Scene {
     }
 
     this.moo = new Moo(spawnX, spawnY, this.game.assets);
+    this.camX = this.computeTargetCamX();
 
     // Canetons autour de la mare (Vehicle : wander + separation + boundaries)
     this.ducklings = layout.ducklings.map(
@@ -83,9 +107,9 @@ class HubScene extends Scene {
 
     // Papillons d'ambiance (Vehicle : wander + flee quand Moo approche + boundaries)
     this.butterflies = [];
-    for (let i = 0; i < layout.butterflies; i++) {
+    for (let i = 0; i < layout.butterflies + 2; i++) {
       this.butterflies.push(
-        new HubButterfly(random(40, 440), random(90, 235), this.game.assets)
+        new HubButterfly(random(this.worldLeft + 24, this.worldRight - 24), random(90, 235), this.game.assets)
       );
     }
 
@@ -96,6 +120,146 @@ class HubScene extends Scene {
     }
   }
 
+  /**
+   * Pré-rend le sol herbe + clôture basse des prairies latérales à partir de hub_ground.png
+   * pour une jonction 100% invisible, puis place arbres, buissons, fleurs, guirlandes et lumières.
+   */
+  buildSideMeadows() {
+    const assets = this.game.assets;
+    const ground = assets.getImage('hub/hub_ground.png');
+    const sideW = 120;
+
+    if (!this.leftGroundImg && ground) {
+      const makeStrip = (isLeft) => {
+        const strip = createGraphics(sideW, BUFFER_H);
+        strip.pixelDensity(1);
+        strip.noSmooth();
+
+        // Échantillonner exactement la couleur d'herbe de hub_ground.png
+        const grassCol = ground.get(4, 4);
+        strip.background(grassCol[0], grassCol[1], grassCol[2]);
+
+        // Répéter proprement la clôture basse de hub_ground.png (y = 236..272)
+        for (let tx = 0; tx < sideW; tx += 16) {
+          strip.image(ground, tx, 236, 16, 36, 16, 236, 16, 36);
+        }
+
+        // Petits brins d'herbe subtils pour casser l'uniformité
+        strip.noStroke();
+        strip.fill(
+          Math.max(0, grassCol[0] - 16),
+          Math.max(0, grassCol[1] - 14),
+          Math.max(0, grassCol[2] - 14)
+        );
+        for (let i = 0; i < 42; i++) {
+          const gx = (i * 29 + (isLeft ? 7 : 19)) % (sideW - 6) + 3;
+          const gy = (i * 47 + 15) % 224 + 8;
+          strip.rect(gx, gy, 2, 1);
+          strip.rect(gx + 2, gy - 1, 1, 2);
+        }
+
+        // Poteaux de clôture discrets à l'extrémité du parc
+        const edgeX = isLeft ? 4 : sideW - 8;
+        for (let py = 20; py < 236; py += 26) {
+          strip.fill(107, 75, 91);
+          strip.rect(edgeX, py, 4, 14);
+          strip.fill(182, 137, 98);
+          strip.rect(edgeX + 1, py + 1, 2, 11);
+        }
+
+        return strip;
+      };
+
+      this.leftGroundImg = makeStrip(true);
+      this.rightGroundImg = makeStrip(false);
+    }
+
+    // Décorations Y-triées des prairies gauche [-120..0] et droite [480..600]
+    this.sideObjects = [
+      // --- Prairie gauche ---
+      { sprite: 'tree_apple', x: -102, y: 12, sortY: 42, solid: [-98, 30, 16, 10] },
+      { sprite: 'tree_tall', x: -58, y: 18, sortY: 46, solid: [-56, 36, 10, 8] },
+      { sprite: 'tree_round', x: -28, y: 10, sortY: 40, solid: [-24, 28, 18, 10] },
+      { sprite: 'sunflower', x: -86, y: 74, sortY: 118 },
+      { sprite: 'bush_berry', x: -46, y: 94, sortY: 109, solid: [-44, 98, 26, 10] },
+      { sprite: 'tree_round', x: -106, y: 112, sortY: 142, solid: [-102, 130, 18, 10] },
+      { sprite: 'flower_pink', x: -64, y: 132, sortY: 140 },
+      { sprite: 'flower_yellow', x: -28, y: 122, sortY: 130 },
+      { sprite: 'log', x: -78, y: 168, sortY: 177, solid: [-76, 170, 14, 8] },
+      { sprite: 'mush_red', x: -42, y: 174, sortY: 186 },
+      { sprite: 'flower_blue', x: -20, y: 164, sortY: 175 },
+      { sprite: 'tree_apple', x: -104, y: 188, sortY: 218, solid: [-100, 206, 16, 10] },
+      { sprite: 'bush_berry', x: -68, y: 208, sortY: 223, solid: [-66, 212, 26, 10] },
+      { sprite: 'mush_purple_b', x: -28, y: 218, sortY: 229 },
+      { sprite: 'flower_yellow_s', x: -84, y: 228, sortY: 233 },
+      { sprite: 'tuft_a', x: -50, y: 146, sortY: 150 },
+      { sprite: 'rock_small', x: -16, y: 86, sortY: 93 },
+
+      // --- Prairie droite ---
+      { sprite: 'tree_round', x: 486, y: 10, sortY: 40, solid: [490, 28, 18, 10] },
+      { sprite: 'tree_tall', x: 526, y: 16, sortY: 44, solid: [528, 34, 10, 8] },
+      { sprite: 'tree_apple', x: 558, y: 12, sortY: 42, solid: [562, 30, 16, 10] },
+      { sprite: 'bush_berry', x: 492, y: 88, sortY: 103, solid: [494, 92, 26, 10] },
+      { sprite: 'sunflower', x: 548, y: 74, sortY: 118 },
+      { sprite: 'tree_round', x: 564, y: 116, sortY: 146, solid: [568, 134, 18, 10] },
+      { sprite: 'flower_blue', x: 504, y: 128, sortY: 139 },
+      { sprite: 'flower_pink', x: 534, y: 142, sortY: 150 },
+      { sprite: 'log', x: 516, y: 170, sortY: 179, solid: [518, 172, 14, 8] },
+      { sprite: 'mush_red_b', x: 488, y: 168, sortY: 178 },
+      { sprite: 'flower_yellow', x: 550, y: 168, sortY: 176 },
+      { sprite: 'hedge_b', x: 492, y: 212, sortY: 227, solid: [494, 216, 26, 10] },
+      { sprite: 'tree_apple', x: 554, y: 190, sortY: 220, solid: [558, 208, 16, 10] },
+      { sprite: 'mush_purple', x: 534, y: 218, sortY: 226 },
+      { sprite: 'flower_pink_s', x: 530, y: 196, sortY: 201 },
+      { sprite: 'tuft_b', x: 486, y: 124, sortY: 135 },
+      { sprite: 'rock_small', x: 540, y: 92, sortY: 99 }
+    ];
+
+    // Ajouter les collisions des arbres/buissons latéraux
+    for (const obj of this.sideObjects) {
+      if (obj.solid) this.solids.push(obj.solid);
+    }
+
+    // Prolonger les guirlandes (y = 66) et lumières basses (y = 242) sur les deux côtés
+    this.sideBunting = [];
+    this.sideLights = [];
+    const buntingSprites = ['bunting_a', 'bunting_b'];
+    let idx = 0;
+    for (let bx = -112; bx < 0; bx += 16) {
+      this.sideBunting.push({ sprite: buntingSprites[idx % 2], x: bx, y: 66 });
+      this.sideLights.push({ x: bx, y: 242 });
+      idx++;
+    }
+    for (let bx = 480; bx < 592; bx += 16) {
+      this.sideBunting.push({ sprite: buntingSprites[idx % 2], x: bx, y: 66 });
+      this.sideLights.push({ x: bx, y: 242 });
+      idx++;
+    }
+  }
+
+  /**
+   * Calcule la position X cible de la caméra :
+   * - Si Moo est au centre du parc (120..360), la caméra reste posée au centre (480 - viewW) / 2 :
+   *   en fenêtré large on voit les prairies latérales ; en plein écran (16:9) on voit le Hub 480x272 normal.
+   * - Si Moo marche vers la gauche (< 120) ou la droite (> 360), la caméra suit Moo fluidement.
+   */
+  computeTargetCamX() {
+    const vw = this.game.viewW || BUFFER_W;
+    const minCam = this.worldLeft;
+    const maxCam = Math.max(minCam, this.worldRight - vw);
+    const restingCam = constrain((BUFFER_W - vw) / 2, minCam, maxCam);
+
+    if (!this.moo) return restingCam;
+
+    const mx = this.moo.pos.x;
+    if (mx >= 120 && mx <= 360) {
+      return restingCam;
+    }
+
+    // Suivi fluide de Moo vers les prairies gauche ou droite
+    return constrain(mx - vw / 2, minCam, maxCam);
+  }
+
   showToast(msg, durationMs = 2400) {
     this.toast = msg;
     this.toastUntil = millis() + durationMs;
@@ -104,10 +268,13 @@ class HubScene extends Scene {
   update() {
     if (this.overlay) return;
 
-    const layout = this.game.assets.hubLayout;
+    // Mise à jour de Moo (déplacement étendu aux prairies latérales)
+    this.moo.step(this.solids, this.walkBounds);
 
-    // Mise à jour de Moo (déplacement normal de personnage principal)
-    this.moo.step(this.solids, layout.walk_bounds);
+    // Suivi fluide de la caméra horizontale
+    const targetCamX = this.computeTargetCamX();
+    this.camX += (targetCamX - this.camX) * 0.14;
+    if (Math.abs(targetCamX - this.camX) < 0.2) this.camX = targetCamX;
 
     // Mise à jour de la faune d'ambiance (100% Steering Behaviors)
     for (const d of this.ducklings) {
@@ -145,10 +312,22 @@ class HubScene extends Scene {
     const assets = this.game.assets;
     const layout = assets.hubLayout;
     const font = assets.font;
+    const vw = this.game.viewW || BUFFER_W;
+    const vh = this.game.viewH || BUFFER_H;
+    const oy = Math.floor((vh - BUFFER_H) / 2);
+    const camOffset = -Math.round(this.camX);
 
-    // 1. Sol pré-rendu du parc + nappe de pique-nique toujours à plat au sol
+    g.background(156, 204, 102);
+
+    // === MONDE (avec translation caméra horizontale) ===
+    g.push();
+    g.translate(camOffset, oy);
+
+    // 1. Sol pré-rendu du parc + prairies latérales + nappe de pique-nique au sol
+    if (this.leftGroundImg) g.image(this.leftGroundImg, this.worldLeft, 0);
     const ground = assets.getImage('hub/hub_ground.png');
     if (ground) g.image(ground, 0, 0);
+    if (this.rightGroundImg) g.image(this.rightGroundImg, BUFFER_W, 0);
 
     const blanketObj = layout.objects.find((o) => o.id === 'picnic_blanket');
     if (blanketObj) {
@@ -156,7 +335,7 @@ class HubScene extends Scene {
       if (bSp) g.image(bSp, blanketObj.x, blanketObj.y);
     }
 
-    // 2. Objets triés en Y (stands, arbres, panneau, chat, panier, Moo, amis lapins, canetons)
+    // 2. Objets triés en Y (stands, arbres, prairies latérales, panneau, chat, panier, Moo, amis, canetons)
     const items = layout.objects
       .filter((o) => o.id !== 'picnic_blanket')
       .map((o) => {
@@ -172,6 +351,17 @@ class HubScene extends Scene {
           }
         };
       });
+
+    // Décorations Y-triées des prairies gauche et droite
+    for (const so of this.sideObjects) {
+      items.push({
+        sortY: so.sortY,
+        draw: () => {
+          const sp = assets.getSprite(so.sprite);
+          if (sp) g.image(sp, so.x, so.y);
+        }
+      });
+    }
 
     // Miniatures des 4 jeux collées sur le panneau d'affiches (décalé avec le panneau)
     const pb = layout.objects.find((o) => o.id === 'poster');
@@ -227,12 +417,20 @@ class HubScene extends Scene {
 
     items.sort((a, b) => a.sortY - b.sortY).forEach((it) => it.draw());
 
-    // 3. Éléments toujours au premier plan (guirlandes, lumières, ballons, papillons)
+    // 3. Éléments au premier plan (guirlandes + côtés, lumières + côtés, ballons, papillons)
     layout.rows.bunting.forEach((b) => {
       const sp = assets.getSprite(b.sprite);
-      if (sp) g.image(sp, b.x, b.y + ((b.x / 16) % 2 ? 1 : 0));
+      if (sp) g.image(sp, b.x, b.y + ((Math.abs(b.x) / 16) % 2 ? 1 : 0));
+    });
+    this.sideBunting.forEach((b) => {
+      const sp = assets.getSprite(b.sprite);
+      if (sp) g.image(sp, b.x, b.y + ((Math.abs(b.x) / 16) % 2 ? 1 : 0));
     });
     layout.rows.lights.forEach((l, i) => {
+      const sp = assets.getSprite((Math.floor(frameCount / 30) + i) % 2 ? 'lights_on' : 'lights_dim');
+      if (sp) g.image(sp, l.x, l.y);
+    });
+    this.sideLights.forEach((l, i) => {
       const sp = assets.getSprite((Math.floor(frameCount / 30) + i) % 2 ? 'lights_on' : 'lights_dim');
       if (sp) g.image(sp, l.x, l.y);
     });
@@ -244,18 +442,14 @@ class HubScene extends Scene {
       bf.show(g);
     }
 
-    // 4. Affichage des obstacles en mode debug (touche D)
+    // 4. Affichage des obstacles en mode debug (touche H)
     if (Vehicle.debug) {
       for (const obs of this.obstacles) {
         obs.showDebug(g);
       }
-      PixelUI.drawTag(g, font, 'DEBUG ON [H] - Vehicles & Avoid', 382, 22, g.color(223, 240, 187));
     }
 
-    // 5. HUD en haut à gauche (tickets)
-    this.drawHud(g);
-
-    // 6. Bulle d'interaction au-dessus de Moo ou étiquette au survol d'un stand
+    // 5. Bulle d'interaction au-dessus de Moo ou étiquette au survol d'un stand (espace monde)
     if (this.promptTrigger && !this.overlay) {
       const label =
         this.promptTrigger.id === 'poster'
@@ -270,16 +464,27 @@ class HubScene extends Scene {
       PixelUI.drawTag(g, font, hov.title, hov.rect[0] + hov.rect[2] / 2, hov.rect[1] - 6);
     }
 
-    // 7. Panneau "TODAY'S GAMES" (Poster overlay)
+    g.pop();
+
+    // === INTERFACE ÉCRAN (fixe à la fenêtre) ===
+    if (Vehicle.debug) {
+      PixelUI.drawTag(g, font, 'DEBUG ON [H] - Vehicles & Avoid', vw - 102, 22, g.color(223, 240, 187));
+    }
+
+    // HUD en haut à gauche (tickets)
+    this.drawHud(g);
+
+    // Panneau "TODAY'S GAMES" centré sur la fenêtre
     if (this.overlay) {
       this.drawPosterOverlay(g);
     }
 
-    // 8. Message toast temporaire en bas de l'écran
+    // Message toast temporaire centré en bas de l'écran
     if (millis() < this.toastUntil && this.toast) {
       const w = Math.round(g.textWidth(this.toast) + 14);
-      PixelUI.panel(g, 240 - Math.round(w / 2), 244, w, 18, g.color(223, 240, 187));
-      PixelUI.txt(g, font, this.toast, 240 - Math.round(w / 2) + 7, 244, g.color(86, 101, 96));
+      const cx = Math.round(vw / 2);
+      PixelUI.panel(g, cx - Math.round(w / 2), vh - 28, w, 18, g.color(223, 240, 187));
+      PixelUI.txt(g, font, this.toast, cx - Math.round(w / 2) + 7, vh - 28, g.color(86, 101, 96));
     }
   }
 
@@ -293,10 +498,22 @@ class HubScene extends Scene {
     PixelUI.txt(g, font, 'x ' + tickets, 28, 9, g.color(107, 75, 91));
   }
 
+  getOverlayOffsets() {
+    const vw = this.game.viewW || BUFFER_W;
+    const vh = this.game.viewH || BUFFER_H;
+    return {
+      ox: Math.floor((vw - BUFFER_W) / 2),
+      oy: Math.floor((vh - BUFFER_H) / 2),
+      vw,
+      vh
+    };
+  }
+
   cardRects() {
     const layout = this.game.assets.hubLayout;
-    const x0 = 80;
-    const y0 = 66;
+    const { ox, oy } = this.getOverlayOffsets();
+    const x0 = ox + 80;
+    const y0 = oy + 66;
     const cw = 156;
     const ch = 56;
     return layout.games.map((gm, i) => ({
@@ -312,15 +529,16 @@ class HubScene extends Scene {
     const assets = this.game.assets;
     const font = assets.font;
     const { mx, my } = this.game.getMouseBufferPos();
+    const { ox, oy, vw, vh } = this.getOverlayOffsets();
 
     g.noStroke();
     g.fill(0, 0, 0, 110);
-    g.rect(0, 0, 480, 272);
+    g.rect(0, 0, vw, vh);
 
-    PixelUI.panel(g, 70, 34, 340, 176);
+    PixelUI.panel(g, ox + 70, oy + 34, 340, 176);
     g.fill(189, 117, 126);
-    g.rect(70, 34, 340, 22);
-    PixelUI.txt(g, font, "TODAY'S GAMES", 240, 41, g.color(243, 244, 231), CENTER);
+    g.rect(ox + 70, oy + 34, 340, 22);
+    PixelUI.txt(g, font, "TODAY'S GAMES", ox + 240, oy + 41, g.color(243, 244, 231), CENTER);
 
     this.cardRects().forEach((c, i) => {
       const hov = PixelUI.pointInRect(mx, my, c);
@@ -338,13 +556,16 @@ class HubScene extends Scene {
       PixelUI.txt(g, font, 'press ' + (i + 1) + '  [' + starStr + ']', c.x + 44, yy + 30, g.color(144, 98, 93));
     });
 
-    PixelUI.txt(g, font, 'Esc to close', 240, 190, g.color(144, 98, 93), CENTER);
+    PixelUI.txt(g, font, 'Esc to close', ox + 240, oy + 190, g.color(144, 98, 93), CENTER);
   }
 
   hoveredTrigger() {
     const assets = this.game.assets;
     const layout = assets.hubLayout;
     const { mx, my } = this.game.getMouseBufferPos();
+    const { oy } = this.getOverlayOffsets();
+    const wx = mx + this.camX;
+    const wy = my - oy;
 
     return (
       layout.triggers.find((t) => {
@@ -353,7 +574,7 @@ class HubScene extends Scene {
         if (!o) return false;
         const sp = assets.getSprite(o.sprite);
         if (!sp) return false;
-        return mx > o.x && mx < o.x + sp.width && my > o.y && my < o.y + sp.height;
+        return wx > o.x && wx < o.x + sp.width && wy > o.y && wy < o.y + sp.height;
       }) || null
     );
   }
@@ -367,23 +588,28 @@ class HubScene extends Scene {
 
   mousePressed(mx, my) {
     const layout = this.game.assets.hubLayout;
+    const { ox, oy } = this.getOverlayOffsets();
 
     if (this.overlay) {
       const card = this.cardRects().find((c) => PixelUI.pointInRect(mx, my, c));
       if (card) {
         this.enterGame(card.gm.id);
-      } else if (mx < 70 || mx > 410 || my < 34 || my > 210) {
+      } else if (mx < ox + 70 || mx > ox + 410 || my < oy + 34 || my > oy + 210) {
         this.overlay = false;
       }
       return;
     }
+
+    // Conversion coordonnées écran -> monde (en tenant compte de la caméra)
+    const wx = mx + this.camX;
+    const wy = my - oy;
 
     // Clic sur le panneau d'affiches -> ouvre directement "Today's Games"
     const posterObj = layout.objects.find((o) => o.id === 'poster');
     if (posterObj) {
       const sp = this.game.assets.getSprite(posterObj.sprite);
       const pbx = posterObj.x + this.posterOffsetX;
-      if (sp && mx >= pbx && mx <= pbx + sp.width && my >= posterObj.y && my <= posterObj.y + sp.height) {
+      if (sp && wx >= pbx && wx <= pbx + sp.width && wy >= posterObj.y && wy <= posterObj.y + sp.height) {
         this.game.sound.playSfx('ui_click');
         this.overlay = true;
         return;
@@ -392,15 +618,15 @@ class HubScene extends Scene {
 
     // Clic sur un stand -> Moo s'y rend
     const t = this.triggers.find(
-      ({ rect: [x, y, w, h] }) => mx > x - 10 && mx < x + w + 10 && my > y - 70 && my < y + h + 4
+      ({ rect: [x, y, w, h] }) => wx > x - 10 && wx < x + w + 10 && wy > y - 70 && wy < y + h + 4
     );
     if (t) {
       this.moo.setTarget(t.stand[0], t.stand[1]);
       return;
     }
 
-    // Clic libre dans le parc -> Moo marche jusqu'au point cliqué
-    this.moo.setTarget(mx, my);
+    // Clic libre dans le parc ou les prairies latérales -> Moo y marche
+    this.moo.setTarget(wx, wy);
   }
 
   keyPressed(k, kc) {
