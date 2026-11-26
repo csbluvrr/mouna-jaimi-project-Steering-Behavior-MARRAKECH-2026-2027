@@ -95,9 +95,10 @@ class Caterpillar extends Vehicle {
     }
   }
 
+  /** Réduit la chenille d'un anneau ; renvoie true s'il ne reste plus aucun anneau. */
   shrink(count = 1) {
     for (let c = 0; c < count; c++) {
-      if (this.segments.length <= 1) break;
+      if (this.segments.length <= 0) break;
       this.segments.pop();
     }
     if (this.segments.length > 0) {
@@ -105,6 +106,7 @@ class Caterpillar extends Vehicle {
       last.isTail = true;
       last.r = 4.5;
     }
+    return this.segments.length === 0;
   }
 
   activateBoost(frames = 180) {

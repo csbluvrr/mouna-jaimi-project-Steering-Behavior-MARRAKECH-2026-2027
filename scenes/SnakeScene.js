@@ -306,10 +306,16 @@ class SnakeScene extends Scene {
       const f = this.fruits[i];
       if (p5.Vector.dist(this.caterpillar.pos, f.pos) < this.caterpillar.r + f.r + 3) {
         if (f.type === 'rotten') {
-          this.caterpillar.shrink(1);
+          const noRingsLeft = this.caterpillar.shrink(1);
+          this.fruits.splice(i, 1);
+          if (noRingsLeft) {
+            this.triggerCrash('No rings left after eating a rotten fruit!');
+            return;
+          }
           this.game.sound.playSfx('hit_1', 0.75);
           for (let k = 0; k < 5; k++) this.fx.push(new SparkleFX(f.pos.x, f.pos.y, 'sparkle'));
           this.fx.push(new SparkleFX(f.pos.x, f.pos.y - 6, 'text', 'ROTTEN! -1', color(180, 200, 105)));
+          continue;
         } else {
           const gain = f.type === 'golden' ? 2 : 1;
           this.caterpillar.grow(gain);
