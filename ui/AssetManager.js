@@ -44,8 +44,15 @@ class AssetManager {
       // Personnages & éléments d'ambiance du hub + écran titre
       files.add('sprites/moo/better sprite.png');
       files.add('sprites/ducklings/duckling_sheet.png');
+      files.add('sprites/npc/kid_4dir_sheet.png');
       files.add('generated/ambient/butterfly_2frames_12x10.png');
       files.add('generated/hub/stamp_empty_full_16x16.png');
+
+      // Nouveaux assets NPC, Mr. Carrot, Nouveau Lapin & Nouveau Renard
+      files.add('FREE SAMPLE NPC Characters by antarcticbees/girl1_idle.png');
+      files.add('mr.carrot by caoduy/carrot sprite sheet.png');
+      files.add('Bunny/Bunny 1 16x16 animation.png');
+      files.add('Fox Sprite Sheet.png');
 
       // Ressources Caterpillar Crawl (Snake) + effets communs
       ['green', 'pink', 'blue', 'gold'].forEach((col) => {

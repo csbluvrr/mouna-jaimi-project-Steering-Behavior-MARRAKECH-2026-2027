@@ -238,15 +238,25 @@ class DerbyBunny extends Vehicle {
       g.pop();
     }
 
-    const col = this.dead ? 0 : Math.floor(frameCount / 6) % 4;
-    const row = this.dead ? 3 : 1; // row 1 = hop, row 3 = sit_and_rest
-    const img = this.assets.getSheetFrame(
-      'sprites/bunny/bunny_' + this.colour + '.png',
-      32,
-      32,
-      col,
-      row
-    );
+    let img = null;
+    let mirror = this.vel.x < -0.05;
+    if (this.colour === 'smoke') {
+      // Intègre le nouveau spritesheet animé Bunny/Bunny 1 16x16 animation.png (32x32)
+      const bRow = this.dead ? 0 : (mirror ? 5 : 4);
+      const bCol = this.dead ? 0 : Math.floor(frameCount / 5) % 6;
+      img = this.assets.getSheetFrame('Bunny/Bunny 1 16x16 animation.png', 32, 32, bCol, bRow);
+      mirror = false; // déjà orienté gauche/droite dans le spritesheet
+    } else {
+      const col = this.dead ? 0 : Math.floor(frameCount / 6) % 4;
+      const row = this.dead ? 3 : 1; // row 1 = hop, row 3 = sit_and_rest
+      img = this.assets.getSheetFrame(
+        'sprites/bunny/bunny_' + this.colour + '.png',
+        32,
+        32,
+        col,
+        row
+      );
+    }
 
     g.push();
     g.translate(px, py);
@@ -254,11 +264,11 @@ class DerbyBunny extends Vehicle {
     if (this.dead && g.drawingContext) {
       g.drawingContext.globalAlpha = this.fadeAlpha / 255;
     }
-    if (this.vel.x < -0.05) {
+    if (mirror) {
       g.scale(-1, 1);
     }
     if (img) {
-      g.image(img, -16, -27);
+      g.image(img, -16, this.colour === 'smoke' ? -22 : -27);
     } else {
       g.noStroke();
       g.fill(255);

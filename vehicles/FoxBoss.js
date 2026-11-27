@@ -143,24 +143,25 @@ class FoxBoss extends Vehicle {
   }
 
   show(g) {
-    // Choix de la ligne d'animation dans fox_sheet.png (6x6, 32x32)
+    // Nouveau spritesheet Fox Sprite Sheet.png (448x224 = 14x7 cellules 32x32) :
+    // row 0 = repos (5f), row 2 = course (8f), row 3 = bond/lancer (11f), row 4 = surpris/touché (5f), row 5 = sieste KO (6f)
     let row = 0;
-    let col = Math.floor(frameCount / 8) % 4;
+    let col = Math.floor(frameCount / 8) % 5;
     if (this.isKO) {
       row = 5;
-      col = 3;
+      col = Math.floor(frameCount / 10) % 6;
+    } else if (this.hurtFlash > 0) {
+      row = 4;
+      col = Math.floor(frameCount / 3) % 5;
     } else if (this.throwAnimFrames > 0) {
       row = 3;
-      col = Math.floor(frameCount / 5) % 4;
-    } else if (this.state === 'PURSUE' || this.state === 'FLEE' || this.state === 'SEEK_POWERUP') {
-      row = 2; // course
-      col = Math.floor(frameCount / 6) % 6;
-    } else if (this.vel.magSq() > 0.05) {
-      row = 1; // marche
-      col = Math.floor(frameCount / 8) % 6;
+      col = Math.floor(frameCount / 3) % 11;
+    } else if (this.vel.magSq() > 0.04) {
+      row = 2; // course vive
+      col = Math.floor(frameCount / 5) % 8;
     }
 
-    const img = this.assets.getSheetFrame('sprites/fox/fox_sheet.png', 32, 32, col, row);
+    const img = this.assets.getSheetFrame('Fox Sprite Sheet.png', 32, 32, col, row);
     const px = Math.round(this.pos.x);
     const py = Math.round(this.pos.y);
 
@@ -172,8 +173,9 @@ class FoxBoss extends Vehicle {
       g.strokeWeight(1.5);
       g.circle(0, -4, 24);
     }
-    if (this.hurtFlash > 0 && Math.floor(frameCount / 2) % 2 === 0) {
-      g.tint(255, 160, 160);
+    // Clignotement rapide sans p5.tint() lent
+    if (this.hurtFlash > 0 && Math.floor(frameCount / 2) % 2 === 0 && g.drawingContext) {
+      g.drawingContext.globalAlpha = 0.55;
     }
     if (this.vel.x < -0.05 || (this.mooRef && this.mooRef.pos.x < this.pos.x && this.throwAnimFrames > 0)) {
       g.scale(-1, 1);
@@ -181,7 +183,7 @@ class FoxBoss extends Vehicle {
     if (img) {
       g.image(img, -16, -24);
     }
-    g.noTint();
+    if (g.drawingContext) g.drawingContext.globalAlpha = 1;
     g.pop();
 
     // Étoiles étourdies au-dessus du renard vaincu (pas de violence, ton cozy !)
