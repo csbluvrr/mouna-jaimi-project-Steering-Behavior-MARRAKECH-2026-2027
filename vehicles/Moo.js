@@ -12,10 +12,14 @@ class Moo extends Vehicle {
     this.assets = assets;
     this.r = 6;
     this.rayonZoneDeFreinage = 14;
+    this.walkSpeed = 1.45;
+    this.runSpeed = 2.55;
 
     this.targetPos = null;
     this.dir = 0; // Lignes du spritesheet : 0=bas, 1=gauche, 2=droite, 3=haut
     this.isMoving = false;
+    this.isRunning = false;
+    this.runDust = [];
   }
 
   /** Définit une destination cliquée à la souris. */
@@ -43,6 +47,10 @@ class Moo extends Vehicle {
     if (keyIsDown(RIGHT_ARROW) || keyIsDown(68)) kx += 1;
     if (keyIsDown(UP_ARROW) || keyIsDown(87) || keyIsDown(90)) ky -= 1;
     if (keyIsDown(DOWN_ARROW) || keyIsDown(83)) ky += 1;
+
+    // Maintenir SHIFT pour courir plus vite !
+    const wantRun = keyIsDown(SHIFT);
+    this.maxSpeed = wantRun ? this.runSpeed : this.walkSpeed;
 
     if (kx !== 0 || ky !== 0) {
       // Déplacement clavier direct (annule une éventuelle destination cliquée)
@@ -102,8 +110,25 @@ class Moo extends Vehicle {
         this.dir = this.vel.y < 0 ? 3 : 0;
       }
       this.isMoving = movedX || movedY;
+      this.isRunning = this.isMoving && wantRun;
     } else {
       this.isMoving = false;
+      this.isRunning = false;
+    }
+
+    // Petits nuages de poussière mignons sous les pieds quand Moo court (Shift)
+    if (this.isRunning && frameCount % 5 === 0) {
+      this.runDust.push({
+        x: this.pos.x - this.vel.x * 2 + random(-2, 2),
+        y: this.pos.y - 1 + random(-1, 1),
+        life: 14,
+        maxLife: 14
+      });
+    }
+    for (let i = this.runDust.length - 1; i >= 0; i--) {
+      this.runDust[i].life--;
+      this.runDust[i].y -= 0.12;
+      if (this.runDust[i].life <= 0) this.runDust.splice(i, 1);
     }
   }
 
@@ -127,9 +152,22 @@ class Moo extends Vehicle {
     // - Gauche/Droite (lignes 1 et 2) : [1, 2, 3, 0]
     // - Repos : clignement d'yeux sur la ligne 0 (face)
     const walkCycle = (this.dir === 1 || this.dir === 2) ? [1, 2, 3, 0] : [2, 0, 3, 0];
+    const animDiv = this.isRunning ? 4 : 7;
     const col = this.isMoving
-      ? walkCycle[Math.floor(frameCount / 7) % 4]
+      ? walkCycle[Math.floor(frameCount / animDiv) % 4]
       : (this.dir === 0 && Math.floor(frameCount / 90) % 4 === 3 ? 1 : 0);
+
+    // Petits nuages de poussière de course derrière Moo
+    if (this.runDust.length > 0) {
+      g.push();
+      g.noStroke();
+      for (const d of this.runDust) {
+        const a = Math.round((d.life / d.maxLife) * 180);
+        g.fill(247, 238, 212, a);
+        g.circle(Math.round(d.x), Math.round(d.y), 2 + (1 - d.life / d.maxLife) * 3);
+      }
+      g.pop();
+    }
 
     const drawX = Math.round(this.pos.x) - 16;
     const drawY = Math.round(this.pos.y) - 40;
