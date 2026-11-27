@@ -549,22 +549,105 @@ class HubScene extends Scene {
         img.ellipse(98, 206, 56, 28);
       }
 
-      // Clôture en bois Sprout Lands le long du bord sud (y=236)
-      if (baseGround) {
-        for (let tx = 0; tx < BUFFER_W; tx += 16) {
-          if (section === 'plaza' && tx >= 216 && tx <= 252) continue; // ouverture de l'allée d'entrée !
-          img.image(baseGround, tx, 236, 16, 36, 16, 236, 16, 36);
-        }
+      // Clôture en bois chaleureuse Sprout Lands le long du bord sud (y=240..254) — zéro rocher !
+      // Herbe douce + petites touches de fleurs sous la clôture (y=252..272)
+      img.fill(142, 190, 92);
+      img.rect(0, 248, BUFFER_W, 24);
+      for (let fx = 10; fx < BUFFER_W; fx += 28) {
+        if (section === 'plaza' && fx >= 210 && fx <= 270) continue;
+        img.fill(124, 174, 82);
+        img.ellipse(fx + 6, 260, 14, 6);
+        img.fill((fx % 56 === 10) ? img.color(248, 174, 198) : img.color(255, 238, 144));
+        img.rect(fx + 4, 258, 2, 2);
+        img.rect(fx + 9, 261, 2, 2);
       }
 
-      // Poteaux de clôture aux extrémités Ouest & Est du parc
-      if (section === 'west' || section === 'east') {
-        const endX = section === 'west' ? 8 : BUFFER_W - 12;
-        for (let py = 104; py < 236; py += 22) {
+      const drawHorizontalFenceSegment = (xStart, xEnd) => {
+        if (xEnd <= xStart) return;
+        // Ombre douce au pied de la clôture
+        img.fill(98, 142, 72, 110);
+        img.rect(xStart, 251, xEnd - xStart, 4);
+        // 2 traverses horizontales en bois (haut + bas)
+        img.fill(107, 75, 91);
+        img.rect(xStart, 241, xEnd - xStart, 4);
+        img.rect(xStart, 247, xEnd - xStart, 4);
+        img.fill(204, 158, 112);
+        img.rect(xStart, 242, xEnd - xStart, 2);
+        img.rect(xStart, 248, xEnd - xStart, 2);
+        // Poteaux verticaux réguliers tous les 16px
+        for (let px = xStart; px <= xEnd - 4; px += 16) {
           img.fill(107, 75, 91);
-          img.rect(endX, py, 4, 14);
-          img.fill(182, 137, 98);
-          img.rect(endX + 1, py + 1, 2, 11);
+          img.rect(px, 237, 6, 16, 1);
+          img.fill(222, 178, 130);
+          img.rect(px + 1, 238, 4, 14);
+          img.fill(244, 214, 168);
+          img.rect(px + 1, 238, 4, 2);
+        }
+      };
+
+      if (section === 'plaza') {
+        // Ouverture d'entrée centrale de la fête foraine (x = 212 .. 268) !
+        drawHorizontalFenceSegment(0, 210);
+        drawHorizontalFenceSegment(270, BUFFER_W);
+
+        // Deux beaux piliers d'entrée bois + lanternes dorées + petits buissons fleuris
+        for (const gx of [208, 264]) {
+          img.fill(96, 140, 70, 120);
+          img.ellipse(gx + 4, 253, 14, 5);
+          img.fill(107, 75, 91);
+          img.rect(gx, 232, 9, 22, 1);
+          img.fill(206, 158, 110);
+          img.rect(gx + 1, 233, 7, 20);
+          img.fill(242, 212, 164);
+          img.rect(gx + 1, 233, 3, 20);
+          // Petite lanterne chaleureuse au sommet du pilier d'entrée
+          img.fill(107, 75, 91);
+          img.rect(gx + 1, 226, 7, 7, 1);
+          img.fill(255, 240, 156);
+          img.rect(gx + 2, 227, 5, 5);
+          img.fill(255, 252, 224);
+          img.rect(gx + 3, 228, 3, 3);
+        }
+      } else {
+        drawHorizontalFenceSegment(section === 'west' ? 12 : 0, section === 'east' ? BUFFER_W - 12 : BUFFER_W);
+      }
+
+      // Bords Ouest & Est paysagers : haies fleuries + vraie clôture bois verticale continue + lanternes d'extrémité
+      if (section === 'west' || section === 'east') {
+        const isW = section === 'west';
+        const hedgeX = isW ? 0 : BUFFER_W - 12;
+        const fenceX = isW ? 10 : BUFFER_W - 16;
+
+        // Haie verdoyante fleurie tout le long du bord extérieur
+        for (let hy = 98; hy < 258; hy += 14) {
+          img.fill(88, 138, 72);
+          img.ellipse(hedgeX + 6, hy + 4, 18, 16);
+          img.fill(118, 174, 92);
+          img.ellipse(hedgeX + 6, hy + 2, 14, 13);
+          img.fill((hy % 28 === 0) ? img.color(248, 170, 196) : img.color(255, 234, 138));
+          img.rect(hedgeX + (isW ? 4 : 6), hy, 2, 2);
+        }
+
+        // Clôture bois verticale continue reliant le haut de la prairie au bord sud
+        img.fill(107, 75, 91);
+        img.rect(fenceX + 1, 102, 4, 144);
+        img.fill(204, 158, 112);
+        img.rect(fenceX + 2, 102, 2, 144);
+        for (let py = 102; py <= 238; py += 17) {
+          img.fill(107, 75, 91);
+          img.rect(fenceX, py, 6, 12, 1);
+          img.fill(222, 178, 130);
+          img.rect(fenceX + 1, py + 1, 4, 10);
+          img.fill(244, 214, 168);
+          img.rect(fenceX + 1, py + 1, 4, 2);
+        }
+
+        // Petits poteaux lanternes encadrant la fin de l'allée sable (y = 130 & y = 176)
+        for (const ly of [130, 174]) {
+          img.fill(107, 75, 91);
+          img.rect(fenceX, ly - 5, 6, 6, 1);
+          img.fill(255, 240, 156);
+          img.rect(fenceX + 1, ly - 4, 4, 4);
         }
       }
       return img;
