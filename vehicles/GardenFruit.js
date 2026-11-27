@@ -265,16 +265,16 @@ class GardenFruit extends Vehicle {
     // 3. Scorbunny fuyant (scorbunny.png : 2x4 cellules 160x160 -> row 0=bas, 1=haut, 2=gauche, 3=droite)
     if (this.type === 'golden') {
       g.noFill();
-      g.stroke(255, 232, 110, 190);
+      g.stroke(255, 232, 110, 205);
       g.strokeWeight(1.5);
-      g.circle(px, py, 18);
+      g.circle(px, py, 26);
     }
 
     if (this.isEvading) {
       g.noStroke();
       g.fill(255, 95, 110);
-      g.rect(px - 1, py - 14, 2, 4);
-      g.rect(px - 1, py - 9, 2, 1);
+      g.rect(px - 1, py - 19, 2, 4);
+      g.rect(px - 1, py - 14, 2, 1);
     }
 
     let row = 0;
@@ -286,11 +286,11 @@ class GardenFruit extends Vehicle {
     const col = Math.floor(frameCount / 8 + this.phase) % 2;
     const scImg = this.assets.getSheetFrame('minigames/pokemoo/scorbunny.png', 160, 160, col, row);
     if (scImg) {
-      g.image(scImg, px - 9, py - 11, 18, 18);
+      g.image(scImg, px - 13, py - 15, 26, 26);
     } else {
       g.noStroke();
       g.fill(255, 240, 225);
-      g.circle(px, py, 10);
+      g.circle(px, py, 14);
     }
 
     if (Vehicle.debug) {
