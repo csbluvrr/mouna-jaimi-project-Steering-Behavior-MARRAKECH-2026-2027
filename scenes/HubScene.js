@@ -30,7 +30,9 @@ class HubScene extends Scene {
     this.promptTrigger = null;
     this.overlay = false;
     this.prizeShop = new PrizeShop(game);
-    this.prizeBoothPos = { x: 16, y: 84, w: 50, h: 58, sortY: 140 };
+    // Stand Prize Booth placé sur la place sud-gauche (entre le pique-nique et le chat aux ballons, zéro chevauchement !)
+    this.prizeBoothPos = { x: 88, y: 162, w: 50, h: 58, sortY: 220 };
+    this.balloonShiftX = 18; // Décale le chat aux ballons légèrement vers l'allée centrale pour aérer autour du Prize Booth
     this.toast = '';
     this.toastUntil = 0;
   }
@@ -47,20 +49,20 @@ class HubScene extends Scene {
       if (sx === 304 && sy === 220 && sw === 58) {
         return [sx + this.posterOffsetX, sy, sw, sh];
       }
-      // Élargir et recaler la collision du chat aux ballons pour empêcher de le traverser
+      // Élargir et recaler la collision du chat aux ballons (décalé de +balloonShiftX)
       if (sx === 158 && sy === 196 && sw === 14) {
-        return [157, 192, 20, 15];
+        return [157 + this.balloonShiftX, 192, 20, 15];
       }
       return [sx, sy, sw, sh];
     });
     // Ajouter une boîte de collision solide sur le panier de pique-nique (36, 210, 16x16)
     this.solids.push([36, 214, 16, 12]);
-    // Ajouter le stand Prize Booth (collision solide + déclencheur)
+    // Ajouter le stand Prize Booth (collision solide + déclencheur devant le comptoir)
     this.solids.push([
       this.prizeBoothPos.x + 4,
-      this.prizeBoothPos.y + 38,
+      this.prizeBoothPos.y + 36,
       this.prizeBoothPos.w - 8,
-      18
+      20
     ]);
 
     // Construire les prairies latérales (gauche [-120..0] et droite [480..600])
@@ -338,11 +340,20 @@ class HubScene extends Scene {
     g.push();
     g.translate(camOffset, oy);
 
-    // 1. Sol pré-rendu du parc + prairies latérales + nappe de pique-nique au sol
+    // 1. Sol pré-rendu du parc + prairies latérales + parvis sable sous le Prize Booth + nappe pique-nique
     if (this.leftGroundImg) g.image(this.leftGroundImg, this.worldLeft, 0);
     const ground = assets.getImage('hub/hub_ground.png');
     if (ground) g.image(ground, 0, 0);
     if (this.rightGroundImg) g.image(this.rightGroundImg, BUFFER_W, 0);
+
+    // Petit parvis sable doux devant le Prize Booth pour l'intégrer naturellement à l'allée
+    g.push();
+    g.noStroke();
+    g.fill(218, 194, 148);
+    g.rect(this.prizeBoothPos.x - 4, this.prizeBoothPos.y + 46, this.prizeBoothPos.w + 8, 28, 6);
+    g.fill(232, 210, 166);
+    g.rect(this.prizeBoothPos.x - 2, this.prizeBoothPos.y + 48, this.prizeBoothPos.w + 4, 24, 5);
+    g.pop();
 
     const blanketObj = layout.objects.find((o) => o.id === 'picnic_blanket');
     if (blanketObj) {
@@ -354,7 +365,9 @@ class HubScene extends Scene {
     const items = layout.objects
       .filter((o) => o.id !== 'picnic_blanket')
       .map((o) => {
-        const ox = o.id === 'poster' ? o.x + this.posterOffsetX : o.x;
+        let ox = o.x;
+        if (o.id === 'poster') ox += this.posterOffsetX;
+        if (o.id === 'kid_balloon') ox += this.balloonShiftX;
         let sortY = o.sortY;
         if (o.id === 'kid_balloon') sortY = 207;
         if (o.id === 'picnic_basket') sortY = 226;
@@ -436,7 +449,7 @@ class HubScene extends Scene {
         g.strokeWeight(1);
         layout.balloons.forEach((b) => {
           const by = b.y + Math.sin(frameCount * 0.05 + b.phase) * 2;
-          g.line(Math.round(b.x + 6), Math.round(by + 13), 167, 196);
+          g.line(Math.round(b.x + this.balloonShiftX + 6), Math.round(by + 13), 167 + this.balloonShiftX, 196);
         });
         g.pop();
       }
@@ -463,7 +476,7 @@ class HubScene extends Scene {
     });
     layout.balloons.forEach((b) => {
       const sp = assets.getSprite(b.sprite);
-      if (sp) g.image(sp, b.x, Math.round(b.y + Math.sin(frameCount * 0.05 + b.phase) * 2));
+      if (sp) g.image(sp, b.x + this.balloonShiftX, Math.round(b.y + Math.sin(frameCount * 0.05 + b.phase) * 2));
     });
     for (const bf of this.butterflies) {
       bf.show(g);
