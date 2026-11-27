@@ -60,7 +60,7 @@ class AssetManager {
       });
 
       // Nouveaux invités crossover du Hub (Deltarune, OneShot, Hollow Knight, Zelda, One Piece)
-      ['kris_walk', 'ralsei_walk', 'susie_walk', 'niko_walk', 'knight_walk', 'link_walk', 'luffy', 'zoro', 'chopper'].forEach((gName) => {
+      ['kris_walk', 'ralsei_walk', 'susie_walk', 'niko_walk', 'knight_walk', 'link_walk', 'luffy_walk', 'zoro_walk', 'chopper_walk'].forEach((gName) => {
         files.add('characters/npcs/guests/' + gName + '.png');
       });
 

@@ -302,9 +302,10 @@ class HubScene extends Scene {
         name: 'Meadow Bunny', bounds: [740, 154, 145, 54], emote: 'Heart'
       }),
 
-      // === INVITÉS CROSSOVER SPÉCIAUX (Deltarune, OneShot, Hollow Knight, Zelda, One Piece) ===
-      new FairVisitor(-368, 152, 'guest_single', this.game.assets, {
-        name: 'Chopper', guestFile: 'chopper', bounds: [-435, 138, 120, 48], emote: 'Heart',
+      // === INVITÉS CROSSOVER SPÉCIAUX (Deltarune Fun Gang ensemble, OneShot, Hollow Knight, Zelda, One Piece) ===
+      new FairVisitor(-376, 154, 'guest_strip', this.game.assets, {
+        name: 'Chopper', guestFile: 'chopper_walk', guestW: 64, guestH: 64, guestFrames: 4, guestDrawW: 32, guestDrawH: 32,
+        bounds: [-435, 138, 105, 48], emote: 'Heart',
         dialogue: {
           text: "COTTON CANDY!! Moo, this is the best funfair on the Grand Line!",
           choices: [
@@ -313,30 +314,36 @@ class HubScene extends Scene {
           ]
         }
       }),
-      new FairVisitor(-236, 154, 'guest_strip', this.game.assets, {
-        name: 'Ralsei', guestFile: 'ralsei_walk', guestH: 32, bounds: [-285, 140, 140, 48], emote: 'Heart',
-        greeting: 'Hello Moo! Everyone here is so kind — I baked a cake for the fair!'
+      // Fun Gang (Kris, Ralsei & Susie) réunis ensemble dans la même zone !
+      new FairVisitor(-262, 154, 'guest_strip', this.game.assets, {
+        name: 'Kris', guestFile: 'kris_walk', guestW: 32, guestH: 36, guestFrames: 4,
+        bounds: [-305, 140, 115, 46], emote: 'Star',
+        greeting: '* (Kris holds up a shiny golden balloon while hanging out with Ralsei and Susie.)'
       }),
-      new FairVisitor(-296, 174, 'guest_strip', this.game.assets, {
-        name: 'Susie', guestFile: 'susie_walk', guestH: 34, bounds: [-365, 150, 145, 50], emote: 'Exclamation',
+      new FairVisitor(-236, 152, 'guest_strip', this.game.assets, {
+        name: 'Ralsei', guestFile: 'ralsei_walk', guestW: 32, guestH: 32, guestFrames: 4,
+        bounds: [-305, 140, 115, 46], emote: 'Heart',
+        greeting: 'Hello Moo! Kris, Susie and I are having the coziest time at your funfair!'
+      }),
+      new FairVisitor(-250, 172, 'guest_strip', this.game.assets, {
+        name: 'Susie', guestFile: 'susie_walk', guestW: 32, guestH: 34, guestFrames: 4,
+        bounds: [-305, 140, 115, 46], emote: 'Exclamation',
         greeting: "Heh, this popcorn rules! Don't tell Ralsei I ate three buckets!"
       }),
-      new FairVisitor(148, 158, 'guest_strip', this.game.assets, {
-        name: 'Kris', guestFile: 'kris_walk', guestH: 36, bounds: [75, 142, 175, 44], emote: 'Star',
-        greeting: '* (Kris proudly holds up a shiny golden funfair balloon.)'
-      }),
-      new FairVisitor(248, 170, 'guest_single', this.game.assets, {
-        name: 'Luffy', guestFile: 'luffy', bounds: [175, 146, 170, 46], emote: 'Exclamation',
+      new FairVisitor(248, 170, 'guest_strip', this.game.assets, {
+        name: 'Luffy', guestFile: 'luffy_walk', guestW: 64, guestH: 64, guestFrames: 4, guestDrawW: 32, guestDrawH: 32,
+        bounds: [175, 146, 170, 46], emote: 'Exclamation',
         dialogue: {
           text: "Shishishi! Hey Moo! This funfair is awesome! Where's the meat?!",
           choices: [
-            { label: '1. Try the snack carts in the West!', reply: "Sugoi!! I'm gonna eat ALL the popcorn and cotton candy!" },
+            { label: '1. Try the snack carts in the West!', reply: "Awesome!! I'm gonna eat ALL the popcorn and cotton candy!" },
             { label: '2. Race in Bunny Derby!', reply: "A race?! Count me in — I'm gonna be King of the Funfair!" }
           ]
         }
       }),
       new FairVisitor(386, 148, 'guest_strip', this.game.assets, {
-        name: 'Link', guestFile: 'link_walk', guestH: 32, bounds: [320, 138, 130, 42], emote: 'Star',
+        name: 'Link', guestFile: 'link_walk', guestW: 32, guestH: 32, guestFrames: 6,
+        bounds: [320, 138, 130, 42], emote: 'Star',
         dialogue: {
           text: "Hyaa! The Fire Mage inside the Legend of Moo booth is tough!",
           choices: [
@@ -346,7 +353,8 @@ class HubScene extends Scene {
         }
       }),
       new FairVisitor(688, 176, 'guest_strip', this.game.assets, {
-        name: 'Niko', guestFile: 'niko_walk', guestH: 32, bounds: [625, 150, 135, 52], emote: 'Star',
+        name: 'Niko', guestFile: 'niko_walk', guestW: 32, guestH: 32, guestFrames: 4,
+        bounds: [625, 150, 135, 52], emote: 'Star',
         dialogue: {
           text: "Whoa, Moo! This Wishing Fountain glows almost as warmly as my Sun!",
           choices: [
@@ -356,11 +364,13 @@ class HubScene extends Scene {
         }
       }),
       new FairVisitor(584, 156, 'guest_strip', this.game.assets, {
-        name: 'The Knight', guestFile: 'knight_walk', guestH: 32, bounds: [515, 140, 140, 48], emote: 'Interrogation',
+        name: 'The Knight', guestFile: 'knight_walk', guestW: 32, guestH: 32, guestFrames: 4,
+        bounds: [515, 140, 140, 48], emote: 'Interrogation',
         greeting: '... (The tiny vessel quietly admires the spinning pastel carousel.)'
       }),
-      new FairVisitor(862, 166, 'guest_single', this.game.assets, {
-        name: 'Zoro', guestFile: 'zoro', bounds: [805, 144, 115, 54], emote: 'Interrogation',
+      new FairVisitor(862, 166, 'guest_strip', this.game.assets, {
+        name: 'Zoro', guestFile: 'zoro_walk', guestW: 64, guestH: 64, guestFrames: 4, guestDrawW: 32, guestDrawH: 32,
+        bounds: [805, 144, 115, 54], emote: 'Interrogation',
         greeting: "Wait... how did I end up at a funfair? Which way is the Sunny?!"
       })
     ];

@@ -20,7 +20,11 @@ class FairVisitor extends Vehicle {
     this.npcId = options.npcId || 1;       // 1..15 pour 'neighbour' (Tiny Neighbours Vol1)
     this.tone = options.tone || 0;         // 0..2 teinte dans la spritesheet Tiny Neighbours
     this.guestFile = options.guestFile || null; // Nom de fichier dans characters/npcs/guests/
+    this.guestW = options.guestW || 32;
     this.guestH = options.guestH || 32;
+    this.guestFrames = options.guestFrames || 4;
+    this.guestDrawW = options.guestDrawW || this.guestW;
+    this.guestDrawH = options.guestDrawH || this.guestH;
     this.emote = options.emote || 'Happy'; // 'Heart' | 'Happy' | 'Star' | 'Exclamation' | 'Surprised' | 'Interrogation'
     this.emoteTimer = 0;
     this.bounds = options.bounds || [24, 136, 432, 86];
@@ -179,13 +183,18 @@ class FairVisitor extends Vehicle {
       if (this.facingLeft) g.scale(-1, 1);
       if (img) g.image(img, -16, -30);
     } else if (this.kind === 'guest_strip') {
-      // Invités crossover animés (4 frames horizontales : Kris, Ralsei, Susie, Niko, Hollow Knight, Link)
-      const col = moving ? Math.floor(frameCount / 8 + this.phase) % 4 : 0;
-      const fh = this.guestH || 32;
-      const img = this.assets.getSheetFrame('characters/npcs/guests/' + this.guestFile + '.png', 32, fh, col, 0);
+      // Invités crossover animés (4 ou 6 frames horizontales : Kris, Ralsei, Susie, Niko, Knight, Link, Luffy, Zoro, Chopper)
+      const col = moving ? Math.floor(frameCount / 7 + this.phase) % this.guestFrames : 0;
+      const img = this.assets.getSheetFrame(
+        'characters/npcs/guests/' + this.guestFile + '.png',
+        this.guestW,
+        this.guestH,
+        col,
+        0
+      );
       const bob = moving ? 0 : Math.round(Math.sin(frameCount * 0.08 + this.phase) * 0.6);
       if (this.facingLeft) g.scale(-1, 1);
-      if (img) g.image(img, -16, -fh + 2 + bob);
+      if (img) g.image(img, -Math.round(this.guestDrawW / 2), -this.guestDrawH + 2 + bob, this.guestDrawW, this.guestDrawH);
     } else if (this.kind === 'guest_single') {
       // Invités crossover 1-frame avec petit sautillement mignon en marchant (Luffy, Zoro, Chopper)
       const img = this.assets.getImage('characters/npcs/guests/' + this.guestFile + '.png');
