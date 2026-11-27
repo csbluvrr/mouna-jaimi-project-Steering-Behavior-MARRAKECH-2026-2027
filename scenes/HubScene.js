@@ -1435,78 +1435,190 @@ class HubScene extends Scene {
     }
   }
 
-  /** Mini Carrousel animé avec toit rayé pastel, lampions et 4 poneys qui tournent et montent/descendent ! */
+  /** Grand Carrousel pastel féerique : socle velours, colonne dorée, 5 poneys galopants 3D, baldaquin festonné & fanion ! */
   drawMiniCarousel(g, c, isNear) {
     const t = frameCount;
     const cx = c.x + 36;
-    const baseY = c.y + 56;
+    const baseY = c.y + 58;
+    const skyMood = this.game.save && this.game.save.data.skyMood === 'sunset' ? 'sunset' : 'day';
+    const sb = typeof SkyBackdrop !== 'undefined' ? SkyBackdrop.getBlend(skyMood) : 0;
+
     g.push();
     g.noStroke();
-    if (isNear) {
-      g.fill(255, 246, 176, Math.round(28 + Math.sin(t * 0.14) * 14));
-      g.ellipse(cx, baseY - 12, 76, 56);
-    }
-    // Plateforme circulaire en bois
+
+    // Halo lumineux chaleureux (renforcé au coucher de soleil ou quand Moo s'approche)
+    const haloA = isNear ? Math.round(36 + Math.sin(t * 0.14) * 14) : Math.round(14 + 34 * sb);
+    g.fill(255, 242, 186, haloA);
+    g.ellipse(cx, baseY - 16, 86, 66);
+
+    // 1. Socle rond à étages avec jupe rose-velours et bordure dorée
+    g.fill(72, 54, 68, 72);
+    g.ellipse(cx, baseY + 6, 78, 22);
+    // Jupe inférieure festonnée
     g.fill(107, 75, 91);
-    g.ellipse(cx, baseY + 2, 68, 20);
-    g.fill(224, 186, 138);
-    g.ellipse(cx, baseY, 64, 16);
-    g.fill(247, 232, 188);
-    g.ellipse(cx, baseY - 1, 56, 12);
+    g.ellipse(cx, baseY + 4, 74, 21);
+    g.fill(198, 114, 134);
+    g.ellipse(cx, baseY + 2, 71, 19);
+    g.fill(244, 212, 126);
+    g.ellipse(cx, baseY + 1, 70, 17);
+    // Plancher en bois crème chaud
+    g.fill(228, 192, 146);
+    g.ellipse(cx, baseY, 66, 15);
+    g.fill(250, 238, 206);
+    g.ellipse(cx, baseY - 1, 56, 11);
 
-    // Poteau central doré
-    g.fill(218, 172, 86);
-    g.rect(cx - 3, c.y + 20, 6, 36);
-    g.fill(252, 228, 134);
-    g.rect(cx - 1, c.y + 20, 2, 36);
+    // 2. 5 Poneys de carrousel détaillés en orbite 3D (arrière -> colonne centrale -> avant)
+    const ponySpecs = [
+      { body: [252, 248, 240], mane: [246, 152, 178], saddle: [246, 152, 178] }, // Blanc & Rose
+      { body: [255, 232, 168], mane: [212, 148, 86],  saddle: [138, 202, 236] }, // Crème doré & Ciel
+      { body: [234, 212, 248], mane: [184, 136, 224], saddle: [252, 224, 124] }, // Lavande & Or
+      { body: [254, 208, 218], mane: [255, 248, 230], saddle: [164, 218, 156] }, // Pêche-rose & Menthe
+      { body: [204, 234, 248], mane: [252, 224, 134], saddle: [246, 152, 178] }  // Bleu ciel & Rose
+    ];
 
-    // 4 Poneys pastel en orbite 3D (triés par profondeur sin(a))
-    const ponyCols = [[250, 168, 192], [164, 214, 242], [252, 224, 134], [212, 178, 236]];
     const ponies = [];
-    for (let i = 0; i < 4; i++) {
-      const a = t * 0.025 + (TWO_PI * i) / 4;
+    for (let i = 0; i < 5; i++) {
+      const a = t * 0.022 + (TWO_PI * i) / 5;
       ponies.push({
-        x: Math.round(cx + Math.cos(a) * 21),
+        x: Math.round(cx + Math.cos(a) * 23),
         z: Math.sin(a),
-        bob: Math.round(Math.sin(t * 0.09 + i * 1.6) * 3),
-        col: ponyCols[i]
+        facingLeft: Math.sin(a) > 0, // Tourne dans le sens naturel de l'orbite !
+        bob: Math.round(Math.sin(t * 0.095 + i * 1.35) * 3),
+        spec: ponySpecs[i]
       });
     }
     ponies.sort((a, b) => a.z - b.z);
-    for (const p of ponies) {
-      const py = Math.round(baseY - 10 + p.z * 5 + p.bob);
-      g.fill(244, 214, 122);
-      g.rect(p.x, c.y + 24, 1, 28);
+
+    const drawPony = (p) => {
+      const py = Math.round(baseY - 11 + p.z * 4.5 + p.bob);
+      // Barre torsadée en laiton doré
+      g.fill(198, 152, 68);
+      g.rect(p.x, c.y + 22, 2, 34);
+      g.fill(255, 238, 156);
+      g.rect(p.x, c.y + 22, 1, 34);
+
+      g.push();
+      g.translate(p.x, py);
+      if (p.facingLeft) g.scale(-1, 1);
+      const b = p.spec.body;
+      const m = p.spec.mane;
+      const s = p.spec.saddle;
+
+      // Queue flottante
+      g.fill(m[0], m[1], m[2]);
+      g.rect(-7, -2, 3, 4, 1);
+      // Contour corps + pattes cabrées
       g.fill(107, 75, 91);
-      g.rect(p.x - 5, py - 4, 11, 7, 2);
-      g.fill(p.col[0], p.col[1], p.col[2]);
-      g.rect(p.x - 4, py - 3, 9, 5, 1);
-      g.fill(255, 250, 238);
-      g.rect(p.x - 4, py - 5, 3, 3); // petite tête du poney
+      g.rect(-5, -4, 10, 6, 2);
+      g.rect(-4, 2, 2, 3);
+      g.rect(3, 1, 2, 3);
+      // Corps pastel du poney
+      g.fill(b[0], b[1], b[2]);
+      g.rect(-4, -3, 8, 4, 1);
+      g.rect(-3, 2, 1, 2);
+      g.rect(3, 1, 1, 2);
+      // Selle colorée + détail or
+      g.fill(s[0], s[1], s[2]);
+      g.rect(-2, -3, 4, 3);
+      g.fill(252, 224, 118);
+      g.rect(-1, -3, 2, 1);
+      // Encolure + tête + oreille + crinière
+      g.fill(107, 75, 91);
+      g.rect(2, -8, 5, 5, 1);
+      g.fill(b[0], b[1], b[2]);
+      g.rect(3, -7, 4, 3, 1);
+      g.rect(4, -9, 1, 2); // petite oreille
+      g.fill(m[0], m[1], m[2]);
+      g.rect(1, -7, 2, 4); // crinière
+      g.fill(72, 48, 62);
+      g.rect(5, -6, 1, 1); // œil mignon
+      g.pop();
+    };
+
+    // Poneys à l'arrière
+    for (const p of ponies) {
+      if (p.z < 0) drawPony(p);
     }
 
-    // Toit conique rayé pastel + lampions scintillants
+    // 3. Colonne centrale ornée (panneaux crème/rose + garnitures dorées + lumières)
     g.fill(107, 75, 91);
-    g.triangle(cx - 35, c.y + 25, cx, c.y + 4, cx + 35, c.y + 25);
-    g.fill(246, 152, 174);
-    g.triangle(cx - 32, c.y + 24, cx, c.y + 6, cx + 32, c.y + 24);
-    g.fill(252, 244, 214);
-    g.triangle(cx - 18, c.y + 24, cx, c.y + 6, cx + 18, c.y + 24);
-    g.fill(158, 212, 236);
-    g.triangle(cx - 7, c.y + 24, cx, c.y + 6, cx + 7, c.y + 24);
+    g.rect(cx - 7, c.y + 20, 14, 36);
+    g.fill(248, 236, 206);
+    g.rect(cx - 6, c.y + 20, 12, 35);
+    g.fill(242, 174, 192);
+    g.rect(cx - 4, c.y + 24, 8, 26);
+    g.fill(248, 212, 108);
+    g.rect(cx - 6, c.y + 22, 12, 2);
+    g.rect(cx - 6, c.y + 50, 12, 3);
+    g.rect(cx - 1, c.y + 24, 2, 26);
+    // Petites lumières scintillantes sur la colonne
+    const colLit = Math.floor(t / 16) % 2 === 0;
+    g.fill(colLit ? g.color(255, 250, 188) : g.color(255, 218, 168));
+    g.rect(cx - 5, c.y + 30, 2, 2);
+    g.rect(cx + 3, c.y + 30, 2, 2);
+    g.rect(cx - 5, c.y + 42, 2, 2);
+    g.rect(cx + 3, c.y + 42, 2, 2);
 
-    // Bordure & ampoules du chapiteau
-    g.fill(107, 75, 91);
-    g.rect(cx - 34, c.y + 23, 68, 5, 2);
-    for (let i = 0; i < 8; i++) {
-      const lit = (Math.floor(t / 12) + i) % 2 === 0;
-      g.fill(lit ? g.color(255, 248, 170) : g.color(255, 194, 206));
-      g.rect(cx - 30 + i * 8, c.y + 24, 3, 3);
+    // Poneys à l'avant (passent devant la colonne centrale !)
+    for (const p of ponies) {
+      if (p.z >= 0) drawPony(p);
     }
-    // Flèche dorée au sommet
-    g.fill(248, 208, 86);
-    g.rect(cx - 1, c.y, 2, 6);
-    g.circle(cx, c.y, 4);
+
+    // 4. Grand toit chapiteau pastel rayé avec nervures dorées
+    g.fill(107, 75, 91);
+    g.triangle(cx - 38, c.y + 24, cx, c.y - 1, cx + 38, c.y + 24);
+    g.fill(246, 152, 178); // Rose bonbon
+    g.triangle(cx - 35, c.y + 23, cx, c.y + 1, cx + 35, c.y + 23);
+    g.fill(255, 246, 218); // Crème
+    g.triangle(cx - 24, c.y + 23, cx, c.y + 1, cx + 24, c.y + 23);
+    g.fill(158, 214, 240); // Bleu ciel pastel
+    g.triangle(cx - 13, c.y + 23, cx, c.y + 1, cx + 13, c.y + 23);
+    g.fill(255, 246, 218); // Panneau central crème
+    g.triangle(cx - 5, c.y + 23, cx, c.y + 1, cx + 5, c.y + 23);
+
+    // Nervures dorées fines du chapiteau
+    g.stroke(246, 206, 102, 200);
+    g.strokeWeight(1);
+    g.line(cx, c.y + 2, cx - 24, c.y + 22);
+    g.line(cx, c.y + 2, cx + 24, c.y + 22);
+    g.line(cx, c.y + 2, cx - 12, c.y + 22);
+    g.line(cx, c.y + 2, cx + 12, c.y + 22);
+    g.noStroke();
+
+    // 5. Frise festonnée dorée & 11 ampoules féeriques scintillantes
+    g.fill(107, 75, 91);
+    g.rect(cx - 37, c.y + 21, 74, 7, 2);
+    g.fill(218, 120, 144);
+    g.rect(cx - 36, c.y + 22, 72, 5, 1);
+    // Festons arrondis suspendus sous le bord du toit
+    for (let sx = cx - 33; sx <= cx + 33; sx += 6) {
+      g.fill(107, 75, 91);
+      g.circle(sx, c.y + 28, 6);
+      g.fill(252, 224, 134);
+      g.circle(sx, c.y + 27, 4);
+    }
+    for (let i = 0; i < 11; i++) {
+      const lx = cx - 32 + i * 6.4;
+      const lit = (Math.floor(t / 10) + i) % 2 === 0;
+      if (lit && sb > 0.1) {
+        g.fill(255, 242, 162, Math.round(70 * sb));
+        g.circle(lx + 1, c.y + 24, 8);
+      }
+      g.fill(lit ? g.color(255, 250, 180) : g.color(255, 198, 212));
+      g.rect(Math.round(lx), c.y + 23, 2, 2);
+    }
+
+    // 6. Flèche dorée + étoile + petit fanion rose qui flotte au vent !
+    g.fill(107, 75, 91);
+    g.rect(cx - 1, c.y - 10, 3, 11);
+    g.fill(252, 214, 96);
+    g.rect(cx, c.y - 9, 1, 10);
+    g.circle(cx, c.y - 2, 5);
+    const wave = Math.round(Math.sin(t * 0.14) * 1.5);
+    g.fill(246, 134, 168);
+    g.triangle(cx + 1, c.y - 10, cx + 11, c.y - 8 + wave, cx + 1, c.y - 5);
+    g.fill(255, 246, 188);
+    g.rect(cx - 1, c.y - 3, 2, 2);
     g.pop();
   }
 
