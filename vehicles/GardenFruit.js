@@ -161,7 +161,8 @@ class GardenFruit extends Vehicle {
 
   /** Met à jour le fruit et renvoie true s'il vient d'entrer en panique (son squeak). */
   step(head, obstacles, vNorm, vEvade, vision) {
-    // Un fruit pourri ne bouge jamais
+    this.headRef = head;
+    // Un orbe toxique ne bouge jamais
     if (this.type === 'rotten') return false;
 
     this.headRef = head;
@@ -196,25 +197,59 @@ class GardenFruit extends Vehicle {
   show(g) {
     const px = Math.round(this.pos.x);
 
-    // 1. Toxic Orb immobile (ancien fruit pourri : -1 anneau d'Onix, 0 anneaux = Game Over)
+    // 1. Orbe Poison / Toxique immobile : visuellement très clair ("NE PAS TOUCHER / -1 anneau !")
     if (this.type === 'rotten') {
       const py = Math.round(this.pos.y);
+      const t = frameCount;
+      const pulse = 0.5 + 0.5 * Math.sin(t * 0.14 + this.phase);
       g.push();
       g.noStroke();
-      g.fill(128, 72, 168, 95);
-      g.ellipse(px, py + 4, 15, 7);
-      // Orbe toxique violet/vert Pokémon
-      g.stroke(62, 28, 86);
+
+      // Flaque toxique bouillonnante + anneau de danger pulsant
+      g.fill(118, 42, 148, 85 + Math.round(pulse * 40));
+      g.ellipse(px, py + 4, 20 + pulse * 2, 9);
+      g.noFill();
+      g.stroke(226, 72, 118, 125 + Math.round(pulse * 95));
       g.strokeWeight(1.2);
-      g.fill(152, 82, 198);
-      g.circle(px, py, 10);
+      g.circle(px, py, 16 + pulse * 3);
+
+      // Orbe poison sombre avec visage tête-de-mort toxique (yeux X vert acide)
+      g.stroke(46, 18, 62);
+      g.strokeWeight(1.5);
+      g.fill(124, 52, 162);
+      g.circle(px, py, 13);
+
       g.noStroke();
-      g.fill(194, 242, 112);
-      g.circle(px - 2, py - 2, 3);
-      // Spores flottantes
-      const a1 = frameCount * 0.12 + this.phase;
-      g.fill(190, 245, 115, 200);
-      g.rect(Math.round(px + Math.cos(a1) * 7), Math.round(py - 4 + Math.sin(a1) * 4), 2, 2);
+      // Petit reflet vert acide + tête de mort pixel (yeux + dents)
+      g.fill(198, 255, 92);
+      g.rect(px - 3, py - 2, 2, 2); // œil gauche
+      g.rect(px + 1, py - 2, 2, 2); // œil droit
+      g.fill(245, 252, 224);
+      g.rect(px - 2, py + 2, 1, 2); // dents de crâne
+      g.rect(px,     py + 2, 1, 2);
+      g.rect(px + 2, py + 2, 1, 2);
+
+      // Vapeurs / bulles toxiques vertes qui montent en continu
+      for (let i = 0; i < 3; i++) {
+        const p = (t * 0.03 + this.phase + i * 0.33) % 1;
+        const fx = Math.round(px + Math.sin(p * TWO_PI + i) * 5);
+        const fy = Math.round(py - 5 - p * 10);
+        const a = Math.round((1 - p) * 230);
+        g.fill(182, 248, 88, a);
+        g.circle(fx, fy, 3 - p * 1.5);
+      }
+
+      // Petit panneau d'alerte rouge "-1" qui clignote quand Onix s'approche
+      if (this.headRef) {
+        const dx = this.headRef.pos.x - this.pos.x;
+        const dy = this.headRef.pos.y - this.pos.y;
+        if (dx * dx + dy * dy < 54 * 54) {
+          g.fill(245, 76, 98);
+          g.rect(px - 5, py - 14, 3, 1); // "-"
+          g.rect(px + 1, py - 16, 1, 5); // "1"
+          g.rect(px,     py - 15, 1, 1);
+        }
+      }
       g.pop();
       return;
     }
