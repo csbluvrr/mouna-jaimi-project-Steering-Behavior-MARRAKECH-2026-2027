@@ -262,14 +262,7 @@ class GardenFruit extends Vehicle {
       return;
     }
 
-    // 3. Scorbunny fuyant (scorbunny.png : 2x4 cellules 160x160 -> row 0=bas, 1=haut, 2=gauche, 3=droite)
-    if (this.type === 'golden') {
-      g.noFill();
-      g.stroke(255, 232, 110, 205);
-      g.strokeWeight(1.5);
-      g.circle(px, py, 26);
-    }
-
+    // 3. Scorbunny fuyant (ou Shiny Scorbunny doré scintillant pour les points bonus !)
     if (this.isEvading) {
       g.noStroke();
       g.fill(255, 95, 110);
@@ -284,13 +277,36 @@ class GardenFruit extends Vehicle {
       row = this.vel.y < 0 ? 1 : 0;
     }
     const col = Math.floor(frameCount / 8 + this.phase) % 2;
-    const scImg = this.assets.getSheetFrame('minigames/pokemoo/scorbunny.png', 160, 160, col, row);
+    const isShiny = this.type === 'golden';
+    const sheetPath = isShiny ? 'minigames/pokemoo/scorbunny_shiny.png' : 'minigames/pokemoo/scorbunny.png';
+    const scImg = this.assets.getSheetFrame(sheetPath, 160, 160, col, row);
     if (scImg) {
       g.image(scImg, px - 13, py - 15, 26, 26);
     } else {
       g.noStroke();
-      g.fill(255, 240, 225);
+      g.fill(isShiny ? g.color(255, 232, 120) : g.color(255, 240, 225));
       g.circle(px, py, 14);
+    }
+
+    // Petites étoiles scintillantes Pokémon autour du Shiny Scorbunny !
+    if (isShiny) {
+      g.push();
+      g.noStroke();
+      for (let s = 0; s < 3; s++) {
+        const phase = frameCount * 0.11 + this.phase + s * 2.1;
+        const tw = Math.sin(phase);
+        if (tw > 0.05) {
+          const sx = Math.round(px + Math.cos(s * 2.1 + frameCount * 0.03) * 12);
+          const sy = Math.round(py - 2 + Math.sin(s * 2.1 + frameCount * 0.03) * 10);
+          const a = Math.round(tw * 255);
+          g.fill(255, 250, 175, a);
+          g.rect(sx - 2, sy, 5, 1);
+          g.rect(sx, sy - 2, 1, 5);
+          g.fill(255, 255, 255, a);
+          g.rect(sx, sy, 1, 1);
+        }
+      }
+      g.pop();
     }
 
     if (Vehicle.debug) {

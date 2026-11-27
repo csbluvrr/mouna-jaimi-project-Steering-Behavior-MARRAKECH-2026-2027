@@ -79,6 +79,7 @@ class AssetManager {
       files.add('minigames/pokemoo/onix_rock.png');
       files.add('minigames/pokemoo/onix_tail.png');
       files.add('minigames/pokemoo/scorbunny.png');
+      files.add('minigames/pokemoo/scorbunny_shiny.png');
       files.add('minigames/pokemoo/gengar.png');
 
       // Nouveaux assets Catch the Purins! (Pompompurin transparent)
