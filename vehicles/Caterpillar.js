@@ -223,7 +223,7 @@ class Caterpillar extends Vehicle {
       g.scale(-1, 1);
     }
     if (headImg) {
-      g.image(headImg, -11, -12, 22, 22);
+      g.image(headImg, -14, -16, 28, 28);
     } else {
       g.noStroke();
       g.fill(158, 158, 166);
