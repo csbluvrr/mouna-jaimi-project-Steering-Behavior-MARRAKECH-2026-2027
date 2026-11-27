@@ -1701,15 +1701,22 @@ class HubScene extends Scene {
     g.fill(244, 162, 176); g.rect(picP.x - 7, picP.y - 5, 14, 10, 2);
     g.fill(255, 244, 232); g.rect(picP.x - 5, picP.y - 3, 4, 3); g.rect(picP.x + 1, picP.y + 1, 4, 3);
 
-    // Dessiner tous les stands & attractions miniatures cliquables
+    // Dessiner tous les stands & attractions miniatures cliquables (et sélectionnables au clavier !)
     const dests = this.getMapDestinations();
+    if (this.mapIdx === undefined) this.mapIdx = 0;
+    if (this.mapIdx >= dests.length) this.mapIdx = 0;
     let hoveredDest = null;
-    for (const d of dests) {
+    for (let di = 0; di < dests.length; di++) {
+      const d = dests[di];
       const hov = PixelUI.pointInRect(mx, my, d);
-      if (hov) hoveredDest = d;
-
       if (hov) {
-        g.fill(255, 248, 168, 200);
+        hoveredDest = d;
+        this.mapIdx = di;
+      }
+      const isSel = di === this.mapIdx;
+
+      if (hov || isSel) {
+        g.fill(255, 248, 168, hov ? 210 : 175);
         g.circle(d.cx, d.cy, 22);
       }
 
@@ -1775,12 +1782,13 @@ class HubScene extends Scene {
     g.rect(mp.x - 3, pinY - 8, 2, 4);
     g.rect(mp.x + 1, pinY - 8, 2, 4);
 
-    // Barre d'info en bas : nom du lieu survolé + astuce clic
-    const infoTxt = hoveredDest
-      ? 'Click to travel to: ' + hoveredDest.label
-      : 'Click any booth or attraction to fast-travel!  •  Esc / M to close';
-    PixelUI.panel(g, ox + 52, oy + 198, 376, 20, hoveredDest ? g.color(223, 240, 187) : g.color(244, 232, 194));
-    PixelUI.txt(g, font, infoTxt, ox + 240, oy + 203, hoveredDest ? g.color(62, 106, 70) : g.color(107, 75, 91), CENTER, 8.2, 366);
+    // Barre d'info en bas : nom du lieu sélectionné/survolé + astuce clic/clavier
+    const activeDest = hoveredDest || dests[this.mapIdx];
+    const infoTxt = activeDest
+      ? 'Click or Enter/Space -> ' + activeDest.label + '  (Arrows to switch)'
+      : 'Arrows / Click any attraction to fast-travel!  •  Esc / M to close';
+    PixelUI.panel(g, ox + 52, oy + 198, 376, 20, activeDest ? g.color(223, 240, 187) : g.color(244, 232, 194));
+    PixelUI.txt(g, font, infoTxt, ox + 240, oy + 203, activeDest ? g.color(62, 106, 70) : g.color(107, 75, 91), CENTER, 8.2, 366);
     PixelUI.txt(g, font, 'Pink Bunny Pin = You are here!', ox + 240, oy + 223, g.color(168, 86, 98), CENTER, 7.5);
     g.pop();
   }
@@ -1885,18 +1893,21 @@ class HubScene extends Scene {
     g.rect(ox + 70, oy + 34, 340, 22);
     PixelUI.txt(g, font, "TODAY'S GAMES", ox + 240, oy + 40, g.color(243, 244, 231), CENTER, 10);
 
+    if (this.posterIdx === undefined) this.posterIdx = 0;
     this.cardRects().forEach((c, i) => {
       const hov = PixelUI.pointInRect(mx, my, c);
-      const yy = Math.round(c.y + (hov ? -2 + Math.sin(frameCount * 0.3) : 0));
-      PixelUI.panel(g, c.x, yy, c.w, c.h, g.color(232, 207, 166));
-      PixelUI.txt(g, font, c.gm.title, c.x + 8, yy + 5, g.color(107, 75, 91), LEFT, 9, c.w - 14);
+      if (hov) this.posterIdx = i;
+      const sel = i === this.posterIdx;
+      const yy = Math.round(c.y + (sel ? -2 + Math.sin(frameCount * 0.3) : 0));
+      PixelUI.panel(g, c.x, yy, c.w, c.h, sel ? g.color(223, 240, 187) : g.color(232, 207, 166));
+      PixelUI.txt(g, font, (sel ? '> ' : '') + c.gm.title, c.x + 8, yy + 5, sel ? g.color(62, 106, 70) : g.color(107, 75, 91), LEFT, 9, c.w - 14);
       // Nouveau logo thématique encadré (2x) sur chaque carte du poster
       PixelUI.panel(g, c.x + 8, yy + 25, 26, 24, g.color(247, 236, 198));
       this.drawGameLogo(g, c.gm.id, c.x + 21, yy + 37, 1.5);
       const stars = this.game.save.data.stars[c.gm.id] || 0;
       PixelUI.txt(g, font, 'press ' + (i + 1) + '  [' + '*'.repeat(stars) + '-'.repeat(3 - stars) + ']', c.x + 42, yy + 32, g.color(144, 98, 93), LEFT, 8.5, 108);
     });
-    PixelUI.txt(g, font, 'Esc / M to close', ox + 240, oy + 190, g.color(144, 98, 93), CENTER, 8.5);
+    PixelUI.txt(g, font, 'Arrows / 1-4: Pick  •  Space/Enter: Play  •  Esc / M: Close', ox + 240, oy + 190, g.color(144, 98, 93), CENTER, 8);
   }
 
   /** Géométrie des boutons de choix dans la boîte de dialogue RPG. */
@@ -1934,11 +1945,14 @@ class HubScene extends Scene {
     PixelUI.txt(g, font, d.text, bx + 14, by + 12, g.color(82, 52, 66), LEFT, 9, bw - 28);
 
     if (d.stage === 'ASK') {
+      if (this.dialogueChoiceIdx === undefined) this.dialogueChoiceIdx = 0;
       const rects = this.getDialogueChoiceRects();
       for (const r of rects) {
         const hov = PixelUI.pointInRect(mx, my, r);
+        if (hov) this.dialogueChoiceIdx = r.idx;
+        const sel = this.dialogueChoiceIdx === r.idx;
         PixelUI.drawButton(
-          g, font, r, r.label, hov,
+          g, font, r, (sel ? '> ' : '') + r.label, sel,
           g.color(238, 224, 186), g.color(223, 240, 187)
         );
       }
@@ -2023,9 +2037,26 @@ class HubScene extends Scene {
 
     if (this.activeDialogue) {
       if (this.activeDialogue.stage === 'ASK') {
-        if (k === '1') this.pickDialogueChoice(0);
-        else if (k === '2') this.pickDialogueChoice(1);
-        else if (kc === ESCAPE) this.activeDialogue = null;
+        const count = this.activeDialogue.choices.length || 2;
+        if (this.dialogueChoiceIdx === undefined) this.dialogueChoiceIdx = 0;
+        if (kc === UP_ARROW || k === 'w' || k === 'W' || k === 'z' || k === 'Z') {
+          this.dialogueChoiceIdx = (this.dialogueChoiceIdx - 1 + count) % count;
+          this.game.sound.playSfx('ui_click', 0.5);
+        } else if (kc === DOWN_ARROW || k === 's' || k === 'S') {
+          this.dialogueChoiceIdx = (this.dialogueChoiceIdx + 1) % count;
+          this.game.sound.playSfx('ui_click', 0.5);
+        } else if (k === ' ' || kc === ENTER) {
+          this.pickDialogueChoice(this.dialogueChoiceIdx);
+          this.dialogueChoiceIdx = 0;
+        } else if (k === '1') {
+          this.pickDialogueChoice(0);
+          this.dialogueChoiceIdx = 0;
+        } else if (k === '2') {
+          this.pickDialogueChoice(1);
+          this.dialogueChoiceIdx = 0;
+        } else if (kc === ESCAPE) {
+          this.activeDialogue = null;
+        }
       } else if (k === ' ' || kc === ENTER || kc === ESCAPE) {
         this.closeDialogue();
       }
@@ -2073,9 +2104,46 @@ class HubScene extends Scene {
       return;
     }
 
-    if (this.overlay && k >= '1' && k <= '4') {
-      const gm = this.booths[parseInt(k, 10) - 1];
-      if (gm) this.enterGame(gm.id);
+    // Navigation clavier dans la mini-carte (Park Map)
+    if (this.mapOverlay) {
+      const dests = this.getMapDestinations();
+      if (dests.length > 0) {
+        if (this.mapIdx === undefined) this.mapIdx = 0;
+        if (kc === LEFT_ARROW || k === 'a' || k === 'A' || k === 'q' || k === 'Q' || kc === UP_ARROW || k === 'w' || k === 'W' || k === 'z' || k === 'Z') {
+          this.mapIdx = (this.mapIdx - 1 + dests.length) % dests.length;
+          this.game.sound.playSfx('ui_click', 0.45);
+        } else if (kc === RIGHT_ARROW || k === 'd' || k === 'D' || kc === DOWN_ARROW || k === 's' || k === 'S') {
+          this.mapIdx = (this.mapIdx + 1) % dests.length;
+          this.game.sound.playSfx('ui_click', 0.45);
+        } else if (k === ' ' || kc === ENTER) {
+          const hit = dests[this.mapIdx];
+          if (hit) {
+            this.moo.pos.set(hit.targetX, hit.targetY);
+            this.moo.stop();
+            this.mapOverlay = false;
+            this.game.sound.playSfx('ui_click', 0.8);
+          }
+        }
+      }
+      return;
+    }
+
+    // Navigation clavier dans l'overlay "Today's Games" (grille 2x2)
+    if (this.overlay) {
+      if (this.posterIdx === undefined) this.posterIdx = 0;
+      if (k >= '1' && k <= '4') {
+        const gm = this.booths[parseInt(k, 10) - 1];
+        if (gm) this.enterGame(gm.id);
+      } else if (kc === LEFT_ARROW || kc === RIGHT_ARROW || k === 'a' || k === 'A' || k === 'd' || k === 'D' || k === 'q' || k === 'Q') {
+        this.posterIdx = this.posterIdx ^ 1;
+        this.game.sound.playSfx('ui_click', 0.45);
+      } else if (kc === UP_ARROW || kc === DOWN_ARROW || k === 'w' || k === 'W' || k === 's' || k === 'S' || k === 'z' || k === 'Z') {
+        this.posterIdx = (this.posterIdx + 2) % 4;
+        this.game.sound.playSfx('ui_click', 0.45);
+      } else if (k === ' ' || kc === ENTER) {
+        const gm = this.booths[this.posterIdx];
+        if (gm) this.enterGame(gm.id);
+      }
       return;
     }
 

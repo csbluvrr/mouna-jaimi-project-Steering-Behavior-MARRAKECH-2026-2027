@@ -582,9 +582,17 @@ class FoxScene extends Scene {
     g.rect(148, 72, 184, 22);
     PixelUI.txt(g, font, 'PAUSED', 240, 78, g.color(243, 244, 231), CENTER);
 
-    PixelUI.drawButton(g, font, this.resumeBtn, 'Resume (Esc)', PixelUI.pointInRect(mx, my, this.resumeBtn), g.color(223, 240, 187));
-    PixelUI.drawButton(g, font, this.restartBtn, 'Restart', PixelUI.pointInRect(mx, my, this.restartBtn));
-    PixelUI.drawButton(g, font, this.exitBtn, 'Back to Fair', PixelUI.pointInRect(mx, my, this.exitBtn));
+    if (this.pauseIdx === undefined) this.pauseIdx = 0;
+    const pBtns = [
+      { rect: this.resumeBtn, label: 'Resume (Esc)', accent: g.color(223, 240, 187) },
+      { rect: this.restartBtn, label: 'Restart' },
+      { rect: this.exitBtn, label: 'Back to Fair' }
+    ];
+    pBtns.forEach((b, i) => {
+      if (PixelUI.pointInRect(mx, my, b.rect)) this.pauseIdx = i;
+      const sel = this.pauseIdx === i;
+      PixelUI.drawButton(g, font, b.rect, (sel ? '> ' : '') + b.label, sel, b.accent);
+    });
   }
 
   drawEndCard(g) {
@@ -608,9 +616,12 @@ class FoxScene extends Scene {
       PixelUI.txt(g, font, 'Use double-jump & platforms to dodge fireballs!', 240, 104, g.color(107, 75, 91), CENTER, 9, 280);
     }
 
+    if (this.endIdx === undefined) this.endIdx = 0;
+    if (PixelUI.pointInRect(mx, my, this.retryEndBtn)) this.endIdx = 0;
+    else if (PixelUI.pointInRect(mx, my, this.hubEndBtn)) this.endIdx = 1;
     PixelUI.drawTag(g, font, '+' + this.earnedTickets + ' Tickets earned!', 240, 166, g.color(223, 240, 187));
-    PixelUI.drawButton(g, font, this.retryEndBtn, 'Play Again', PixelUI.pointInRect(mx, my, this.retryEndBtn), g.color(223, 240, 187));
-    PixelUI.drawButton(g, font, this.hubEndBtn, 'Back to Fair', PixelUI.pointInRect(mx, my, this.hubEndBtn));
+    PixelUI.drawButton(g, font, this.retryEndBtn, (this.endIdx === 0 ? '> ' : '') + 'Play Again', this.endIdx === 0, g.color(223, 240, 187));
+    PixelUI.drawButton(g, font, this.hubEndBtn, (this.endIdx === 1 ? '> ' : '') + 'Back to Fair', this.endIdx === 1);
   }
 
   backToHub() {
@@ -656,8 +667,32 @@ class FoxScene extends Scene {
       }
       return;
     }
-    if ((this.state === 'WIN' || this.state === 'LOSE') && (k === ' ' || kc === ENTER)) {
-      this.resetRound(false);
+    if (this.state === 'PAUSED') {
+      if (this.pauseIdx === undefined) this.pauseIdx = 0;
+      if (kc === UP_ARROW || k === 'w' || k === 'W' || k === 'z' || k === 'Z') {
+        this.pauseIdx = (this.pauseIdx + 2) % 3;
+        this.game.sound.playSfx('ui_click', 0.5);
+      } else if (kc === DOWN_ARROW || k === 's' || k === 'S') {
+        this.pauseIdx = (this.pauseIdx + 1) % 3;
+        this.game.sound.playSfx('ui_click', 0.5);
+      } else if (k === ' ' || kc === ENTER) {
+        if (this.pauseIdx === 0) this.state = 'PLAYING';
+        else if (this.pauseIdx === 1) this.resetRound(false);
+        else this.backToHub();
+      }
+      return;
+    }
+    if (this.state === 'WIN' || this.state === 'LOSE') {
+      if (this.endIdx === undefined) this.endIdx = 0;
+      if (kc === LEFT_ARROW || kc === RIGHT_ARROW || kc === UP_ARROW || kc === DOWN_ARROW ||
+          k === 'a' || k === 'A' || k === 'd' || k === 'D' || k === 'q' || k === 'Q') {
+        this.endIdx = (this.endIdx + 1) % 2;
+        this.game.sound.playSfx('ui_click', 0.5);
+      } else if (k === ' ' || kc === ENTER) {
+        if (this.endIdx === 0) this.resetRound(false);
+        else this.backToHub();
+        this.endIdx = 0;
+      }
     }
   }
 }

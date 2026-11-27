@@ -11,6 +11,7 @@ class PrizeShop {
     this.mode = 'SHOP';      // 'SHOP' | 'EQUIP'
     this.slotIdx = 0;        // 0..4 (head, face, neck, back, hoodie)
     this.page = 0;           // Pagination (6 objets par page)
+    this.selectedIdx = 0;    // Carte sélectionnée au clavier (0..5)
     this.previewDir = 0;     // 0=Face, 1=Gauche, 2=Droite, 3=Dos
     this.previewWalk = false;
     this.feedback = '';
@@ -177,8 +178,13 @@ class PrizeShop {
     for (let i = 0; i < pageItems.length; i++) {
       if (PixelUI.pointInRect(mx, my, L.cards[i])) {
         hoveredItem = pageItems[i];
+        this.selectedIdx = i;
         break;
       }
+    }
+    if (this.selectedIdx >= pageItems.length) this.selectedIdx = Math.max(0, pageItems.length - 1);
+    if (!hoveredItem && pageItems[this.selectedIdx]) {
+      hoveredItem = pageItems[this.selectedIdx];
     }
 
     // === PANNEAU APERÇU MOO À GAUCHE (cabine boutique pastel + essayage en direct 2x en 4 directions) ===
@@ -270,12 +276,20 @@ class PrizeShop {
       const card = L.cards[i];
       const owned = save.isCosmeticOwned(it.slot, it.id);
       const equipped = save.data.equippedOutfit[it.slot] === it.id;
-      const hov = PixelUI.pointInRect(mx, my, card);
+      const hov = PixelUI.pointInRect(mx, my, card) || i === this.selectedIdx;
 
       const bg = equipped
         ? g.color(223, 240, 187)
         : (hov ? g.color(255, 246, 206) : g.color(238, 220, 182));
       PixelUI.panel(g, card.x, card.y, card.w, card.h, bg);
+      if (i === this.selectedIdx) {
+        g.push();
+        g.noFill();
+        g.stroke(189, 117, 126);
+        g.strokeWeight(1.5);
+        g.rect(card.x + 1, card.y + 1, card.w - 2, card.h - 2, 1);
+        g.pop();
+      }
 
       // Vignette aperçu à gauche de la carte (32x34)
       g.push();
@@ -453,17 +467,104 @@ class PrizeShop {
     return true;
   }
 
+  /** Achète ou équipe/retire l'objet sélectionné. */
+  activateItem(it) {
+    if (!it) return;
+    const save = this.game.save;
+    if (save.isCosmeticOwned(it.slot, it.id)) {
+      const wasEquipped = save.data.equippedOutfit[it.slot] === it.id;
+      save.toggleEquipCosmetic(it.slot, it.id);
+      this.setFeedback(wasEquipped ? 'Unequipped ' + it.name : 'Equipped ' + it.name + '!');
+      this.game.sound.playSfx('ui_click', 0.85);
+    } else {
+      if (save.buyCosmetic(it.slot, it.id, it.price)) {
+        this.setFeedback('Bought & equipped ' + it.name + '!');
+        this.game.sound.playSfx('success_bell', 0.85);
+      } else {
+        this.setFeedback('Need ' + (it.price - (save.data.tickets || 0)) + ' more tickets!');
+        this.game.sound.playSfx('ui_click', 0.4);
+      }
+    }
+  }
+
   keyPressed(k, kc) {
     if (!this.open) return false;
-    if (kc === LEFT_ARROW || k === 'a' || k === 'A' || k === 'q' || k === 'Q') {
-      const order = [0, 1, 3, 2];
-      this.previewDir = order[(order.indexOf(this.previewDir) + 1) % 4];
+    const items = this.getVisibleItems();
+    const totalPages = Math.max(1, Math.ceil(items.length / 6));
+    const pageItems = items.slice(this.page * 6, this.page * 6 + 6);
+
+    // 1..5 : changer de catégorie (Head / Face / Neck / Back / Hoodies)
+    if (k >= '1' && k <= '5') {
+      const idx = parseInt(k, 10) - 1;
+      if (idx < CosmeticCatalog.SLOTS.length) {
+        this.slotIdx = idx;
+        this.page = 0;
+        this.selectedIdx = 0;
+        this.game.sound.playSfx('ui_click', 0.6);
+      }
       return true;
     }
-    if (kc === RIGHT_ARROW || k === 'd' || k === 'D') {
+
+    // T : basculer PRIZE SHOP / WARDROBE, R : tourner Moo, G : Walk/Idle
+    if (k === 't' || k === 'T') {
+      this.mode = this.mode === 'SHOP' ? 'EQUIP' : 'SHOP';
+      this.page = 0;
+      this.selectedIdx = 0;
+      this.game.sound.playSfx('ui_click', 0.7);
+      return true;
+    }
+    if (k === 'r' || k === 'R') {
       const order = [0, 2, 3, 1];
       this.previewDir = order[(order.indexOf(this.previewDir) + 1) % 4];
+      this.game.sound.playSfx('ui_click', 0.5);
       return true;
+    }
+    if (k === 'g' || k === 'G') {
+      this.previewWalk = !this.previewWalk;
+      this.game.sound.playSfx('ui_click', 0.5);
+      return true;
+    }
+
+    // Navigation dans la grille 2x3 des articles avec Flèches / WASD / ZQSD
+    if (pageItems.length > 0) {
+      if (kc === LEFT_ARROW || k === 'a' || k === 'A' || k === 'q' || k === 'Q') {
+        if (this.selectedIdx % 2 === 1) {
+          this.selectedIdx--;
+        } else if (totalPages > 1) {
+          this.page = (this.page - 1 + totalPages) % totalPages;
+          this.selectedIdx = 0;
+        } else {
+          this.selectedIdx = (this.selectedIdx - 1 + pageItems.length) % pageItems.length;
+        }
+        this.game.sound.playSfx('ui_click', 0.45);
+        return true;
+      }
+      if (kc === RIGHT_ARROW || k === 'd' || k === 'D') {
+        if (this.selectedIdx % 2 === 0 && this.selectedIdx + 1 < pageItems.length) {
+          this.selectedIdx++;
+        } else if (totalPages > 1) {
+          this.page = (this.page + 1) % totalPages;
+          this.selectedIdx = 0;
+        } else {
+          this.selectedIdx = (this.selectedIdx + 1) % pageItems.length;
+        }
+        this.game.sound.playSfx('ui_click', 0.45);
+        return true;
+      }
+      if (kc === UP_ARROW || k === 'w' || k === 'W' || k === 'z' || k === 'Z') {
+        this.selectedIdx = this.selectedIdx >= 2 ? this.selectedIdx - 2 : Math.max(0, pageItems.length - 1);
+        this.game.sound.playSfx('ui_click', 0.45);
+        return true;
+      }
+      if (kc === DOWN_ARROW || k === 's' || k === 'S') {
+        this.selectedIdx = this.selectedIdx + 2 < pageItems.length ? this.selectedIdx + 2 : 0;
+        this.game.sound.playSfx('ui_click', 0.45);
+        return true;
+      }
+      if (k === ' ' || kc === ENTER) {
+        this.activateItem(pageItems[this.selectedIdx]);
+        return true;
+      }
     }
     return true;
   }

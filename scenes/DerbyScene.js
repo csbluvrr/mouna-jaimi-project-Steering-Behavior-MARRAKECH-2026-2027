@@ -1292,16 +1292,20 @@ class DerbyScene extends Scene {
       PixelUI.txt(g, font, ln, 68, 70 + i * 20, g.color(107, 75, 91), LEFT, 8.2, 344);
     });
 
-    PixelUI.txt(g, font, 'Esc: Menu  |  H: Toggle Debug Panel', 240, 178, g.color(144, 98, 93), CENTER, 8);
+    PixelUI.txt(g, font, 'Arrows: Select  |  Space/Enter: Confirm  |  H: Debug', 240, 178, g.color(144, 98, 93), CENTER, 8);
+
+    if (this.introIdx === undefined) this.introIdx = 0;
+    if (PixelUI.pointInRect(mx, my, this.startBtn)) this.introIdx = 0;
+    else if (PixelUI.pointInRect(mx, my, this.trainBtn)) this.introIdx = 1;
 
     PixelUI.drawButton(
-      g, font, this.startBtn, 'WATCH & BET (Space)',
-      PixelUI.pointInRect(mx, my, this.startBtn),
+      g, font, this.startBtn, (this.introIdx === 0 ? '> ' : '') + 'WATCH & BET',
+      this.introIdx === 0,
       g.color(223, 240, 187), g.color(202, 232, 152)
     );
     PixelUI.drawButton(
-      g, font, this.trainBtn, 'TRAINING LAB (AI)',
-      PixelUI.pointInRect(mx, my, this.trainBtn),
+      g, font, this.trainBtn, (this.introIdx === 1 ? '> ' : '') + 'TRAINING LAB (AI)',
+      this.introIdx === 1,
       g.color(210, 228, 248), g.color(184, 212, 242)
     );
   }
@@ -1349,7 +1353,8 @@ class DerbyScene extends Scene {
     g.rect(44, 28, 392, 22, 1);
     PixelUI.txt(g, font, 'PLACE YOUR RACE BET!  (Tickets: ' + tickets + ')', 240, 33, g.color(255, 252, 238), CENTER, 9.5, 380);
 
-    PixelUI.txt(g, font, '1. Choose your bunny champion (1st = 3x | Top 3 = 1.5x):', 56, 53, g.color(107, 75, 91), LEFT, 8, 370);
+    if (this.betFocus === undefined) this.betFocus = 'BUNNY';
+    PixelUI.txt(g, font, '1. Choose your bunny champion (Arrows | 1st = 3x | Top 3 = 1.5x):', 56, 53, this.betFocus === 'BUNNY' ? g.color(168, 74, 94) : g.color(107, 75, 91), LEFT, 8, 370);
 
     for (const c of L.bunnyCards) {
       const b = this.bunnies[c.idx];
@@ -1357,6 +1362,10 @@ class DerbyScene extends Scene {
       const hov = PixelUI.pointInRect(mx, my, c);
       const bg = sel ? g.color(223, 240, 187) : (hov ? g.color(255, 246, 206) : g.color(238, 220, 182));
       PixelUI.panel(g, c.x, c.y, c.w, c.h, bg);
+      if (sel && this.betFocus === 'BUNNY') {
+        g.push(); g.noFill(); g.stroke(189, 117, 126); g.strokeWeight(1.5);
+        g.rect(c.x + 1, c.y + 1, c.w - 2, c.h - 2, 1); g.pop();
+      }
 
       const colName = b ? b.colour : DerbyBunny.COLOURS[c.idx];
       const sp = assets.getSheetFrame('characters/animals/bunnies/bunny_' + colName + '.png', 32, 32, 0, 0);
@@ -1368,7 +1377,7 @@ class DerbyScene extends Scene {
       }
     }
 
-    PixelUI.txt(g, font, '2. Choose bet amount:', 56, 154, g.color(107, 75, 91), LEFT, 8);
+    PixelUI.txt(g, font, '2. Choose bet amount (Up/Down to switch row):', 56, 154, this.betFocus === 'AMOUNT' ? g.color(168, 74, 94) : g.color(107, 75, 91), LEFT, 8);
     for (const bb of L.betBtns) {
       const canAfford = tickets >= bb.amt;
       const sel = this.betAmount === bb.amt;
@@ -1377,6 +1386,10 @@ class DerbyScene extends Scene {
         ? g.color(216, 206, 196)
         : (sel ? g.color(223, 240, 187) : (hov ? g.color(255, 246, 206) : g.color(232, 207, 166)));
       PixelUI.panel(g, bb.x, bb.y, bb.w, bb.h, bg);
+      if (sel && this.betFocus === 'AMOUNT') {
+        g.push(); g.noFill(); g.stroke(189, 117, 126); g.strokeWeight(1.5);
+        g.rect(bb.x + 1, bb.y + 1, bb.w - 2, bb.h - 2, 1); g.pop();
+      }
       PixelUI.txt(
         g, font, bb.label, bb.x + bb.w / 2, bb.y + 5,
         !canAfford ? g.color(150, 138, 134) : (sel ? g.color(62, 108, 70) : g.color(107, 75, 91)),
@@ -1384,10 +1397,11 @@ class DerbyScene extends Scene {
       );
     }
 
+    const goHov = PixelUI.pointInRect(mx, my, L.goBtn) || this.betFocus === 'GO';
     PixelUI.drawButton(
       g, font, L.goBtn,
-      'START RACE! (Space)',
-      PixelUI.pointInRect(mx, my, L.goBtn),
+      (this.betFocus === 'GO' ? '> ' : '') + 'START RACE! (Space)',
+      goHov,
       g.color(223, 240, 187)
     );
   }
@@ -1404,9 +1418,17 @@ class DerbyScene extends Scene {
     g.rect(148, 72, 184, 22);
     PixelUI.txt(g, font, 'PAUSED', 240, 78, g.color(243, 244, 231), CENTER);
 
-    PixelUI.drawButton(g, font, this.resumeBtn, 'Resume (Esc)', PixelUI.pointInRect(mx, my, this.resumeBtn), g.color(223, 240, 187));
-    PixelUI.drawButton(g, font, this.restartBtn, 'Restart', PixelUI.pointInRect(mx, my, this.restartBtn));
-    PixelUI.drawButton(g, font, this.exitBtn, 'Back to Fair', PixelUI.pointInRect(mx, my, this.exitBtn));
+    if (this.pauseIdx === undefined) this.pauseIdx = 0;
+    const pBtns = [
+      { rect: this.resumeBtn, label: 'Resume (Esc)', accent: g.color(223, 240, 187) },
+      { rect: this.restartBtn, label: 'Restart' },
+      { rect: this.exitBtn, label: 'Back to Fair' }
+    ];
+    pBtns.forEach((b, i) => {
+      if (PixelUI.pointInRect(mx, my, b.rect)) this.pauseIdx = i;
+      const sel = this.pauseIdx === i;
+      PixelUI.drawButton(g, font, b.rect, (sel ? '> ' : '') + b.label, sel, b.accent);
+    });
   }
 
   drawFinishCard(g) {
@@ -1521,17 +1543,100 @@ class DerbyScene extends Scene {
 
   keyPressed(k, kc) {
     if (this.state === 'INTRO') {
-      if (k === ' ' || kc === ENTER) {
+      if (this.introIdx === undefined) this.introIdx = 0;
+      if (kc === LEFT_ARROW || kc === RIGHT_ARROW || kc === UP_ARROW || kc === DOWN_ARROW ||
+          k === 'a' || k === 'A' || k === 'd' || k === 'D' || k === 'q' || k === 'Q') {
+        this.introIdx = (this.introIdx + 1) % 2;
+        this.game.sound.playSfx('ui_click', 0.5);
+      } else if (k === ' ' || kc === ENTER) {
         this.seenIntro = true;
-        this.state = this.mode === 'RACE' ? 'BETTING' : 'RUNNING';
+        if (this.introIdx === 0) {
+          this.mode = 'RACE';
+          if (this.panelEl) {
+            this.panelEl.style.display = Vehicle.debug ? 'flex' : 'none';
+            const rTab = this.panelEl.querySelector('#dp-tab-race');
+            const tTab = this.panelEl.querySelector('#dp-tab-train');
+            if (rTab && tTab) { rTab.classList.add('dp-active'); tTab.classList.remove('dp-active'); }
+          }
+          this.startRaceDay(false);
+          this.state = 'BETTING';
+        } else {
+          this.mode = 'TRAINING';
+          this.showRays = true;
+          if (this.panelEl) {
+            this.panelEl.style.display = 'flex';
+            const rTab = this.panelEl.querySelector('#dp-tab-race');
+            const tTab = this.panelEl.querySelector('#dp-tab-train');
+            if (rTab && tTab) { tTab.classList.add('dp-active'); rTab.classList.remove('dp-active'); }
+          }
+          this.startTraining(true);
+          this.state = 'RUNNING';
+        }
+        this.game.sound.playSfx('ui_click', 0.8);
       } else if (kc === ESCAPE) {
         this.backToHub();
       }
       return;
     }
     if (this.state === 'BETTING') {
-      if (k === ' ' || kc === ENTER) {
+      if (this.betFocus === undefined) this.betFocus = 'BUNNY';
+      const amounts = [0, 5, 10, 25, 50];
+      const tickets = this.game.save.data.tickets || 0;
+      if (kc === LEFT_ARROW || k === 'a' || k === 'A' || k === 'q' || k === 'Q') {
+        if (this.betFocus === 'BUNNY') this.betBunnyIdx = (this.betBunnyIdx + 7) % 8;
+        else if (this.betFocus === 'AMOUNT') {
+          let idx = amounts.indexOf(this.betAmount);
+          for (let t = 0; t < amounts.length; t++) {
+            idx = (idx - 1 + amounts.length) % amounts.length;
+            if (tickets >= amounts[idx]) { this.betAmount = amounts[idx]; break; }
+          }
+        }
+        this.game.sound.playSfx('ui_click', 0.5);
+      } else if (kc === RIGHT_ARROW || k === 'd' || k === 'D') {
+        if (this.betFocus === 'BUNNY') this.betBunnyIdx = (this.betBunnyIdx + 1) % 8;
+        else if (this.betFocus === 'AMOUNT') {
+          let idx = amounts.indexOf(this.betAmount);
+          for (let t = 0; t < amounts.length; t++) {
+            idx = (idx + 1) % amounts.length;
+            if (tickets >= amounts[idx]) { this.betAmount = amounts[idx]; break; }
+          }
+        }
+        this.game.sound.playSfx('ui_click', 0.5);
+      } else if (kc === UP_ARROW || k === 'w' || k === 'W' || k === 'z' || k === 'Z') {
+        if (this.betFocus === 'GO') this.betFocus = 'AMOUNT';
+        else if (this.betFocus === 'AMOUNT') this.betFocus = 'BUNNY';
+        else if (this.betBunnyIdx >= 4) this.betBunnyIdx -= 4;
+        else this.betFocus = 'GO';
+        this.game.sound.playSfx('ui_click', 0.5);
+      } else if (kc === DOWN_ARROW || k === 's' || k === 'S') {
+        if (this.betFocus === 'BUNNY') {
+          if (this.betBunnyIdx < 4) this.betBunnyIdx += 4;
+          else this.betFocus = 'AMOUNT';
+        } else if (this.betFocus === 'AMOUNT') {
+          this.betFocus = 'GO';
+        } else {
+          this.betFocus = 'BUNNY';
+        }
+        this.game.sound.playSfx('ui_click', 0.5);
+      } else if (k === ' ' || kc === ENTER) {
         this.startRaceDay(true);
+      }
+      return;
+    }
+    if (this.state === 'PAUSED') {
+      if (this.pauseIdx === undefined) this.pauseIdx = 0;
+      if (kc === UP_ARROW || k === 'w' || k === 'W' || k === 'z' || k === 'Z') {
+        this.pauseIdx = (this.pauseIdx + 2) % 3;
+        this.game.sound.playSfx('ui_click', 0.5);
+      } else if (kc === DOWN_ARROW || k === 's' || k === 'S') {
+        this.pauseIdx = (this.pauseIdx + 1) % 3;
+        this.game.sound.playSfx('ui_click', 0.5);
+      } else if (k === ' ' || kc === ENTER) {
+        if (this.pauseIdx === 0) this.state = 'RUNNING';
+        else if (this.pauseIdx === 1) {
+          if (this.mode === 'RACE') this.startRaceDay(false);
+          else this.startTraining(true);
+        } else this.backToHub();
       }
       return;
     }

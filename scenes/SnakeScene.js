@@ -794,11 +794,18 @@ class SnakeScene extends Scene {
     g.rect(138, 66, 204, 22);
     PixelUI.txt(g, font, 'PAUSED — LEVEL ' + this.currentLevel, 240, 72, g.color(243, 244, 231), CENTER);
 
-    PixelUI.drawButton(g, font, this.resumeBtn, 'Resume (Esc)', PixelUI.pointInRect(mx, my, this.resumeBtn), g.color(223, 240, 187));
-    const mLbl = this.controlMode === 'KEYBOARD' ? 'Mode: Arrows [M]' : 'Mode: Mouse [M]';
-    PixelUI.drawButton(g, font, this.modeBtn, mLbl, PixelUI.pointInRect(mx, my, this.modeBtn));
-    PixelUI.drawButton(g, font, this.restartBtn, 'Restart Level', PixelUI.pointInRect(mx, my, this.restartBtn));
-    PixelUI.drawButton(g, font, this.exitBtn, 'Back to Fair', PixelUI.pointInRect(mx, my, this.exitBtn));
+    const pauseBtns = [
+      { rect: this.resumeBtn, label: 'Resume (Esc)', accent: g.color(223, 240, 187) },
+      { rect: this.modeBtn, label: this.controlMode === 'KEYBOARD' ? 'Mode: Arrows [C]' : 'Mode: Mouse [C]' },
+      { rect: this.restartBtn, label: 'Restart Level' },
+      { rect: this.exitBtn, label: 'Back to Fair' }
+    ];
+    if (this.pauseIdx === undefined) this.pauseIdx = 0;
+    pauseBtns.forEach((b, i) => {
+      if (PixelUI.pointInRect(mx, my, b.rect)) this.pauseIdx = i;
+      const sel = this.pauseIdx === i;
+      PixelUI.drawButton(g, font, b.rect, (sel ? '> ' : '') + b.label, sel, b.accent);
+    });
   }
 
   drawEndCard(g) {
@@ -831,11 +838,14 @@ class SnakeScene extends Scene {
       PixelUI.txt(g, font, 'Rings reached: ' + this.caterpillar.getRingCount(), 240, 124, g.color(144, 98, 93), CENTER);
     }
 
-    PixelUI.txt(g, font, 'Press Space or click below', 240, 162, g.color(144, 98, 93), CENTER);
+    PixelUI.txt(g, font, 'Arrows: Select  |  Space/Enter: Confirm', 240, 162, g.color(144, 98, 93), CENTER);
 
+    if (this.endIdx === undefined) this.endIdx = 0;
+    if (PixelUI.pointInRect(mx, my, this.actionEndBtn)) this.endIdx = 0;
+    else if (PixelUI.pointInRect(mx, my, this.hubEndBtn)) this.endIdx = 1;
     const primaryLbl = isAll ? 'Play Level 1' : (isClear ? 'Next Level ->' : 'Retry Level');
-    PixelUI.drawButton(g, font, this.actionEndBtn, primaryLbl, PixelUI.pointInRect(mx, my, this.actionEndBtn), g.color(223, 240, 187));
-    PixelUI.drawButton(g, font, this.hubEndBtn, 'Back to Fair', PixelUI.pointInRect(mx, my, this.hubEndBtn));
+    PixelUI.drawButton(g, font, this.actionEndBtn, (this.endIdx === 0 ? '> ' : '') + primaryLbl, this.endIdx === 0, g.color(223, 240, 187));
+    PixelUI.drawButton(g, font, this.hubEndBtn, (this.endIdx === 1 ? '> ' : '') + 'Back to Fair', this.endIdx === 1);
   }
 
   /** Crée le panneau de curseurs TP 3 (visible uniquement quand Debug [H] est activé). */
@@ -1061,9 +1071,34 @@ class SnakeScene extends Scene {
       return;
     }
 
-    if ((this.state === 'LEVEL_CLEAR' || this.state === 'VICTORY_ALL' || this.state === 'CRASH')
-        && (k === ' ' || kc === ENTER)) {
-      this.handleEndPrimaryAction();
+    if (this.state === 'PAUSED') {
+      if (this.pauseIdx === undefined) this.pauseIdx = 0;
+      if (kc === UP_ARROW || k === 'w' || k === 'W' || k === 'z' || k === 'Z') {
+        this.pauseIdx = (this.pauseIdx + 3) % 4;
+        this.game.sound.playSfx('ui_click', 0.5);
+      } else if (kc === DOWN_ARROW || k === 's' || k === 'S') {
+        this.pauseIdx = (this.pauseIdx + 1) % 4;
+        this.game.sound.playSfx('ui_click', 0.5);
+      } else if (k === ' ' || kc === ENTER) {
+        if (this.pauseIdx === 0) this.state = 'PLAYING';
+        else if (this.pauseIdx === 1) this.toggleControlMode();
+        else if (this.pauseIdx === 2) this.loadLevel(this.currentLevel, 'PLAYING');
+        else this.backToHub();
+      }
+      return;
+    }
+
+    if (this.state === 'LEVEL_CLEAR' || this.state === 'VICTORY_ALL' || this.state === 'CRASH') {
+      if (this.endIdx === undefined) this.endIdx = 0;
+      if (kc === LEFT_ARROW || kc === RIGHT_ARROW || kc === UP_ARROW || kc === DOWN_ARROW ||
+          k === 'a' || k === 'A' || k === 'd' || k === 'D' || k === 'q' || k === 'Q') {
+        this.endIdx = (this.endIdx + 1) % 2;
+        this.game.sound.playSfx('ui_click', 0.5);
+      } else if (k === ' ' || kc === ENTER) {
+        if (this.endIdx === 0) this.handleEndPrimaryAction();
+        else this.backToHub();
+        this.endIdx = 0;
+      }
     }
   }
 }

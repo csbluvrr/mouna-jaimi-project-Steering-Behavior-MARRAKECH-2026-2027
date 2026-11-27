@@ -8,6 +8,7 @@ class TitleScene extends Scene {
   constructor(game) {
     super(game);
     this.showCredits = false;
+    this.menuIdx = 0; // 0 = PLAY/CONTINUE, 1 = CREDITS
     this.playBtn = { x: 256, y: 146, w: 150, h: 26 };
     this.creditsBtn = { x: 274, y: 182, w: 114, h: 22 };
     this.closeCreditsBtn = { x: 196, y: 214, w: 88, h: 20 };
@@ -198,34 +199,39 @@ class TitleScene extends Scene {
       PixelUI.txt(g, font, 'WELCOME TO THE FUNFAIR!', 331, 114, g.color(255, 250, 236), CENTER, 8.5, 186);
 
       const playHover = PixelUI.pointInRect(mx, my, this.playBtn);
+      const credHover = PixelUI.pointInRect(mx, my, this.creditsBtn);
+      if (playHover) this.menuIdx = 0;
+      else if (credHover) this.menuIdx = 1;
+
+      const playSel = this.menuIdx === 0;
       const playRect = {
         x: this.playBtn.x,
-        y: this.playBtn.y + (playHover ? Math.round(Math.sin(t * 0.2) * 1.2) - 1 : 0),
+        y: this.playBtn.y + (playSel ? Math.round(Math.sin(t * 0.2) * 1.2) - 1 : 0),
         w: this.playBtn.w,
         h: this.playBtn.h
       };
-      const playLabel = this.hasSavedProgress() ? 'CONTINUE (Space)' : 'PLAY (Space)';
+      const playLabel = this.hasSavedProgress() ? 'CONTINUE' : 'PLAY';
       PixelUI.drawButton(
         g,
         font,
         playRect,
-        playLabel,
-        playHover,
+        (playSel ? '> ' : '') + playLabel,
+        playSel,
         g.color(218, 240, 182),
         g.color(194, 230, 146)
       );
 
-      const credHover = PixelUI.pointInRect(mx, my, this.creditsBtn);
+      const credSel = this.menuIdx === 1;
       const credRect = {
         x: this.creditsBtn.x,
-        y: this.creditsBtn.y + (credHover ? -1 : 0),
+        y: this.creditsBtn.y + (credSel ? -1 : 0),
         w: this.creditsBtn.w,
         h: this.creditsBtn.h
       };
-      PixelUI.drawButton(g, font, credRect, 'CREDITS', credHover);
+      PixelUI.drawButton(g, font, credRect, (credSel ? '> ' : '') + 'CREDITS', credSel);
 
       PixelUI.txt(g, font, '4 Steering & AI Mini-Games', 331, 210, g.color(144, 98, 93), CENTER, 7.5, 188);
-      PixelUI.txt(g, font, 'Press Space to enter  •  [F] Fullscreen', 240, 250, g.color(255, 246, 206), CENTER, 8);
+      PixelUI.txt(g, font, 'Arrows: Select  •  Space/Enter: Confirm  •  [F] Fullscreen', 240, 250, g.color(255, 246, 206), CENTER, 8);
     } else {
       // Fenêtre de crédits (Sprout Lands + Minifolks + Nouveaux packs)
       PixelUI.panel(g, 68, 56, 344, 188, g.color(247, 236, 200));
@@ -380,16 +386,24 @@ class TitleScene extends Scene {
 
   keyPressed(k, kc) {
     if (this.showCredits) {
-      if (kc === ESCAPE || k === ' ') {
+      if (kc === ESCAPE || k === ' ' || kc === ENTER) {
         this.game.sound.playSfx('ui_click');
         this.showCredits = false;
       }
       return;
     }
 
+    if (kc === UP_ARROW || kc === DOWN_ARROW || kc === LEFT_ARROW || kc === RIGHT_ARROW ||
+        k === 'w' || k === 'W' || k === 's' || k === 'S' || k === 'z' || k === 'Z') {
+      this.menuIdx = (this.menuIdx + 1) % 2;
+      this.game.sound.playSfx('ui_click', 0.5);
+      return;
+    }
+
     if (k === ' ' || kc === ENTER) {
       this.game.sound.playSfx('ui_click');
-      this.game.scenes.switchTo('hub');
+      if (this.menuIdx === 0) this.game.scenes.switchTo('hub');
+      else this.showCredits = true;
     }
   }
 }
