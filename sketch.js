@@ -150,10 +150,14 @@ function applyPixelCrispness() {
   }
 }
 
-/** Verrouille Échap en plein écran (Chrome/Opera/Edge) : un appui court ouvre le livre-menu, un appui long quitte le plein écran. */
-function lockEscapeInFullscreen() {
+/** Verrouille Échap en plein écran (Chrome/Opera/Edge) : un appui court ouvre le livre-menu, un appui long (natif navigateur) quitte le plein écran. */
+async function lockEscapeInFullscreen() {
   if (navigator.keyboard && typeof navigator.keyboard.lock === 'function') {
-    navigator.keyboard.lock(['Escape']).catch(() => {});
+    try {
+      await navigator.keyboard.lock(['Escape']);
+    } catch (err) {
+      console.warn('Keyboard Lock (Escape) non accordé par le navigateur :', err);
+    }
   }
 }
 
@@ -165,11 +169,14 @@ function unlockEscapeFromFullscreen() {
   }
 }
 
-function toggleFullscreen() {
+async function toggleFullscreen() {
   if (!document.fullscreenElement) {
-    document.documentElement.requestFullscreen({ navigationUI: 'hide' })
-      .then(() => lockEscapeInFullscreen())
-      .catch(() => {});
+    try {
+      await document.documentElement.requestFullscreen({ navigationUI: 'hide' });
+      await lockEscapeInFullscreen();
+    } catch (err) {
+      console.warn('Fullscreen refusé :', err);
+    }
   } else {
     unlockEscapeFromFullscreen();
     document.exitFullscreen().catch(() => {});
@@ -192,9 +199,6 @@ function triggerMenuToggle() {
     game.pauseMenu.toggle();
   }
 }
-
-let escHoldTimer = null;
-let escLongTriggered = false;
 
 function setupFullscreenButton() {
   const btn = document.getElementById('fullscreen-btn');
@@ -225,7 +229,7 @@ function setupFullscreenButton() {
     if (document.fullscreenElement) lockEscapeInFullscreen();
   });
 
-  // Gestion native en phase capture pour F (geste utilisateur garanti) et Échap (court = menu, long = quitter plein écran)
+  // Gestion native en phase capture pour F (geste utilisateur garanti) et Échap (menu livre immédiat)
   window.addEventListener('keydown', (e) => {
     if (!game.assets || !game.assets.ready) return;
 
@@ -239,41 +243,13 @@ function setupFullscreenButton() {
       }
     }
 
-    // Touche Échap : appui court -> menu livre ; appui long (>= 800ms) en plein écran -> quitter plein écran
+    // Touche Échap : ouvre/ferme immédiatement le livre-menu (un appui long est géré nativement par le navigateur pour quitter le plein écran)
     if (e.key === 'Escape') {
       e.preventDefault();
       e.stopPropagation();
-      if (e.repeat) return;
-
-      if (!document.fullscreenElement) {
+      if (!e.repeat) {
         triggerMenuToggle();
-        return;
       }
-
-      escLongTriggered = false;
-      clearTimeout(escHoldTimer);
-      escHoldTimer = setTimeout(() => {
-        escLongTriggered = true;
-        unlockEscapeFromFullscreen();
-        if (document.fullscreenElement) {
-          document.exitFullscreen().catch(() => {});
-        }
-      }, 800);
-    }
-  }, true);
-
-  window.addEventListener('keyup', (e) => {
-    if (e.key === 'Escape') {
-      e.preventDefault();
-      e.stopPropagation();
-      if (escHoldTimer) {
-        clearTimeout(escHoldTimer);
-        escHoldTimer = null;
-        if (!escLongTriggered) {
-          triggerMenuToggle();
-        }
-      }
-      escLongTriggered = false;
     }
   }, true);
 
