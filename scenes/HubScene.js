@@ -192,16 +192,17 @@ class HubScene extends Scene {
     }
 
     // Décorations Y-triées des prairies gauche [-120..0] et droite [480..600]
+    // Les arbres du haut sont calés sur la lisière d'horizon (y = 64..74) pour laisser le ciel dégagé !
     this.sideObjects = [
       // --- Prairie gauche ---
-      { sprite: 'tree_apple', x: -102, y: 12, sortY: 42, solid: [-98, 30, 16, 10] },
-      { sprite: 'tree_tall', x: -58, y: 18, sortY: 46, solid: [-56, 36, 10, 8] },
-      { sprite: 'tree_round', x: -28, y: 10, sortY: 40, solid: [-24, 28, 18, 10] },
-      { sprite: 'sunflower', x: -86, y: 74, sortY: 118 },
-      { sprite: 'bush_berry', x: -46, y: 94, sortY: 109, solid: [-44, 98, 26, 10] },
-      { sprite: 'tree_round', x: -106, y: 112, sortY: 142, solid: [-102, 130, 18, 10] },
-      { sprite: 'flower_pink', x: -64, y: 132, sortY: 140 },
-      { sprite: 'flower_yellow', x: -28, y: 122, sortY: 130 },
+      { sprite: 'tree_apple', x: -102, y: 66, sortY: 96, solid: [-98, 86, 16, 10] },
+      { sprite: 'tree_tall', x: -58, y: 68, sortY: 96, solid: [-56, 86, 10, 8] },
+      { sprite: 'tree_round', x: -28, y: 66, sortY: 96, solid: [-24, 84, 18, 10] },
+      { sprite: 'sunflower', x: -86, y: 92, sortY: 136 },
+      { sprite: 'bush_berry', x: -46, y: 108, sortY: 123, solid: [-44, 112, 26, 10] },
+      { sprite: 'tree_round', x: -106, y: 122, sortY: 152, solid: [-102, 140, 18, 10] },
+      { sprite: 'flower_pink', x: -64, y: 136, sortY: 144 },
+      { sprite: 'flower_yellow', x: -28, y: 128, sortY: 136 },
       { sprite: 'log', x: -78, y: 168, sortY: 177, solid: [-76, 170, 14, 8] },
       { sprite: 'mush_red', x: -42, y: 174, sortY: 186 },
       { sprite: 'flower_blue', x: -20, y: 164, sortY: 175 },
@@ -210,17 +211,17 @@ class HubScene extends Scene {
       { sprite: 'mush_purple_b', x: -28, y: 218, sortY: 229 },
       { sprite: 'flower_yellow_s', x: -84, y: 228, sortY: 233 },
       { sprite: 'tuft_a', x: -50, y: 146, sortY: 150 },
-      { sprite: 'rock_small', x: -16, y: 86, sortY: 93 },
+      { sprite: 'rock_small', x: -16, y: 106, sortY: 113 },
 
       // --- Prairie droite ---
-      { sprite: 'tree_round', x: 486, y: 10, sortY: 40, solid: [490, 28, 18, 10] },
-      { sprite: 'tree_tall', x: 526, y: 16, sortY: 44, solid: [528, 34, 10, 8] },
-      { sprite: 'tree_apple', x: 558, y: 12, sortY: 42, solid: [562, 30, 16, 10] },
-      { sprite: 'bush_berry', x: 492, y: 88, sortY: 103, solid: [494, 92, 26, 10] },
-      { sprite: 'sunflower', x: 548, y: 74, sortY: 118 },
-      { sprite: 'tree_round', x: 564, y: 116, sortY: 146, solid: [568, 134, 18, 10] },
-      { sprite: 'flower_blue', x: 504, y: 128, sortY: 139 },
-      { sprite: 'flower_pink', x: 534, y: 142, sortY: 150 },
+      { sprite: 'tree_round', x: 486, y: 66, sortY: 96, solid: [490, 84, 18, 10] },
+      { sprite: 'tree_tall', x: 526, y: 68, sortY: 96, solid: [528, 86, 10, 8] },
+      { sprite: 'tree_apple', x: 558, y: 66, sortY: 96, solid: [562, 86, 16, 10] },
+      { sprite: 'bush_berry', x: 492, y: 104, sortY: 119, solid: [494, 108, 26, 10] },
+      { sprite: 'sunflower', x: 548, y: 92, sortY: 136 },
+      { sprite: 'tree_round', x: 564, y: 122, sortY: 152, solid: [568, 140, 18, 10] },
+      { sprite: 'flower_blue', x: 504, y: 134, sortY: 145 },
+      { sprite: 'flower_pink', x: 534, y: 144, sortY: 152 },
       { sprite: 'log', x: 516, y: 170, sortY: 179, solid: [518, 172, 14, 8] },
       { sprite: 'mush_red_b', x: 488, y: 168, sortY: 178 },
       { sprite: 'flower_yellow', x: 550, y: 168, sortY: 176 },
@@ -228,8 +229,8 @@ class HubScene extends Scene {
       { sprite: 'tree_apple', x: 554, y: 190, sortY: 220, solid: [558, 208, 16, 10] },
       { sprite: 'mush_purple', x: 534, y: 218, sortY: 226 },
       { sprite: 'flower_pink_s', x: 530, y: 196, sortY: 201 },
-      { sprite: 'tuft_b', x: 486, y: 124, sortY: 135 },
-      { sprite: 'rock_small', x: 540, y: 92, sortY: 99 }
+      { sprite: 'tuft_b', x: 486, y: 126, sortY: 137 },
+      { sprite: 'rock_small', x: 540, y: 108, sortY: 115 }
     ];
 
     // Ajouter les collisions des arbres/buissons latéraux
@@ -237,18 +238,18 @@ class HubScene extends Scene {
       if (obj.solid) this.solids.push(obj.solid);
     }
 
-    // Prolonger les guirlandes (y = 66) et lumières basses (y = 242) sur les deux côtés
+    // Prolonger les guirlandes sur la ligne d'horizon (y = 90) et lumières basses (y = 242)
     this.sideBunting = [];
     this.sideLights = [];
     const buntingSprites = ['bunting_a', 'bunting_b'];
     let idx = 0;
     for (let bx = -112; bx < 0; bx += 16) {
-      this.sideBunting.push({ sprite: buntingSprites[idx % 2], x: bx, y: 66 });
+      this.sideBunting.push({ sprite: buntingSprites[idx % 2], x: bx, y: 90 });
       this.sideLights.push({ x: bx, y: 242 });
       idx++;
     }
     for (let bx = 480; bx < 592; bx += 16) {
-      this.sideBunting.push({ sprite: buntingSprites[idx % 2], x: bx, y: 66 });
+      this.sideBunting.push({ sprite: buntingSprites[idx % 2], x: bx, y: 90 });
       this.sideLights.push({ x: bx, y: 242 });
       idx++;
     }
@@ -333,18 +334,36 @@ class HubScene extends Scene {
     const vh = this.game.viewH || BUFFER_H;
     const oy = Math.floor((vh - BUFFER_H) / 2);
     const camOffset = -Math.round(this.camX);
+    const skyMood = this.game.save && this.game.save.data.skyMood === 'sunset' ? 'sunset' : 'day';
+    const groundTop = 94;
 
     g.background(156, 204, 102);
+
+    // === 0. CIEL PARALLAXE ANIMÉ (Jour / Coucher de soleil) ===
+    if (typeof SkyBackdrop !== 'undefined') {
+      SkyBackdrop.draw(g, assets, skyMood, vw, this.camX, oy);
+    }
 
     // === MONDE (avec translation caméra horizontale) ===
     g.push();
     g.translate(camOffset, oy);
 
-    // 1. Sol pré-rendu du parc + prairies latérales + parvis sable sous le Prize Booth + nappe pique-nique
-    if (this.leftGroundImg) g.image(this.leftGroundImg, this.worldLeft, 0);
+    // 1. Sol pré-rendu du parc + prairies latérales découpés sous l'horizon (y >= 94)
+    if (this.leftGroundImg) {
+      g.image(this.leftGroundImg, this.worldLeft, groundTop, 120, BUFFER_H - groundTop, 0, groundTop, 120, BUFFER_H - groundTop);
+    }
     const ground = assets.getImage('hub/hub_ground.png');
-    if (ground) g.image(ground, 0, 0);
-    if (this.rightGroundImg) g.image(this.rightGroundImg, BUFFER_W, 0);
+    if (ground) {
+      g.image(ground, 0, groundTop, BUFFER_W, BUFFER_H - groundTop, 0, groundTop, BUFFER_W, BUFFER_H - groundTop);
+    }
+    if (this.rightGroundImg) {
+      g.image(this.rightGroundImg, BUFFER_W, groundTop, 120, BUFFER_H - groundTop, 0, groundTop, 120, BUFFER_H - groundTop);
+    }
+
+    // Fondu d'ombre rétro entre la lisière d'arbres et la prairie
+    if (typeof SkyBackdrop !== 'undefined') {
+      SkyBackdrop.drawHorizonBlend(g, skyMood, this.worldLeft, this.worldRight, groundTop);
+    }
 
     // Petit parvis sable doux devant le Prize Booth pour l'intégrer naturellement à l'allée
     g.push();
@@ -363,19 +382,49 @@ class HubScene extends Scene {
 
     // 2. Objets triés en Y (stands, arbres, prairies latérales, panneau, chat, panier, Moo, amis, canetons)
     const items = layout.objects
-      .filter((o) => o.id !== 'picnic_blanket')
+      .filter((o) => {
+        if (o.id === 'picnic_blanket') return false;
+        // Ne pas laisser de fleurs/rochers/champignons flotter dans le ciel (y < 90)
+        if (o.id !== 'title_sign' && o.id !== 'ferris' && !o.sprite.startsWith('tree_') && !o.sprite.startsWith('booth_') && o.y < 88) {
+          return false;
+        }
+        return true;
+      })
       .map((o) => {
         let ox = o.x;
-        if (o.id === 'poster') ox += this.posterOffsetX;
-        if (o.id === 'kid_balloon') ox += this.balloonShiftX;
+        let oyObj = o.y;
         let sortY = o.sortY;
-        if (o.id === 'kid_balloon') sortY = 207;
+
+        if (o.id === 'poster') ox += this.posterOffsetX;
+        if (o.id === 'kid_balloon') {
+          ox += this.balloonShiftX;
+          sortY = 207;
+        }
         if (o.id === 'picnic_basket') sortY = 226;
+
+        // Caler les arbres du haut sur la ligne d'horizon (y ~ 66..72) au lieu de flotter dans le ciel
+        if (o.sprite.startsWith('tree_') && o.y < 52) {
+          oyObj = 66 + (o.x % 5);
+          sortY = 96;
+        }
+
         return {
           sortY,
           draw: () => {
+            // Prolonger les deux piliers en bois de l'arche MOO'S FUNFAIR jusqu'à la lisière (y=96)
+            if (o.id === 'title_sign') {
+              g.push();
+              g.noStroke();
+              g.fill(107, 75, 91);
+              g.rect(ox + 10, oyObj + 32, 8, 64);
+              g.rect(ox + 154, oyObj + 32, 8, 64);
+              g.fill(144, 98, 93);
+              g.rect(ox + 11, oyObj + 32, 6, 63);
+              g.rect(ox + 155, oyObj + 32, 6, 63);
+              g.pop();
+            }
             const sp = assets.getSprite(o.sprite);
-            if (sp) g.image(sp, ox, o.y);
+            if (sp) g.image(sp, ox, oyObj);
           }
         };
       });
@@ -457,14 +506,14 @@ class HubScene extends Scene {
 
     items.sort((a, b) => a.sortY - b.sortY).forEach((it) => it.draw());
 
-    // 3. Éléments au premier plan (guirlandes + côtés, lumières + côtés, ballons, papillons)
+    // 3. Éléments au premier plan (guirlandes sur l'horizon y=90, lumières, ballons, papillons)
     layout.rows.bunting.forEach((b) => {
       const sp = assets.getSprite(b.sprite);
-      if (sp) g.image(sp, b.x, b.y + ((Math.abs(b.x) / 16) % 2 ? 1 : 0));
+      if (sp) g.image(sp, b.x, 90 + ((Math.abs(b.x) / 16) % 2 ? 1 : 0));
     });
     this.sideBunting.forEach((b) => {
       const sp = assets.getSprite(b.sprite);
-      if (sp) g.image(sp, b.x, b.y + ((Math.abs(b.x) / 16) % 2 ? 1 : 0));
+      if (sp) g.image(sp, b.x, 90 + ((Math.abs(b.x) / 16) % 2 ? 1 : 0));
     });
     layout.rows.lights.forEach((l, i) => {
       const sp = assets.getSprite((Math.floor(frameCount / 30) + i) % 2 ? 'lights_on' : 'lights_dim');
@@ -507,6 +556,11 @@ class HubScene extends Scene {
     }
 
     g.pop();
+
+    // Lueur dorée légère sur la prairie en mode Sunset
+    if (typeof SkyBackdrop !== 'undefined') {
+      SkyBackdrop.drawMoodGlaze(g, skyMood, vw, vh);
+    }
 
     // === INTERFACE ÉCRAN (fixe à la fenêtre) ===
     if (Vehicle.debug) {
@@ -694,6 +748,16 @@ class HubScene extends Scene {
 
     if (this.prizeShop && this.prizeShop.open) {
       this.prizeShop.keyPressed(k, kc);
+      return;
+    }
+
+    // Touche T : basculer le ciel entre Jour ensoleillé et Coucher de soleil !
+    if (k === 't' || k === 'T') {
+      const next = this.game.save.data.skyMood === 'sunset' ? 'day' : 'sunset';
+      this.game.save.data.skyMood = next;
+      this.game.save.save();
+      this.game.sound.playSfx('ui_click', 0.7);
+      this.showToast(next === 'sunset' ? 'Sky: Sunset Glow!' : 'Sky: Sunny Day!', 1800);
       return;
     }
 

@@ -94,11 +94,16 @@ function drawCozySideDecor(buf) {
   const oy = game.offsetY;
   const vw = game.viewW;
   const vh = game.viewH;
+  const skyMood = game.save && game.save.data.skyMood === 'sunset' ? 'sunset' : 'day';
 
-  // Prairie pastel Sprout Lands
+  // Prairie pastel Sprout Lands + ciel parallaxe en haut (y = 0..94)
   buf.background(156, 204, 102);
+  if (typeof SkyBackdrop !== 'undefined' && game.assets && game.assets.ready) {
+    SkyBackdrop.draw(buf, game.assets, skyMood, vw, 0, oy);
+    SkyBackdrop.drawHorizonBlend(buf, skyMood, 0, vw, oy + 94);
+  }
 
-  // Touffes d'herbe et fleurs discrètes sur les bandes latérales
+  // Touffes d'herbe et fleurs discrètes sur les bandes latérales (sous l'horizon)
   const assets = game.assets;
   if (assets && assets.ready) {
     const treeRound = assets.getSprite('tree_round');
@@ -110,23 +115,23 @@ function drawCozySideDecor(buf) {
 
     // Décor à gauche
     if (ox > 8) {
-      if (treeApple) buf.image(treeApple, Math.max(2, ox - 34), 20);
-      if (treeRound) buf.image(treeRound, Math.max(2, ox - 38), 118);
-      if (bush) buf.image(bush, Math.max(2, ox - 40), 214);
-      if (flowerP) buf.image(flowerP, Math.max(4, ox - 20), 76);
-      if (flowerY) buf.image(flowerY, Math.max(4, ox - 26), 178);
-      if (mush) buf.image(mush, Math.max(4, ox - 18), 246);
+      if (treeApple) buf.image(treeApple, Math.max(2, ox - 34), oy + 68);
+      if (treeRound) buf.image(treeRound, Math.max(2, ox - 38), oy + 124);
+      if (bush) buf.image(bush, Math.max(2, ox - 40), oy + 214);
+      if (flowerP) buf.image(flowerP, Math.max(4, ox - 20), oy + 110);
+      if (flowerY) buf.image(flowerY, Math.max(4, ox - 26), oy + 178);
+      if (mush) buf.image(mush, Math.max(4, ox - 18), oy + 246);
     }
 
     // Décor à droite
     if (ox > 8) {
       const rx = ox + BUFFER_W;
-      if (treeRound) buf.image(treeRound, rx + 8, 22);
-      if (treeApple) buf.image(treeApple, rx + 10, 124);
-      if (bush) buf.image(bush, rx + 6, 214);
-      if (flowerY) buf.image(flowerY, rx + 14, 82);
-      if (flowerP) buf.image(flowerP, rx + 18, 180);
-      if (mush) buf.image(mush, rx + 12, 246);
+      if (treeRound) buf.image(treeRound, rx + 8, oy + 68);
+      if (treeApple) buf.image(treeApple, rx + 10, oy + 126);
+      if (bush) buf.image(bush, rx + 6, oy + 214);
+      if (flowerY) buf.image(flowerY, rx + 14, oy + 112);
+      if (flowerP) buf.image(flowerP, rx + 18, oy + 180);
+      if (mush) buf.image(mush, rx + 12, oy + 246);
     }
   }
 

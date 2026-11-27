@@ -1,0 +1,30 @@
+{
+ "horizon": 76,
+ "tree_top": 94,
+ "ground_top": 98,
+ "margin": 8,
+ "moods": {
+  "sunset": {
+   "tint": [
+    255,
+    231,
+    210
+   ],
+   "bird": "#8a4466",
+   "sun": [
+    112,
+    74,
+    26
+   ]
+  },
+  "day": {
+   "tint": null,
+   "bird": "#6b4b5b",
+   "sun": [
+    396,
+    26,
+    12
+   ]
+  }
+ }
+}

@@ -14,6 +14,7 @@ class AssetManager {
     this.font = null;
     this.hubLayout = null;
     this.derbyMeta = null;
+    this.skyMeta = null;
     this.ready = false;
     this.pending = 0;
     this.onReadyCallback = null;
@@ -91,9 +92,23 @@ class AssetManager {
         CosmeticCatalog.getAllAssetPaths().forEach((p) => files.add(p));
       }
 
+      // Couches du ciel parallaxe (Jour & Coucher de soleil)
+      ['day', 'sunset'].forEach((m) => {
+        ['bg', 'sun', 'cloud_far', 'cloud_near', 'rocks', 'haze', 'treeline'].forEach((layer) => {
+          files.add('sky/' + m + '_' + layer + '.png');
+        });
+      });
+
       files.forEach((relPath) => this.loadImageKey(relPath));
       this.checkDone();
     });
+
+    // Métadonnées du ciel (sky/sky.json)
+    this.pending++;
+    loadJSON(this.base + 'sky/sky.json', (skyData) => {
+      this.skyMeta = skyData;
+      this.checkDone();
+    }, () => this.checkDone());
 
     // Métadonnées du circuit Bunny Derby (checkpoints ordonnés & départ)
     this.pending++;

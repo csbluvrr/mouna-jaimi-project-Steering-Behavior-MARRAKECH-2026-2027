@@ -20,12 +20,20 @@ class TitleScene extends Scene {
     const assets = this.game.assets;
     const font = assets.font;
     const ground = assets.getImage('hub/hub_ground.png');
+    const skyMood = this.game.save && this.game.save.data.skyMood === 'sunset' ? 'sunset' : 'day';
 
-    // Fond doux du parc avec un léger voile chaleureux
-    if (ground) {
-      g.image(ground, 0, 0);
+    // Ciel parallaxe animé en haut + prairie du parc sous l'horizon (y >= 94)
+    if (typeof SkyBackdrop !== 'undefined') {
+      SkyBackdrop.draw(g, assets, skyMood, 480, 0, 0);
     } else {
       g.background(140, 185, 130);
+    }
+
+    if (ground) {
+      g.image(ground, 0, 94, 480, 178, 0, 94, 480, 178);
+    }
+    if (typeof SkyBackdrop !== 'undefined') {
+      SkyBackdrop.drawHorizonBlend(g, skyMood, 0, 480, 94);
     }
 
     // Guirlandes et grande roue en arrière-plan si déjà chargées

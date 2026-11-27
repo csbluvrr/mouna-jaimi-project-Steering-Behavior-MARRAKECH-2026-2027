@@ -26,6 +26,7 @@ class SaveManager {
         fox: false
       },
       visitedBooths: {},
+      skyMood: 'day', // 'day' | 'sunset'
       unlockedCosmetics: ['hoodie:default'],
       equippedOutfit: {
         hoodie: 'default',

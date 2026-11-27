@@ -241,7 +241,17 @@ class PauseMenu {
     }
 
     if (pageIdx === 2) {
+      const skyMood = this.game.save && this.game.save.data.skyMood === 'sunset' ? 'sunset' : 'day';
       const btns = [
+        {
+          label: skyMood === 'sunset' ? 'Sky: Sunset' : 'Sky: Sunny Day',
+          action: () => {
+            if (this.game.save) {
+              this.game.save.data.skyMood = skyMood === 'sunset' ? 'day' : 'sunset';
+              this.game.save.save();
+            }
+          }
+        },
         {
           label: isFS ? 'Fullscreen: ON' : 'Fullscreen: OFF',
           action: () => { if (typeof toggleFullscreen === 'function') toggleFullscreen(); }
@@ -258,9 +268,9 @@ class PauseMenu {
       return btns.map((b, i) => ({
         ...b,
         x: lp.x + 6,
-        y: lp.y + 38 + i * 32,
+        y: lp.y + 34 + i * 28,
         w: lp.w - 12,
-        h: 24
+        h: 22
       }));
     }
 
