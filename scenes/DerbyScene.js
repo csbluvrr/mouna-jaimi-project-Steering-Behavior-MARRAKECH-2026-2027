@@ -545,8 +545,12 @@ class DerbyScene extends Scene {
       }
     }
 
-    // 5. Effets confettis
+    // 5. Effets confettis + éclairage coucher de soleil cohérent avec le choix du joueur
     for (const fx of this.fx) fx.show(g, assets);
+    if (typeof SkyBackdrop !== 'undefined') {
+      const skyMood = this.game.save && this.game.save.data.skyMood === 'sunset' ? 'sunset' : 'day';
+      SkyBackdrop.drawMoodGlaze(g, skyMood, 480, 272);
+    }
 
     // 6. Barre HUD ultra-compacte tout en haut (y=2, h=14 — ne cache JAMAIS la piste !)
     const alive = this.bunnies.filter((b) => !b.dead).length;

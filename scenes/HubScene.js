@@ -709,8 +709,16 @@ class HubScene extends Scene {
       if (sp) g.image(sp, b.x, 90 + ((Math.abs(b.x) / 16) % 2 ? 1 : 0) + sway);
     }
     for (const l of this.lightsRow) {
-      const sp = assets.getSprite((Math.floor(frameCount / 28) + l.idx) % 2 ? 'lights_on' : 'lights_dim');
+      const lit = (Math.floor(frameCount / 28) + l.idx) % 2 === 0;
+      const sp = assets.getSprite(lit ? 'lights_on' : 'lights_dim');
       if (sp) g.image(sp, l.x, l.y);
+      // Halo lumineux chaud des guirlandes basses lorsque le coucher de soleil s'installe !
+      const sb = typeof SkyBackdrop !== 'undefined' ? SkyBackdrop.getBlend(skyMood) : 0;
+      if (lit && sb > 0.1) {
+        g.noStroke();
+        g.fill(255, 232, 142, Math.round(52 * sb));
+        g.circle(l.x + 8, l.y + 4, 14);
+      }
     }
     for (const bf of this.butterflies) bf.show(g);
     this.drawHubBees(g);
@@ -1235,7 +1243,17 @@ class HubScene extends Scene {
 
   drawPondSurfaceDetails(g, cx, cy) {
     const t = frameCount;
+    const skyMood = this.game.save && this.game.save.data.skyMood === 'sunset' ? 'sunset' : 'day';
+    const sb = typeof SkyBackdrop !== 'undefined' ? SkyBackdrop.getBlend(skyMood) : 0;
     g.push();
+    if (sb > 0.05) {
+      // Reflet doré-rosé du coucher de soleil sur l'eau de la mare !
+      g.noStroke();
+      g.fill(255, 178, 128, Math.round(115 * sb));
+      g.ellipse(cx - 2, cy - 1, 56, 24);
+      g.fill(255, 232, 162, Math.round(85 * sb));
+      g.ellipse(cx - 6 + Math.sin(t * 0.04) * 2, cy - 3, 24, 8);
+    }
     g.noFill();
     g.strokeWeight(1);
     for (let i = 0; i < 2; i++) {
@@ -1349,12 +1367,16 @@ class HubScene extends Scene {
   }
 
   drawGardenLamp(g, x, y, skyMood) {
-    const isSunset = skyMood === 'sunset';
-    const glowA = Math.round((isSunset ? 68 : 26) + Math.sin(frameCount * 0.08 + x) * 10);
+    const sb = typeof SkyBackdrop !== 'undefined' ? SkyBackdrop.getBlend(skyMood) : (skyMood === 'sunset' ? 1 : 0);
+    const glowA = Math.round((24 + 68 * sb) + Math.sin(frameCount * 0.08 + x) * 10);
     g.push();
     g.noStroke();
-    g.fill(255, 232, 148, glowA);
-    g.circle(x + 2, y + 3, isSunset ? 24 : 14);
+    g.fill(255, 224, 134, glowA);
+    g.circle(x + 2, y + 3, 14 + sb * 18);
+    if (sb > 0.15) {
+      g.fill(255, 244, 182, Math.round(55 * sb));
+      g.circle(x + 2, y + 3, 12);
+    }
     g.fill(107, 75, 91);
     g.rect(x + 1, y + 5, 2, 14);
     g.rect(x, y + 17, 4, 2);

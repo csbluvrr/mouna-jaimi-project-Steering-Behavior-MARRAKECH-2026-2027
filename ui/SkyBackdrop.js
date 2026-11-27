@@ -179,21 +179,43 @@ class SkyBackdrop {
     g.pop();
   }
 
-  /** Voile chaud ultra-léger + poussières dorées en mode Sunset (sans tint() lent). */
+  /** Retourne le facteur de transition courant (0 = Jour, 1 = Coucher de soleil). */
+  static getBlend(mood = 'day') {
+    if (SkyBackdrop._blend >= 0) return SkyBackdrop._blend;
+    return mood === 'sunset' ? 1 : 0;
+  }
+
+  /**
+   * Éclairage global complet du coucher de soleil (lueur dorée d'horizon, teinte chaude
+   * pêche-ambre sur le terrain, ombre crépusculaire prune vers le bas + lucioles dorées).
+   */
   static drawMoodGlaze(g, mood, vw, vh) {
-    const b = SkyBackdrop._blend >= 0 ? SkyBackdrop._blend : (mood === 'sunset' ? 1 : 0);
-    if (b <= 0.02) return;
+    const b = SkyBackdrop.getBlend(mood);
+    if (b <= 0.015) return;
     g.push();
     g.noStroke();
-    g.fill(255, 186, 148, Math.round(32 * b));
-    g.rect(0, 94, vw, vh - 94);
-    // Quelques lucioles / poussières dorées lentes au coucher du soleil
+
+    // 1. Lueur dorée du soleil couchant qui rase la ligne d'horizon et les toits (y = 84..124)
+    g.fill(255, 198, 128, Math.round(48 * b));
+    g.rect(0, 84, vw, 40);
+
+    // 2. Voile d'ambiance chaud pêche-corail sur tout le monde (y = 0..vh)
+    g.fill(242, 136, 108, Math.round(46 * b));
+    g.rect(0, 0, vw, vh);
+
+    // 3. Ombre crépusculaire douce prune-indigo sur le premier plan bas (profondeur golden hour)
+    g.fill(98, 46, 88, Math.round(44 * b));
+    g.rect(0, 174, vw, vh - 174);
+    g.fill(78, 36, 78, Math.round(28 * b));
+    g.rect(0, 224, vw, vh - 224);
+
+    // 4. Lucioles & poussières dorées dérivant doucement au crépuscule
     const t = frameCount;
-    for (let i = 0; i < 10; i++) {
+    for (let i = 0; i < 14; i++) {
       const gx = Math.round(((i * 73 + t * (0.14 + (i % 3) * 0.05)) % (vw + 20)) - 10);
-      const gy = Math.round(108 + ((i * 39) % (vh - 120)) + Math.sin(t * 0.05 + i) * 4);
-      const a = Math.round((85 + Math.sin(t * 0.08 + i * 1.7) * 65) * b);
-      g.fill(255, 236, 162, a);
+      const gy = Math.round(98 + ((i * 39) % Math.max(40, vh - 110)) + Math.sin(t * 0.05 + i) * 4);
+      const a = Math.round((95 + Math.sin(t * 0.08 + i * 1.7) * 75) * b);
+      g.fill(255, 240, 168, a);
       g.rect(gx, gy, 2, 2);
     }
     g.pop();

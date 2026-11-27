@@ -461,6 +461,11 @@ class FoxScene extends Scene {
 
     for (const fx of this.fx) fx.show(g, assets);
 
+    // Éclairage coucher de soleil cohérent sur le temple Zelda
+    if (typeof SkyBackdrop !== 'undefined') {
+      SkyBackdrop.drawMoodGlaze(g, skyMood, 480, 272);
+    }
+
     // 5. HUD Zelda (Cœurs de Moo + Vie du Boss)
     this.drawHud(g);
 
