@@ -53,7 +53,7 @@ class HubScene extends Scene {
       { id: 'fox',       title: 'The Legend of Moo', sprite: 'booth_fox',       x: 398, y: 76, w: 50, h: 58 }
     ];
     this.prizeBoothPos    = { x: -265, y: 76,  w: 50, h: 58 };
-    this.bouncyCastlePos  = { x: -198, y: 72,  w: 64, h: 62 };
+    this.bouncyCastlePos  = { x: -132, y: 174, w: 64, h: 60 };
     this.bouncyJumpTimer  = 0;
     this.cottonCartPos    = { x: -408, y: 84,  w: 48, h: 50 };
     this.lemonadeCartPos  = { x: -336, y: 84,  w: 48, h: 50 };
@@ -101,13 +101,12 @@ class HubScene extends Scene {
       [this.cottonCartPos.x + 2,   this.cottonCartPos.y + 26,   44, 22],
       [this.lemonadeCartPos.x + 2, this.lemonadeCartPos.y + 26, 44, 22],
       [this.prizeBoothPos.x + 4,   this.prizeBoothPos.y + 36,   42, 22],
-      [this.bouncyCastlePos.x + 4, this.bouncyCastlePos.y + 36, 56, 24],
       [this.popcornCartPos.x + 2,  this.popcornCartPos.y + 26,  44, 22],
       [-404, 198, 22, 10], // Banc Ouest 1
       [-342, 202, 26, 14], // Food Court Table 1
       [-280, 202, 26, 14], // Food Court Table 2
       [-218, 202, 26, 14], // Food Court Table 3
-      [-104, 198, 22, 10], // Banc Ouest 2
+      [this.bouncyCastlePos.x + 4, this.bouncyCastlePos.y + 18, 56, 40], // Bouncy Castle (allée basse)
 
       // Place Centrale (4 stands + Grande Roue + Pique-nique + Chat + MAP + GAMES + Mare + Vache)
       ...this.booths.map((b) => [b.x + 4, b.y + 36, 42, 22]),
@@ -164,8 +163,8 @@ class HubScene extends Scene {
       {
         id: 'bouncy',
         title: 'Bouncy Castle',
-        rect: [this.bouncyCastlePos.x - 2, this.bouncyCastlePos.y + 58, this.bouncyCastlePos.w + 4, 22],
-        stand: [this.bouncyCastlePos.x + 32, this.bouncyCastlePos.y + 74]
+        rect: [this.bouncyCastlePos.x - 4, this.bouncyCastlePos.y - 16, this.bouncyCastlePos.w + 8, 26],
+        stand: [this.bouncyCastlePos.x + 32, this.bouncyCastlePos.y - 6]
       },
       {
         id: 'cotton_candy',
@@ -427,7 +426,7 @@ class HubScene extends Scene {
       { x: -384, y: 150, lookUp: true,  emote: 'Heart' },       // Cotton Candy
       { x: -312, y: 150, lookUp: true,  emote: 'Happy' },       // Lemonade
       { x: -240, y: 152, lookUp: true,  emote: 'Star' },        // Prize Boutique
-      { x: -166, y: 152, lookUp: true,  emote: 'Exclamation' }, // Bouncy Castle
+      { x: -100, y: 168, lookUp: false, emote: 'Exclamation' }, // Bouncy Castle (allée basse)
       { x: -334, y: 184, lookUp: false, emote: 'Happy' },       // Picnic Table 1
       { x: -194, y: 184, lookUp: false, emote: 'Heart' },       // Picnic Table 2
       { x: -96,  y: 150, lookUp: true,  emote: 'Exclamation' }, // Popcorn Cart
@@ -566,12 +565,12 @@ class HubScene extends Scene {
         img.rect(0, 137 - pad, BUFFER_W, 36 + pad * 2);
 
         if (section === 'west') {
-          // Parvis devant Barbe à Papa (-408), Limonade (-336), Prize (-265), Bouncy (-198) & Pop-Corn (-120)
+          // Parvis devant Barbe à Papa (-408), Limonade (-336), Prize (-265) & Pop-Corn (-120) + accès Bouncy Castle bas (-100)
           img.rect(64 - pad,  126 - pad, 64 + pad * 2, 20 + pad * 2, 6);
           img.rect(136 - pad, 126 - pad, 64 + pad * 2, 20 + pad * 2, 6);
           img.rect(206 - pad, 124 - pad, 68 + pad * 2, 24 + pad * 2, 6);
-          img.rect(278 - pad, 124 - pad, 70 + pad * 2, 24 + pad * 2, 6);
           img.rect(352 - pad, 126 - pad, 64 + pad * 2, 20 + pad * 2, 6);
+          img.rect(368 - pad, 168 - pad, 24 + pad * 2, 16 + pad * 2, 4);
         } else if (section === 'plaza') {
           // Place circulaire centrale + allée d'entrée descendant jusqu'au tout bas de l'écran (y=272) !
           img.ellipse(240, 166, 110 + pad * 2, 64 + pad * 2);
@@ -1311,7 +1310,6 @@ class HubScene extends Scene {
       { sortY: 214, draw: () => this.drawFoodCourtTable(g, -280, 198, [144, 206, 238], 'lunch') },
       { sortY: 214, draw: () => this.drawFoodCourtTable(g, -218, 198, [252, 218, 114], 'popcorn') },
       { sortY: 228, draw: () => this.drawFoodCourtLights(g, skyMood) },
-      { sortY: 206, draw: () => this.drawWoodenBench(g, -104, 196) },
       { sortY: 206, draw: () => this.drawWoodenBench(g, 690, 196) },
       { sortY: 214, draw: () => this.drawCherryBlossom(g, -412, 198, 'bush') },
       { sortY: 220, draw: () => this.drawCherryBlossom(g, 874,  214, 'bush') },
@@ -2938,7 +2936,7 @@ class HubScene extends Scene {
       { id: 'cotton_candy', label: 'Cotton Candy Cart', wx: -384, wy: 108, targetX: -384, targetY: 146, kind: 'sweets' },
       { id: 'lemonade',     label: 'Lemonade Stand',    wx: -312, wy: 108, targetX: -312, targetY: 146, kind: 'sweets' },
       { id: 'prize',        label: 'Prize Boutique',    wx: -240, wy: 105, targetX: -240, targetY: 148, kind: 'prize' },
-      { id: 'bouncy',       label: 'Bouncy Castle',     wx: -166, wy: 105, targetX: -166, targetY: 148, kind: 'sweets' },
+      { id: 'bouncy',       label: 'Bouncy Castle',     wx: -100, wy: 204, targetX: -100, targetY: 168, kind: 'sweets' },
       { id: 'popcorn',      label: 'Popcorn Cart',      wx: -96,  wy: 108, targetX: -96,  targetY: 146, kind: 'popcorn' },
       { id: 'derby',        label: 'Bunny Derby',       wx: 57,   wy: 105, targetX: 57,   targetY: 148, kind: 'derby' },
       { id: 'snake',        label: 'PokeMoo Feast!!',   wx: 147,  wy: 105, targetX: 147,  targetY: 148, kind: 'snake' },
