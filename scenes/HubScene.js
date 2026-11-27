@@ -1109,14 +1109,17 @@ class HubScene extends Scene {
       PixelUI.panel(g, x + 5, y + 43, 40, 10, g.color(248, 236, 198));
       this.drawWorldSign(g, 'POKEMOO', x + 25, y + 48, g.color(184, 58, 66));
     } else if (id === 'ducklings') {
-      // Nouveau logo : Pudding Pompompurin (chapeau caramel + corps crème doré)
-      g.fill(252, 224, 128);
-      g.ellipse(x + 25, y + 8, 11, 8);
-      g.fill(136, 84, 56);
-      g.rect(x + 20, y + 3, 10, 3, 1);
-      g.fill(92, 60, 48);
-      g.rect(x + 23, y + 7, 1, 1);
-      g.rect(x + 26, y + 7, 1, 1);
+      // Nouveau logo : Empreinte de patte marron (Purins)
+      g.fill(128, 78, 50);
+      // Coussinet central
+      g.ellipse(x + 25, y + 9, 7, 5);
+      // 3 petits coussinets d'orteils au-dessus
+      g.circle(x + 21, y + 5, 3);
+      g.circle(x + 25, y + 4, 3);
+      g.circle(x + 29, y + 5, 3);
+      // Petit reflet doux
+      g.fill(164, 108, 72);
+      g.rect(x + 24, y + 8, 2, 1);
       g.fill(116, 176, 104);
       g.rect(x + 36, y + 35, 8, 4);
       g.fill(252, 224, 134); g.rect(x + 37, y + 34, 2, 2);
