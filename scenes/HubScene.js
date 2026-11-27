@@ -52,12 +52,17 @@ class HubScene extends Scene {
       { id: 'ducklings', title: 'Catch the Purins!', sprite: 'booth_ducklings', x: 308, y: 76, w: 50, h: 58 },
       { id: 'fox',       title: 'The Legend of Moo', sprite: 'booth_fox',       x: 398, y: 76, w: 50, h: 58 }
     ];
-    this.prizeBoothPos  = { x: -265, y: 76,  w: 50, h: 58 };
-    this.cottonCartPos  = { x: -408, y: 84,  w: 48, h: 50 };
-    this.popcornCartPos = { x: -120, y: 84,  w: 48, h: 50 };
-    this.carouselPos    = { x: 542,  y: 66,  w: 72, h: 68 };
-    this.tarotBoothPos  = { x: 706,  y: 76,  w: 50, h: 58, stripe: [214, 184, 232], label: 'TAROT' };
-    this.ringsBoothPos  = { x: 836,  y: 76,  w: 50, h: 58, stripe: [192, 226, 166], label: 'RINGS' };
+    this.prizeBoothPos    = { x: -265, y: 76,  w: 50, h: 58 };
+    this.cottonCartPos    = { x: -408, y: 84,  w: 48, h: 50 };
+    this.lemonadeCartPos  = { x: -336, y: 84,  w: 48, h: 50 };
+    this.popcornCartPos   = { x: -120, y: 84,  w: 48, h: 50 };
+    this.carouselPos      = { x: 542,  y: 66,  w: 72, h: 68 };
+    this.stagePos         = { x: 676,  y: 66,  w: 84, h: 68 };
+    this.creekX           = 790;
+    this.ringsBoothPos    = { x: 854,  y: 76,  w: 50, h: 58, stripe: [192, 226, 166], label: 'RINGS' };
+    this.fireworks        = [];
+    this.fireworkTimer    = 90;
+    this.cherryPetals     = [];
 
     this.mapBoardPos    = { x: 254,  y: 184, w: 24, h: 36 };
     this.posterPos      = { x: 286,  y: 148, w: 66, h: 82 };
@@ -90,11 +95,14 @@ class HubScene extends Scene {
 
     // 2. Collisions strictement alignées sur chaque structure (0 zone fantôme, 0 chevauchement)
     this.solids = [
-      // Aile Ouest
-      [this.cottonCartPos.x + 2,  this.cottonCartPos.y + 26,  44, 22],
-      [this.prizeBoothPos.x + 4,  this.prizeBoothPos.y + 36,  42, 22],
-      [this.popcornCartPos.x + 2, this.popcornCartPos.y + 26, 44, 22],
+      // Aile Ouest (Barbe à Papa, Limonade, Prize Boutique, Pop-Corn, Tables & Bancs)
+      [this.cottonCartPos.x + 2,   this.cottonCartPos.y + 26,   44, 22],
+      [this.lemonadeCartPos.x + 2, this.lemonadeCartPos.y + 26, 44, 22],
+      [this.prizeBoothPos.x + 4,   this.prizeBoothPos.y + 36,   42, 22],
+      [this.popcornCartPos.x + 2,  this.popcornCartPos.y + 26,  44, 22],
       [-386, 198, 22, 10], // Banc Ouest 1
+      [-334, 204, 28, 14], // Table pique-nique 1
+      [-194, 204, 28, 14], // Table pique-nique 2
       [-104, 198, 22, 10], // Banc Ouest 2
 
       // Place Centrale (4 stands + Grande Roue + Pique-nique + Chat + MAP + GAMES + Mare + Vache)
@@ -107,11 +115,12 @@ class HubScene extends Scene {
       [368, 196, 72, 36],  // Mare aux canetons
       [444, 188, 22, 14],  // Vache
 
-      // Aile Est (Carrousel + Tarot + Anneaux + Fontaine + Banc)
+      // Aile Est (Carrousel + Scène & Feux d'artifice + Mare aux nénuphars + Anneaux + Fontaine + Banc)
       [this.carouselPos.x + 6,   this.carouselPos.y + 42,   60, 26],
-      [this.tarotBoothPos.x + 4, this.tarotBoothPos.y + 36, 42, 22],
+      [this.stagePos.x + 4,      this.stagePos.y + 42,      76, 24],
       [this.ringsBoothPos.x + 4, this.ringsBoothPos.y + 36, 42, 22],
       [this.fountainPos.x - 16,  this.fountainPos.y - 6,    32, 16],
+      [804, 200, 48, 26],  // Mare aux nénuphars Est
       [690, 198, 22, 10]   // Banc Est
     ];
 
@@ -153,6 +162,12 @@ class HubScene extends Scene {
         stand: [this.cottonCartPos.x + 24, this.cottonCartPos.y + 62]
       },
       {
+        id: 'lemonade',
+        title: 'Lemonade Stand',
+        rect: [this.lemonadeCartPos.x - 2, this.lemonadeCartPos.y + 48, 52, 22],
+        stand: [this.lemonadeCartPos.x + 24, this.lemonadeCartPos.y + 62]
+      },
+      {
         id: 'popcorn',
         title: 'Popcorn Cart',
         rect: [this.popcornCartPos.x - 2, this.popcornCartPos.y + 48, 52, 22],
@@ -165,12 +180,31 @@ class HubScene extends Scene {
         stand: [this.carouselPos.x + 36, this.carouselPos.y + 78]
       },
       {
+        id: 'stage',
+        title: 'Stage + Fireworks',
+        rect: [this.stagePos.x - 2, this.stagePos.y + 66, this.stagePos.w + 4, 22],
+        stand: [this.stagePos.x + 42, this.stagePos.y + 78]
+      },
+      {
         id: 'fountain',
         title: 'Wishing Fountain',
         rect: [this.fountainPos.x - 26, this.fountainPos.y - 16, 52, 34],
         stand: [this.fountainPos.x, this.fountainPos.y + 18]
       }
     ];
+
+    // Pétales de cerisier flottants dans la prairie Ouest
+    this.cherryPetals = [];
+    for (let i = 0; i < 22; i++) {
+      this.cherryPetals.push({
+        x: random(-472, -210),
+        y: random(76, 228),
+        vx: random(-0.22, -0.06),
+        vy: random(0.14, 0.34),
+        phase: random(TWO_PI)
+      });
+    }
+    this.fireworks = [];
 
     // 4. Décors animés (arbres, cerisiers, fleurs, guirlandes & lumières sur 3 ailes)
     this.buildParkDecor();
@@ -559,6 +593,53 @@ class HubScene extends Scene {
       if (this.fx[i].isDead) this.fx.splice(i, 1);
     }
 
+    // Pétales de cerisier qui tourbillonnent doucement dans l'Aile Ouest
+    for (const pt of this.cherryPetals) {
+      pt.x += pt.vx + Math.sin(frameCount * 0.04 + pt.phase) * 0.14;
+      pt.y += pt.vy;
+      if (pt.y > 234 || pt.x < -478) {
+        pt.x = random(-465, -205);
+        pt.y = random(64, 92);
+      }
+    }
+
+    // Feux d'artifice au-dessus de la Scène (automatiques si les 4 tampons sont complétés !)
+    const st = this.game.save && this.game.save.data && this.game.save.data.stars;
+    const allStamped = st && st.derby > 0 && st.snake > 0 && st.ducklings > 0 && st.fox > 0;
+    if (allStamped) {
+      this.fireworkTimer--;
+      if (this.fireworkTimer <= 0) {
+        this.launchFirework(this.stagePos.x + random(14, 70), random(20, 48));
+        this.fireworkTimer = Math.floor(random(140, 240));
+      }
+    }
+    for (let i = this.fireworks.length - 1; i >= 0; i--) {
+      const fw = this.fireworks[i];
+      if (!fw.burst) {
+        fw.y += fw.vy;
+        if (fw.y <= fw.targetY) {
+          fw.burst = true;
+          fw.sparks = [];
+          for (let k = 0; k < 18; k++) {
+            const a = (TWO_PI * k) / 18 + random(-0.12, 0.12);
+            const sp = random(0.7, 2.0);
+            fw.sparks.push({ x: fw.x, y: fw.y, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp, life: random(26, 44) });
+          }
+        }
+      } else {
+        for (let k = fw.sparks.length - 1; k >= 0; k--) {
+          const sp = fw.sparks[k];
+          sp.x += sp.vx;
+          sp.y += sp.vy;
+          sp.vy += 0.032;
+          sp.vx *= 0.97;
+          sp.life--;
+          if (sp.life <= 0) fw.sparks.splice(k, 1);
+        }
+        if (fw.sparks.length === 0) this.fireworks.splice(i, 1);
+      }
+    }
+
     // Sons d'ambiance discrets de fête foraine (gazouillis près de la mare)
     this.ambientSoundTimer--;
     if (this.ambientSoundTimer <= 0) {
@@ -735,7 +816,41 @@ class HubScene extends Scene {
       }
       this.fx.push(new SparkleFX(this.carouselPos.x + 36, this.carouselPos.y + 4, 'text', 'DING-DING!', color(255, 244, 166)));
       this.showToast('The Mini Carousel chimes merrily!', 2000);
+    } else if (id === 'lemonade') {
+      this.game.sound.playSfx('success_bell', 0.65);
+      for (let i = 0; i < 8; i++) {
+        this.fx.push(new SparkleFX(this.lemonadeCartPos.x + 24 + random(-14, 14), this.lemonadeCartPos.y + 18, 'sparkle'));
+      }
+      this.fx.push(new SparkleFX(this.lemonadeCartPos.x + 24, this.lemonadeCartPos.y + 2, 'text', 'ZESTY!', color(255, 240, 128)));
+      this.showToast('Chilled sparkling funfair lemonade!', 2000);
+    } else if (id === 'stage') {
+      this.game.sound.playSfx('success_bell', 0.85);
+      for (let k = 0; k < 3; k++) {
+        this.launchFirework(this.stagePos.x + 16 + k * 26 + random(-6, 6), random(16, 44));
+      }
+      this.fx.push(new SparkleFX(this.stagePos.x + 42, this.stagePos.y - 2, 'text', 'FIREWORKS!', color(255, 232, 136)));
+      this.showToast('Boom! Funfair Fireworks Show!', 2200);
     }
+  }
+
+  /** Lance une fusée de feu d'artifice pastel au-dessus de la scène. */
+  launchFirework(x, targetY) {
+    const palettes = [
+      [255, 148, 178],
+      [255, 232, 124],
+      [148, 218, 255],
+      [212, 164, 252],
+      [164, 238, 168]
+    ];
+    this.fireworks.push({
+      x,
+      y: this.stagePos.y + 10,
+      vy: -2.4,
+      targetY,
+      col: palettes[Math.floor(random(palettes.length))],
+      burst: false,
+      sparks: []
+    });
   }
 
   draw(g) {
@@ -768,8 +883,9 @@ class HubScene extends Scene {
       SkyBackdrop.drawHorizonBlend(g, skyMood, this.worldLeft, this.worldRight, groundTop);
     }
 
-    // Ondulations & nénuphars de la mare aux canetons
+    // Ondulations & nénuphars de la mare aux canetons + Ruisseau, Pont en bois & Mare aux nénuphars (Est)
     this.drawPondSurfaceDetails(g, this.pondCenter.x, this.pondCenter.y);
+    this.drawEastCreekAndBridge(g);
 
     // Fleurs animées par la brise au sol
     for (const fl of this.ambientFlowers) {
@@ -822,40 +938,48 @@ class HubScene extends Scene {
       draw: () => this.drawAnimatedFerrisWheel(g, 240, 88)
     });
 
-    // Les 4 stands de jeux principaux (architectures & props distincts)
-    for (const b of this.booths) {
+    // Les 4 stands de jeux principaux (architectures & props distincts + ballons numérotés 1..4)
+    const boothBalloonCols = [[236, 98, 114], [122, 198, 126], [118, 178, 232], [186, 138, 224]];
+    for (let bi = 0; bi < this.booths.length; bi++) {
+      const b = this.booths[bi];
+      const bCol = boothBalloonCols[bi];
+      const bNum = bi + 1;
       items.push({
         sortY: b.y + b.h,
         draw: () => {
           const sp = assets.getSprite(b.sprite);
           if (sp) g.image(sp, b.x, b.y);
           this.drawMainBoothProps(g, font, b.id, b.x, b.y, nearId === b.id);
+          this.drawBoothNumberBalloon(g, b.x + 25, b.y - 12, bNum, bCol);
         }
       });
     }
 
-    // Aile Ouest : Barbe à Papa, Prize Boutique détaillé & Pop-Corn
+    // Aile Ouest : Barbe à Papa, Limonade, Prize Boutique détaillé & Pop-Corn
     items.push(
-      { sortY: this.cottonCartPos.y + this.cottonCartPos.h,  draw: () => this.drawCottonCandyCart(g, font, this.cottonCartPos, nearId === 'cotton_candy') },
-      { sortY: this.prizeBoothPos.y + this.prizeBoothPos.h,  draw: () => {
+      { sortY: this.cottonCartPos.y + this.cottonCartPos.h,    draw: () => this.drawCottonCandyCart(g, font, this.cottonCartPos, nearId === 'cotton_candy') },
+      { sortY: this.lemonadeCartPos.y + this.lemonadeCartPos.h, draw: () => this.drawLemonadeStand(g, font, this.lemonadeCartPos, nearId === 'lemonade') },
+      { sortY: this.prizeBoothPos.y + this.prizeBoothPos.h,    draw: () => {
         const sp = assets.getImage('world/hub/booths/booth_prize.png');
         if (sp) g.image(sp, this.prizeBoothPos.x, this.prizeBoothPos.y);
         this.drawPrizeBoothDecor(g, this.prizeBoothPos.x, this.prizeBoothPos.y, nearId === 'prize');
       }},
-      { sortY: this.popcornCartPos.y + this.popcornCartPos.h, draw: () => this.drawPopcornCart(g, font, this.popcornCartPos, nearId === 'popcorn') }
+      { sortY: this.popcornCartPos.y + this.popcornCartPos.h,  draw: () => this.drawPopcornCart(g, font, this.popcornCartPos, nearId === 'popcorn') }
     );
 
-    // Aile Est : Mini Carrousel animé + Tente Tarot + Stand Anneaux
+    // Aile Est : Mini Carrousel animé + Scène & Feux d'artifice + Stand Anneaux
     items.push(
       { sortY: this.carouselPos.y + this.carouselPos.h,     draw: () => this.drawMiniCarousel(g, this.carouselPos, nearId === 'carousel') },
-      { sortY: this.tarotBoothPos.y + this.tarotBoothPos.h, draw: () => this.drawThemedSoonBooth(g, font, this.tarotBoothPos) },
+      { sortY: this.stagePos.y + this.stagePos.h,           draw: () => this.drawConcertStage(g, font, this.stagePos, nearId === 'stage') },
       { sortY: this.ringsBoothPos.y + this.ringsBoothPos.h, draw: () => this.drawThemedSoonBooth(g, font, this.ringsBoothPos) }
     );
 
     // Mobilier, scènes narratives, panneaux & animaux
     items.push(
-      // Bancs en bois + buissons cerisiers
+      // Bancs en bois + Tables de pique-nique Ouest
       { sortY: 206, draw: () => this.drawWoodenBench(g, -386, 196) },
+      { sortY: 214, draw: () => this.drawPicnicTable(g, -334, 200) },
+      { sortY: 214, draw: () => this.drawPicnicTable(g, -194, 200) },
       { sortY: 206, draw: () => this.drawWoodenBench(g, -104, 196) },
       { sortY: 206, draw: () => this.drawWoodenBench(g, 690, 196) },
       { sortY: 214, draw: () => this.drawCherryBlossom(g, -412, 198, 'bush') },
@@ -980,6 +1104,32 @@ class HubScene extends Scene {
     }
     for (const bf of this.butterflies) bf.show(g);
     this.drawHubBees(g);
+
+    // Pétales de cerisier flottants (Aile Ouest)
+    g.noStroke();
+    for (const pt of this.cherryPetals) {
+      g.fill(255, 196, 214, 215);
+      g.rect(Math.round(pt.x), Math.round(pt.y), 2, 2);
+      g.fill(255, 226, 236, 180);
+      g.rect(Math.round(pt.x) + 1, Math.round(pt.y) - 1, 1, 1);
+    }
+
+    // Feux d'artifice pastel dans le ciel au-dessus de la Scène Est !
+    for (const fw of this.fireworks) {
+      if (!fw.burst) {
+        g.fill(255, 248, 196);
+        g.rect(Math.round(fw.x), Math.round(fw.y), 2, 4);
+      } else {
+        for (const sp of fw.sparks) {
+          const a = Math.min(255, sp.life * 8);
+          g.fill(fw.col[0], fw.col[1], fw.col[2], a);
+          g.rect(Math.round(sp.x), Math.round(sp.y), 2, 2);
+          g.fill(255, 252, 236, Math.round(a * 0.7));
+          g.rect(Math.round(sp.x), Math.round(sp.y), 1, 1);
+        }
+      }
+    }
+
     for (const fx of this.fx) fx.show(g, assets);
 
     if (Vehicle.debug) {
@@ -994,8 +1144,10 @@ class HubScene extends Scene {
           map:          'Open Funfair Map! (Space)',
           prize:        'Open Prize Boutique! (Space)',
           cotton_candy: 'Get Cotton Candy! (Space)',
+          lemonade:     'Grab Fresh Lemonade! (Space)',
           popcorn:      'Grab Popcorn! (Space)',
           carousel:     'Ring Carousel Bell! (Space)',
+          stage:        'Launch Fireworks Show! (Space)',
           fountain:     'Make a Wish! (Space)'
         };
         const label = labels[this.promptTrigger.id] || ('Play ' + this.promptTrigger.title + '? (Space)');
@@ -1687,6 +1839,186 @@ class HubScene extends Scene {
     g.pop();
   }
 
+  /** Ballon coloré numéroté (1..4) flottant au-dessus de chaque stand de mini-jeu. */
+  drawBoothNumberBalloon(g, cx, cy, num, col) {
+    const bob = Math.round(Math.sin(frameCount * 0.065 + num * 1.4) * 2);
+    const by = cy + bob;
+    g.push();
+    g.stroke(107, 75, 91, 180);
+    g.strokeWeight(1);
+    g.line(cx, by + 6, cx, cy + 16);
+    g.noStroke();
+    g.fill(107, 75, 91);
+    g.ellipse(cx, by, 13, 14);
+    g.fill(col[0], col[1], col[2]);
+    g.ellipse(cx, by, 11, 12);
+    g.fill(255, 252, 240, 175);
+    g.rect(cx - 3, by - 4, 2, 2);
+    g.fill(255, 252, 244);
+    g.textAlign(CENTER, CENTER);
+    g.textSize(7);
+    g.text(String(num), cx, by + 0.5);
+    g.pop();
+  }
+
+  /** Stand de Limonade fraîche (3e stand gourmand de Sweet Street — Interactif !). */
+  drawLemonadeStand(g, font, c, isNear) {
+    const x = c.x;
+    const y = c.y;
+    g.push();
+    g.noStroke();
+    if (isNear) {
+      g.fill(255, 248, 176, Math.round(28 + Math.sin(frameCount * 0.14) * 14));
+      g.rect(x - 2, y + 4, c.w + 4, c.h, 4);
+    }
+    // Comptoir bois & citron pastel
+    g.fill(107, 75, 91);
+    g.rect(x + 4, y + 26, 40, 22, 2);
+    g.fill(244, 214, 146);
+    g.rect(x + 5, y + 27, 38, 20, 1);
+    g.fill(252, 244, 218);
+    g.rect(x + 5, y + 27, 38, 4);
+    // Poteaux + auvent rayé jaune citron & crème
+    g.fill(144, 98, 93);
+    g.rect(x + 6, y + 12, 3, 16);
+    g.rect(x + 39, y + 12, 3, 16);
+    for (let i = 0; i < 6; i++) {
+      g.fill(i % 2 === 0 ? g.color(252, 220, 96) : g.color(255, 250, 230));
+      g.rect(x + 3 + i * 7, y + 6, 7, 8);
+    }
+    // Carafe de limonade + verres sur le comptoir
+    g.fill(107, 75, 91);
+    g.rect(x + 13, y + 19, 8, 9, 2);
+    g.fill(255, 234, 94);
+    g.rect(x + 14, y + 21, 6, 6, 1);
+    g.fill(255, 250, 220);
+    g.rect(x + 25, y + 22, 4, 5);
+    g.rect(x + 31, y + 22, 4, 5);
+    g.fill(255, 224, 88);
+    g.rect(x + 26, y + 23, 2, 3);
+    g.rect(x + 32, y + 23, 2, 3);
+    PixelUI.panel(g, x + 3, y + 34, 42, 10, g.color(252, 244, 218));
+    this.drawWorldSign(g, 'LEMONADE', x + 24, y + 39, g.color(154, 114, 34));
+    g.pop();
+  }
+
+  /** Table de pique-nique en bois (Sweet Street). */
+  drawPicnicTable(g, x, y) {
+    g.push();
+    g.noStroke();
+    g.fill(68, 96, 62, 65);
+    g.ellipse(x + 14, y + 15, 32, 8);
+    // Bancs avant/arrière
+    g.fill(107, 75, 91);
+    g.rect(x, y + 11, 28, 4, 1);
+    g.fill(198, 152, 108);
+    g.rect(x + 1, y + 12, 26, 2);
+    // Pieds + plateau principal
+    g.fill(107, 75, 91);
+    g.rect(x + 5, y + 8, 3, 7);
+    g.rect(x + 20, y + 8, 3, 7);
+    g.rect(x + 2, y + 2, 24, 8, 1);
+    g.fill(222, 180, 132);
+    g.rect(x + 3, y + 3, 22, 6);
+    g.fill(244, 216, 174);
+    g.rect(x + 3, y + 3, 22, 2);
+    g.pop();
+  }
+
+  /** Scène de concert + Feux d'artifice (Aile Est — Interactif !). */
+  drawConcertStage(g, font, s, isNear) {
+    const x = s.x;
+    const y = s.y;
+    const t = frameCount;
+    g.push();
+    g.noStroke();
+    if (isNear) {
+      g.fill(255, 240, 176, Math.round(30 + Math.sin(t * 0.14) * 14));
+      g.rect(x - 3, y + 2, s.w + 6, s.h + 2, 4);
+    }
+    // Cadre bois & fond de scène sombre
+    g.fill(107, 75, 91);
+    g.rect(x + 2, y + 10, s.w - 4, s.h - 10, 2);
+    g.fill(78, 52, 74);
+    g.rect(x + 5, y + 18, s.w - 10, 32);
+    // Rideaux rouges de théâtre à gauche & droite
+    g.fill(196, 82, 102);
+    g.rect(x + 5, y + 18, 14, 30);
+    g.rect(x + s.w - 19, y + 18, 14, 30);
+    g.fill(224, 114, 130);
+    g.rect(x + 7, y + 18, 4, 28);
+    g.rect(x + s.w - 13, y + 18, 4, 28);
+    // Micro cœur lumineux au centre de la scène
+    g.fill(224, 216, 228);
+    g.rect(x + 41, y + 31, 2, 14);
+    g.fill(252, 152, 186);
+    g.circle(x + 42, y + 29, 7);
+    g.fill(255, 232, 240);
+    g.rect(x + 40, y + 27, 2, 2);
+    // Plancher bois + rampes lumineuses animées
+    g.fill(198, 146, 104);
+    g.rect(x + 4, y + 46, s.w - 8, 18);
+    g.fill(228, 184, 138);
+    g.rect(x + 4, y + 46, s.w - 8, 5);
+    for (let i = 0; i < 9; i++) {
+      const lit = (Math.floor(t / 10) + i) % 2 === 0;
+      g.fill(lit ? g.color(255, 246, 160) : g.color(255, 174, 194));
+      g.rect(x + 8 + i * 8, y + 51, 3, 3);
+    }
+    // Fronton STAGE + FIREWORKS
+    PixelUI.panel(g, x + 4, y + 4, s.w - 8, 14, g.color(247, 236, 198));
+    this.drawWorldSign(g, 'STAGE + FIREWORKS', x + s.w / 2, y + 11, g.color(168, 66, 88));
+    g.pop();
+  }
+
+  /** Ruisseau scintillant, Pont en bois franchissable & Mare aux nénuphars (Aile Est). */
+  drawEastCreekAndBridge(g) {
+    const cx = this.creekX;
+    const t = frameCount;
+    g.push();
+    g.noStroke();
+    // Lit du ruisseau vertical (y = 94 .. 216)
+    g.fill(102, 162, 184);
+    g.rect(cx - 2, 94, 24, 122);
+    g.fill(132, 198, 224);
+    g.rect(cx, 94, 20, 122);
+    // Mare aux nénuphars reliée au ruisseau (cx+34, y=214)
+    g.fill(102, 162, 184);
+    g.ellipse(cx + 34, 214, 56, 30);
+    g.fill(132, 198, 224);
+    g.ellipse(cx + 34, 214, 50, 24);
+    // Reflets d'eau qui glissent vers le bas
+    g.fill(220, 248, 255, 165);
+    for (let i = 0; i < 5; i++) {
+      const ry = 98 + ((t * 0.45 + i * 24) % 108);
+      g.rect(cx + 4 + (i % 2) * 7, Math.round(ry), 5, 2);
+    }
+    // Nénuphars verts & fleurs de lotus roses sur la mare
+    g.fill(106, 174, 98);
+    g.ellipse(cx + 22, 212, 9, 5);
+    g.ellipse(cx + 44, 218, 10, 6);
+    g.fill(252, 174, 198);
+    g.circle(cx + 44, 216, 4);
+    g.fill(255, 242, 168);
+    g.rect(cx + 43, 215, 2, 2);
+
+    // Pont en bois traversant le chemin principal (y = 142 .. 176, 100% marchable !)
+    g.fill(107, 75, 91);
+    g.rect(cx - 5, 142, 30, 34, 2);
+    for (let px = cx - 3; px < cx + 23; px += 4) {
+      g.fill((px % 8 === 0) ? g.color(206, 160, 114) : g.color(222, 178, 130));
+      g.rect(px, 144, 3, 30);
+    }
+    // Rambardes haut & bas du pont
+    g.fill(107, 75, 91);
+    g.rect(cx - 5, 140, 30, 4);
+    g.rect(cx - 5, 173, 30, 4);
+    g.fill(176, 128, 88);
+    g.rect(cx - 4, 141, 28, 2);
+    g.rect(cx - 4, 174, 28, 2);
+    g.pop();
+  }
+
   drawMapSignpost(g, font, m) {
     g.push();
     g.noStroke();
@@ -1720,6 +2052,7 @@ class HubScene extends Scene {
   getMapDestinations() {
     const spots = [
       { id: 'cotton_candy', label: 'Cotton Candy Cart', wx: -384, wy: 108, targetX: -384, targetY: 146, kind: 'sweets' },
+      { id: 'lemonade',     label: 'Lemonade Stand',    wx: -312, wy: 108, targetX: -312, targetY: 146, kind: 'sweets' },
       { id: 'prize',        label: 'Prize Boutique',    wx: -240, wy: 105, targetX: -240, targetY: 148, kind: 'prize' },
       { id: 'popcorn',      label: 'Popcorn Cart',      wx: -96,  wy: 108, targetX: -96,  targetY: 146, kind: 'popcorn' },
       { id: 'derby',        label: 'Bunny Derby',       wx: 57,   wy: 105, targetX: 57,   targetY: 148, kind: 'derby' },
@@ -1729,8 +2062,8 @@ class HubScene extends Scene {
       { id: 'fox',          label: 'The Legend of Moo', wx: 423,  wy: 105, targetX: 423,  targetY: 148, kind: 'fox' },
       { id: 'carousel',     label: 'Mini Carousel',     wx: 578,  wy: 102, targetX: 578,  targetY: 148, kind: 'carousel' },
       { id: 'fountain',     label: 'Wishing Fountain',  wx: 578,  wy: 204, targetX: 578,  targetY: 222, kind: 'fountain' },
-      { id: 'tarot',        label: 'Tarot Tent (Soon)', wx: 731,  wy: 105, targetX: 731,  targetY: 148, kind: 'tarot' },
-      { id: 'rings',        label: 'Ring Toss (Soon)',  wx: 861,  wy: 105, targetX: 861,  targetY: 148, kind: 'rings' }
+      { id: 'stage',        label: 'Stage + Fireworks', wx: 718,  wy: 102, targetX: 718,  targetY: 148, kind: 'tarot' },
+      { id: 'rings',        label: 'Ring Toss (Soon)',  wx: 879,  wy: 105, targetX: 879,  targetY: 148, kind: 'rings' }
     ];
     return spots.map((s) => {
       const p = this.worldToMiniMap(s.wx, s.wy);
@@ -2117,8 +2450,10 @@ class HubScene extends Scene {
     if (hitBox(this.prizeBoothPos)) { this.moo.stop(); this.prizeShop.show(); return; }
     if (hitBox(this.posterPos)) { this.game.sound.playSfx('ui_click'); this.overlay = true; return; }
     if (hitBox(this.cottonCartPos)) { this.interactWithProp('cotton_candy'); return; }
+    if (hitBox(this.lemonadeCartPos)) { this.interactWithProp('lemonade'); return; }
     if (hitBox(this.popcornCartPos)) { this.interactWithProp('popcorn'); return; }
     if (hitBox(this.carouselPos)) { this.interactWithProp('carousel'); return; }
+    if (hitBox(this.stagePos)) { this.interactWithProp('stage'); return; }
     if (dist(wx, wy, this.fountainPos.x, this.fountainPos.y) < 22) { this.interactWithProp('fountain'); return; }
 
     const t = this.triggers.find(({ rect: [x, y, w, h] }) => wx > x - 8 && wx < x + w + 8 && wy > y - 64 && wy < y + h + 4);
@@ -2248,7 +2583,7 @@ class HubScene extends Scene {
         if (id === 'poster') { this.game.sound.playSfx('ui_click'); this.overlay = true; }
         else if (id === 'map') { this.game.sound.playSfx('ui_click'); this.mapOverlay = true; }
         else if (id === 'prize') { this.moo.stop(); this.prizeShop.show(); }
-        else if (['cotton_candy', 'popcorn', 'carousel', 'fountain'].includes(id)) { this.interactWithProp(id); }
+        else if (['cotton_candy', 'lemonade', 'popcorn', 'carousel', 'stage', 'fountain'].includes(id)) { this.interactWithProp(id); }
         else { this.enterGame(id); }
       } else if (this.nearbyVisitor) {
         this.startNpcDialogue(this.nearbyVisitor);
