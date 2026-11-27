@@ -49,11 +49,18 @@ class GardenFruit extends Vehicle {
       return;
     }
 
+    this.isBoostItem = (this.type === 'blueberry' || this.type === 'double');
+
     // Comportements gérés par BehaviorManager
-    this.behaviors.add('evade', (v) => {
-      if (!v.headRef || !v.isEvading) return createVector(0, 0);
-      return v.evade(v.headRef, 10);
-    }, 1.3, true);
+    if (this.isBoostItem) {
+      // Les objets bonus (Quick Ball, Rare Candy) dérivent doucement au hasard (ne fuient JAMAIS Onix !)
+      this.behaviors.add('wander', (v) => v.wander(), 0.9, true);
+    } else {
+      this.behaviors.add('evade', (v) => {
+        if (!v.headRef || !v.isEvading) return createVector(0, 0);
+        return v.evade(v.headRef, 10);
+      }, 1.3, true);
+    }
     this.behaviors.add('avoidCorners', (v) => v.avoidCorners(), 1.8, true);
     this.behaviors.add('avoidWalls', (v) => v.avoidWalls(), 1.4, true);
     this.behaviors.add('avoidObstacles', (v) => v.avoid(v.obstaclesRef), 2.0, true);
@@ -172,18 +179,23 @@ class GardenFruit extends Vehicle {
     this.champDeVision = vision;
 
     const wasEvading = this.isEvading;
-    const d = p5.Vector.dist(head.pos, this.pos);
-
-    if (d < this.champDeVision) {
-      this.isEvading = true;
-      this.maxSpeed = this.evadeSpeed;
-    } else {
+    if (this.isBoostItem) {
+      // Les bonus dérivent calmement sans jamais fuir Onix
       this.isEvading = false;
-      this.maxSpeed = this.normalSpeed;
-      if (this.vel.magSq() < 0.05) {
-        this.vel = p5.Vector.random2D().mult(this.normalSpeed);
+      this.maxSpeed = Math.max(0.45, vNorm * 0.65);
+    } else {
+      const d = p5.Vector.dist(head.pos, this.pos);
+      if (d < this.champDeVision) {
+        this.isEvading = true;
+        this.maxSpeed = this.evadeSpeed;
       } else {
-        this.vel.setMag(this.normalSpeed);
+        this.isEvading = false;
+        this.maxSpeed = this.normalSpeed;
+        if (this.vel.magSq() < 0.05) {
+          this.vel = p5.Vector.random2D().mult(this.normalSpeed);
+        } else {
+          this.vel.setMag(this.normalSpeed);
+        }
       }
     }
 
