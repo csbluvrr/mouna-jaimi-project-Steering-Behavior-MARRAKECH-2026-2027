@@ -338,7 +338,7 @@ class HubScene extends Scene {
 
       // === INVITÉS CROSSOVER SPÉCIAUX (Deltarune Fun Gang ensemble, OneShot, Hollow Knight, Zelda, One Piece) ===
       new FairVisitor(-376, 154, 'guest_strip', this.game.assets, {
-        name: 'Chopper', guestFile: 'chopper_walk', guestW: 64, guestH: 64, guestFrames: 4, guestDrawW: 32, guestDrawH: 32,
+        name: 'Chopper', guestFile: 'chopper_walk', guestW: 32, guestH: 32, guestFrames: 4,
         bounds: [-435, 138, 105, 48], emote: 'Heart',
         dialogue: {
           text: "COTTON CANDY!! Moo, this is the best funfair on the Grand Line!",
@@ -365,7 +365,7 @@ class HubScene extends Scene {
         greeting: "Heh, this popcorn rules! Don't tell Ralsei I ate three buckets!"
       }),
       new FairVisitor(248, 170, 'guest_strip', this.game.assets, {
-        name: 'Luffy', guestFile: 'luffy_walk', guestW: 64, guestH: 64, guestFrames: 4, guestDrawW: 32, guestDrawH: 32,
+        name: 'Luffy', guestFile: 'luffy_walk', guestW: 32, guestH: 32, guestFrames: 4,
         bounds: [175, 146, 170, 46], emote: 'Exclamation',
         dialogue: {
           text: "Shishishi! Hey Moo! This funfair is awesome! Where's the meat?!",
@@ -403,7 +403,7 @@ class HubScene extends Scene {
         greeting: '... (The tiny vessel quietly admires the spinning pastel carousel.)'
       }),
       new FairVisitor(862, 166, 'guest_strip', this.game.assets, {
-        name: 'Zoro', guestFile: 'zoro_walk', guestW: 64, guestH: 64, guestFrames: 4, guestDrawW: 32, guestDrawH: 32,
+        name: 'Zoro', guestFile: 'zoro_walk', guestW: 32, guestH: 32, guestFrames: 4,
         bounds: [805, 144, 115, 54], emote: 'Interrogation',
         greeting: "Wait... how did I end up at a funfair? Which way is the Sunny?!"
       })
