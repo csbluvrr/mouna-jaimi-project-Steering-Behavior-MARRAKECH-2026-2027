@@ -1,12 +1,15 @@
 /**
- * Scène principale du Hub : Moo's Funfair — Promenade continue en 3 ailes reliées !
- * - Aile Ouest  [-480 ..   0] : Prize Booth (tenues & hoodies) + 2 pavillons "Coming Soon" + promenade fleurie
- * - Place Cœur  [   0 .. 480] : Hub original intact (Arche MOO'S FUNFAIR, Grande Roue animée,
- *                               les 4 stands de jeux, Pique-nique, Chat aux ballons, Poster GAMES,
- *                               Panneau MAP, Mare aux canetons & Vache)
- * - Aile Est    [ 480 .. 960] : 2 pavillons "Coming Soon" + coin détente + renard curieux & visiteurs
+ * Scène principale du Hub : Moo's Funfair — Parc forain vivant en 3 ailes continues (0 chevauchement !).
  *
- * Aucune coupure de scène : la caméra glisse de façon continue lorsque Moo marche vers l'Ouest ou l'Est !
+ * Plan spatial strict sur [-480 .. 960] :
+ * - AILE OUEST  [-480 ..   0] : Chariot Barbe à Papa (interactif), Prize Booth détaillé (peluches & cadeaux),
+ *                               Chariot Pop-Corn (interactif), cerisiers en fleurs, bancs & visiteurs.
+ * - PLACE CŒUR  [   0 .. 480] : Arche MOO'S FUNFAIR illuminée, Grande Roue animée au centre (espace 124px libre),
+ *                               4 stands de jeux à architectures distinctes (Derby, PokéMoo, Purins, Legend),
+ *                               Coin Pique-nique (encas + chat endormi), Chat aux ballons, Panneau MAP,
+ *                               Panneau GAMES (oiseau perché), Mare aux canetons (grenouille) & Vache.
+ * - AILE EST    [ 480 .. 960] : Mini Carrousel animé (interactif !), Tente Tarot (SOON), Stand Anneaux (SOON),
+ *                               Fontaine à vœux (interactive !), Renard endormi, Faon paisible & cerisiers.
  */
 class HubScene extends Scene {
   constructor(game) {
@@ -23,25 +26,40 @@ class HubScene extends Scene {
     this.visitors = [];
     this.butterflies = [];
     this.ducklings = [];
-    this.wingObjects = [];
-    this.wingPlaceholders = [];
-    this.wingBunting = [];
-    this.wingLights = [];
-    this.wingBalloons = [];
+    this.fx = [];
+    this.ambientFlowers = [];
+    this.ambientTrees = [];
+    this.buntingRow = [];
+    this.lightsRow = [];
 
     this.westGroundImg = null;
+    this.plazaGroundImg = null;
     this.eastGroundImg = null;
-    this.walkBounds = [-462, 102, 942, 240];
+    this.walkBounds = [-462, 114, 942, 234];
 
     this.promptTrigger = null;
-    this.overlay = false;     // Panneau "TODAY'S GAMES"
-    this.mapOverlay = false;  // Panneau "FUNFAIR MAP"
+    this.overlay = false;
+    this.mapOverlay = false;
     this.prizeShop = new PrizeShop(game);
-    this.posterOffsetX = -16;
 
-    // Positions des stands ajoutés
-    this.prizeBoothPos = { x: -245, y: 76, w: 50, h: 58, sortY: 134 };
-    this.mapBoardPos = { x: 256, y: 184, w: 24, h: 36, sortY: 220 };
+    // Coordonnées maîtresses sans aucun chevauchement
+    this.booths = [
+      { id: 'derby',     title: 'Bunny Derby',       sprite: 'booth_derby',     x: 32,  y: 76, w: 50, h: 58 },
+      { id: 'snake',     title: 'PokeMoo Feast!!',   sprite: 'booth_snake',     x: 122, y: 76, w: 50, h: 58 },
+      { id: 'ducklings', title: 'Catch the Purins!', sprite: 'booth_ducklings', x: 308, y: 76, w: 50, h: 58 },
+      { id: 'fox',       title: 'The Legend of Moo', sprite: 'booth_fox',       x: 398, y: 76, w: 50, h: 58 }
+    ];
+    this.prizeBoothPos  = { x: -265, y: 76,  w: 50, h: 58 };
+    this.cottonCartPos  = { x: -408, y: 84,  w: 48, h: 50 };
+    this.popcornCartPos = { x: -120, y: 84,  w: 48, h: 50 };
+    this.carouselPos    = { x: 542,  y: 66,  w: 72, h: 68 };
+    this.tarotBoothPos  = { x: 706,  y: 76,  w: 50, h: 58, stripe: [214, 184, 232], label: 'TAROT' };
+    this.ringsBoothPos  = { x: 836,  y: 76,  w: 50, h: 58, stripe: [192, 226, 166], label: 'RINGS' };
+
+    this.mapBoardPos    = { x: 254,  y: 184, w: 24, h: 36 };
+    this.posterPos      = { x: 288,  y: 180, w: 58, h: 46 };
+    this.pondCenter     = { x: 404,  y: 214, rx: 38, ry: 19 };
+    this.fountainPos    = { x: 578,  y: 204 };
 
     // Code secret Debug [H] : *** montre [+], n* cache [+]
     this.secretStarCount = 0;
@@ -49,64 +67,66 @@ class HubScene extends Scene {
     this.showTicketCheat = false;
     this.ticketPlusBtn = { x: 66, y: 6, w: 18, h: 16 };
 
+    this.ambientSoundTimer = 260;
     this.toast = '';
     this.toastUntil = 0;
   }
 
   init(data = {}) {
-    const layout = this.game.assets.hubLayout;
     this.overlay = false;
     this.mapOverlay = false;
     this.promptTrigger = null;
+    this.fx = [];
 
-    // 1. Sols pré-rendus des ailes Ouest [-480..0] et Est [480..960]
-    this.buildWingGrounds();
+    // 1. Sols pré-rendus propres & cohérents pour les 3 ailes [-480..0], [0..480], [480..960]
+    this.buildAllWingGrounds();
 
-    // 2. Collisions du Hub central original (intact, avec décalage propre du poster et du chat)
-    this.solids = layout.solids.map(([sx, sy, sw, sh]) => {
-      if (sx === 304 && sy === 220 && sw === 58) return [sx + this.posterOffsetX, sy, sw, sh];
-      if (sx === 158 && sy === 196 && sw === 14) return [157, 192, 20, 15];
-      return [sx, sy, sw, sh];
+    // 2. Collisions strictement alignées sur chaque structure (0 zone fantôme, 0 chevauchement)
+    this.solids = [
+      // Aile Ouest
+      [this.cottonCartPos.x + 2,  this.cottonCartPos.y + 26,  44, 22],
+      [this.prizeBoothPos.x + 4,  this.prizeBoothPos.y + 36,  42, 22],
+      [this.popcornCartPos.x + 2, this.popcornCartPos.y + 26, 44, 22],
+      [-386, 198, 22, 10], // Banc Ouest 1
+      [-104, 198, 22, 10], // Banc Ouest 2
+
+      // Place Centrale (4 stands + Grande Roue + Pique-nique + Chat + MAP + GAMES + Mare + Vache)
+      ...this.booths.map((b) => [b.x + 4, b.y + 36, 42, 22]),
+      [212, 118, 56, 18],  // Socle Grande Roue
+      [34,  212, 18, 12],  // Panier pique-nique
+      [146, 194, 18, 14],  // Chat aux ballons
+      [this.mapBoardPos.x + 2, this.mapBoardPos.y + 24, 20, 10],
+      [this.posterPos.x + 4,   this.posterPos.y + 34,   50, 12],
+      [368, 196, 72, 36],  // Mare aux canetons
+      [444, 188, 22, 14],  // Vache
+
+      // Aile Est (Carrousel + Tarot + Anneaux + Fontaine + Banc)
+      [this.carouselPos.x + 6,   this.carouselPos.y + 42,   60, 26],
+      [this.tarotBoothPos.x + 4, this.tarotBoothPos.y + 36, 42, 22],
+      [this.ringsBoothPos.x + 4, this.ringsBoothPos.y + 36, 42, 22],
+      [this.fountainPos.x - 16,  this.fountainPos.y - 6,    32, 16],
+      [690, 198, 22, 10]   // Banc Est
+    ];
+
+    this.obstacles = [];
+    this.solids.forEach(([sx, sy, sw, sh]) => {
+      for (const o of Obstacle.fromRect(sx, sy, sw, sh)) this.obstacles.push(o);
     });
-    this.solids.push([36, 214, 16, 12]); // Panier pique-nique
-    this.solids.push([this.mapBoardPos.x + 2, this.mapBoardPos.y + 24, 20, 10]); // Panneau MAP
 
-    // Collisions de l'aile Ouest & Est (Prize Booth + pavillons placeholders + bancs)
-    this.solids.push(
-      [this.prizeBoothPos.x + 4, this.prizeBoothPos.y + 36, 42, 22], // Prize Booth
-      [-392, 112, 46, 22], // Placeholder Ouest 1 (Cotton Candy)
-      [-108, 112, 46, 22], // Placeholder Ouest 2 (Photo Booth)
-      [564, 112, 46, 22],  // Placeholder Est 1 (Ring Toss)
-      [764, 112, 46, 22],  // Placeholder Est 2 (Fortune Tent)
-      [-322, 198, 16, 8],  // Banc Ouest
-      [-156, 198, 16, 8],  // Banc Ouest 2
-      [656, 198, 16, 8],   // Banc Est
-      [840, 198, 16, 8]    // Banc Est 2
-    );
-
-    // 3. Décorations cohérentes et ordonnées des ailes Ouest et Est
-    this.buildWingDecor();
-
-    // 4. Triggers (4 stands originaux renommés + Poster + MAP + Prize Booth)
-    const renamedTitles = {
-      derby: 'Bunny Derby',
-      snake: 'PokeMoo Feast!!',
-      ducklings: 'Catch the Purins!',
-      fox: 'The Legend of Moo'
-    };
-    this.triggers = layout.triggers.map((t) => {
-      const title = renamedTitles[t.id] || t.title;
-      if (t.id === 'poster') {
-        return {
-          ...t,
-          title,
-          rect: [t.rect[0] + this.posterOffsetX, t.rect[1], t.rect[2], t.rect[3]],
-          stand: [t.stand[0] + this.posterOffsetX, t.stand[1]]
-        };
-      }
-      return { ...t, title };
-    });
-    this.triggers.push(
+    // 3. Zones d'interaction (4 Mini-jeux + Poster + MAP + Prize Shop + 4 Objets Interactifs !)
+    this.triggers = [
+      ...this.booths.map((b) => ({
+        id: b.id,
+        title: b.title,
+        rect: [b.x - 2, b.y + 56, 54, 22],
+        stand: [b.x + 25, b.y + 72]
+      })),
+      {
+        id: 'poster',
+        title: "Today's Games",
+        rect: [this.posterPos.x - 4, this.posterPos.y + 42, this.posterPos.w + 8, 20],
+        stand: [this.posterPos.x + 29, this.posterPos.y + 56]
+      },
       {
         id: 'map',
         title: 'Funfair Map',
@@ -115,22 +135,42 @@ class HubScene extends Scene {
       },
       {
         id: 'prize',
-        title: 'Prize Booth',
+        title: 'Prize Boutique',
         rect: [this.prizeBoothPos.x - 2, this.prizeBoothPos.y + 56, 54, 22],
         stand: [this.prizeBoothPos.x + 25, this.prizeBoothPos.y + 72]
+      },
+      {
+        id: 'cotton_candy',
+        title: 'Cotton Candy Cart',
+        rect: [this.cottonCartPos.x - 2, this.cottonCartPos.y + 48, 52, 22],
+        stand: [this.cottonCartPos.x + 24, this.cottonCartPos.y + 62]
+      },
+      {
+        id: 'popcorn',
+        title: 'Popcorn Cart',
+        rect: [this.popcornCartPos.x - 2, this.popcornCartPos.y + 48, 52, 22],
+        stand: [this.popcornCartPos.x + 24, this.popcornCartPos.y + 62]
+      },
+      {
+        id: 'carousel',
+        title: 'Mini Carousel',
+        rect: [this.carouselPos.x - 2, this.carouselPos.y + 66, 76, 20],
+        stand: [this.carouselPos.x + 36, this.carouselPos.y + 78]
+      },
+      {
+        id: 'fountain',
+        title: 'Wishing Fountain',
+        rect: [this.fountainPos.x - 26, this.fountainPos.y - 16, 52, 34],
+        stand: [this.fountainPos.x, this.fountainPos.y + 18]
       }
-    );
+    ];
 
-    // Convertir toutes les zones solides en Obstacles circulaires (Vehicle fixes)
-    this.obstacles = [];
-    this.solids.forEach(([sx, sy, sw, sh]) => {
-      const obsList = Obstacle.fromRect(sx, sy, sw, sh);
-      for (const o of obsList) this.obstacles.push(o);
-    });
+    // 4. Décors animés (arbres, cerisiers, fleurs, guirlandes & lumières sur 3 ailes)
+    this.buildParkDecor();
 
-    // 5. Position de spawn de Moo
-    let spawnX = layout.spawn[0];
-    let spawnY = layout.spawn[1];
+    // 5. Spawn de Moo
+    let spawnX = 240;
+    let spawnY = 162;
     if (data && data.fromBooth) {
       const trig = this.triggers.find((t) => t.id === data.fromBooth);
       if (trig && trig.stand) {
@@ -138,236 +178,231 @@ class HubScene extends Scene {
         spawnY = trig.stand[1];
       }
     }
-
     this.moo = new Moo(spawnX, spawnY, this.game.assets);
     this.camX = this.computeTargetCamX();
 
-    // 6. Canetons autour de la mare du Hub central (Vehicle)
-    this.ducklings = layout.ducklings.map(([x, y]) => new HubDuckling(x, y, this.game.assets));
+    // 6. Canetons nageant dans la mare animée (cx=404, cy=214)
+    this.ducklings = [
+      new HubDuckling(392, 210, this.game.assets),
+      new HubDuckling(412, 216, this.game.assets),
+      new HubDuckling(402, 206, this.game.assets),
+      new HubDuckling(416, 208, this.game.assets)
+    ];
+    for (const d of this.ducklings) {
+      d.pondCenter = createVector(this.pondCenter.x, this.pondCenter.y);
+      d.pondRadius = 24;
+    }
 
-    // 7. Visiteurs & mascottes répartis harmonieusement sur les 3 ailes (FairVisitor extends Vehicle)
+    // 7. Visiteurs avec routines quotidiennes & conversations NPC-à-NPC sur les 3 ailes
     this.visitors = [
-      // Aile Ouest (Promenade des Prix)
-      new FairVisitor(-184, 138, 'girl', this.game.assets, {
-        stationary: true,
-        emote: 'Heart',
-        greeting: 'Welcome to the Prize Booth!'
+      // Aile Ouest (Shopping & Gourmandises)
+      new FairVisitor(-202, 138, 'girl', this.game.assets, {
+        stationary: true, emote: 'Heart', greeting: 'Welcome to the Prize Boutique!'
       }),
-      new FairVisitor(-295, 166, 'carrot', this.game.assets, {
-        bounds: [-410, 140, 280, 76],
-        emote: 'Star',
-        greeting: 'Spend tickets on cute hats!'
+      new FairVisitor(-316, 158, 'carrot', this.game.assets, {
+        bounds: [-420, 140, 260, 52], emote: 'Star', greeting: 'Try the Cotton Candy & Popcorn!'
       }),
-      new FairVisitor(-362, 152, 'neighbour', this.game.assets, {
-        npcId: 4, tone: 0, emote: 'Happy',
-        bounds: [-430, 142, 145, 70],
-        greeting: 'I want cotton candy soon!'
+      new FairVisitor(-352, 166, 'neighbour', this.game.assets, {
+        npcId: 4, tone: 0, emote: 'Happy', bounds: [-435, 142, 175, 52], greeting: 'Sweetest treats in town!'
       }),
-      new FairVisitor(-136, 162, 'neighbour', this.game.assets, {
-        npcId: 2, tone: 1, emote: 'Heart',
-        bounds: [-190, 142, 130, 68],
-        greeting: 'Cute hoodie, Moo!'
+      new FairVisitor(-172, 160, 'neighbour', this.game.assets, {
+        npcId: 2, tone: 1, emote: 'Heart', bounds: [-240, 142, 165, 50], greeting: 'Love your outfit, Moo!'
       }),
-      new FairVisitor(-142, 186, 'new_bunny', this.game.assets, {
-        bounds: [-210, 152, 160, 68],
-        emote: 'Happy'
+      new FairVisitor(-250, 198, 'new_bunny', this.game.assets, {
+        bounds: [-320, 182, 160, 44], emote: 'Happy'
       }),
 
-      // Place Centrale (Hub principal vivant et chaleureux)
-      new FairVisitor(218, 162, 'carrot', this.game.assets, {
-        bounds: [120, 140, 220, 78],
-        emote: 'Star',
-        greeting: "Welcome to Moo's Funfair!"
+      // Place Centrale (Cœur animé de la fête foraine)
+      new FairVisitor(212, 162, 'carrot', this.game.assets, {
+        bounds: [90, 142, 240, 44], emote: 'Star', greeting: "Welcome to Moo's Funfair!"
       }),
-      new FairVisitor(92, 152, 'neighbour', this.game.assets, {
-        npcId: 7, tone: 0, emote: 'Exclamation',
-        bounds: [36, 138, 140, 62],
-        greeting: 'Bunny Derby is so exciting!'
+      new FairVisitor(84, 154, 'neighbour', this.game.assets, {
+        npcId: 7, tone: 0, emote: 'Exclamation', bounds: [24, 142, 150, 40], greeting: 'Bunny Derby starts soon!'
       }),
-      new FairVisitor(194, 148, 'neighbour', this.game.assets, {
-        npcId: 11, tone: 1, emote: 'Happy',
-        bounds: [130, 138, 150, 56],
-        greeting: 'Love the Ferris wheel!'
+      new FairVisitor(186, 150, 'neighbour', this.game.assets, {
+        npcId: 11, tone: 1, emote: 'Happy', bounds: [120, 140, 160, 40], greeting: 'The Ferris wheel glows so bright!'
       }),
-      new FairVisitor(326, 152, 'neighbour', this.game.assets, {
-        npcId: 6, tone: 2, emote: 'Heart',
-        bounds: [265, 138, 155, 58],
-        greeting: 'The Purins are adorable!'
+      new FairVisitor(334, 154, 'neighbour', this.game.assets, {
+        npcId: 6, tone: 2, emote: 'Heart', bounds: [260, 142, 185, 40], greeting: 'Look at the ducklings & frog!'
       }),
-      new FairVisitor(116, 178, 'new_bunny', this.game.assets, {
-        bounds: [60, 148, 130, 62],
-        emote: 'Happy'
+      new FairVisitor(118, 174, 'new_bunny', this.game.assets, {
+        bounds: [66, 154, 110, 38], emote: 'Happy'
       }),
-      new FairVisitor(362, 160, 'kid', this.game.assets, {
-        bounds: [280, 140, 140, 56],
-        emote: 'Star',
-        greeting: 'Check the Map or Games board!'
+      new FairVisitor(276, 160, 'kid', this.game.assets, {
+        bounds: [190, 142, 170, 40], emote: 'Star', greeting: 'Use the MAP to visit all wings!'
       }),
 
-      // Aile Est (Prairie du Carnaval)
-      new FairVisitor(630, 144, 'fox_nap', this.game.assets, {
-        stationary: true,
-        emote: 'Heart',
-        greeting: 'New booths opening soon!'
+      // Aile Est (Manège, Fontaine & Prairie)
+      new FairVisitor(628, 148, 'girl', this.game.assets, {
+        stationary: true, emote: 'Happy', greeting: 'Ring the Carousel bell!'
       }),
-      new FairVisitor(712, 166, 'girl', this.game.assets, {
-        stationary: true,
-        emote: 'Happy',
-        greeting: 'Such a cozy funfair meadow!'
+      new FairVisitor(746, 198, 'fox_nap', this.game.assets, {
+        stationary: true, emote: 'Heart', greeting: 'Zzz... cozy meadow nap!'
       }),
-      new FairVisitor(582, 164, 'neighbour', this.game.assets, {
-        npcId: 9, tone: 0, emote: 'Surprised',
-        bounds: [510, 142, 165, 70],
-        greeting: 'Make a wish at the fountain!'
+      new FairVisitor(548, 164, 'neighbour', this.game.assets, {
+        npcId: 9, tone: 0, emote: 'Surprised', bounds: [495, 142, 185, 50], greeting: 'Toss a wish in the fountain!'
       }),
-      new FairVisitor(786, 158, 'neighbour', this.game.assets, {
-        npcId: 13, tone: 2, emote: 'Interrogation',
-        bounds: [710, 142, 190, 72],
-        greeting: 'Ooh, a Tarot tent!'
+      new FairVisitor(768, 158, 'neighbour', this.game.assets, {
+        npcId: 13, tone: 2, emote: 'Interrogation', bounds: [670, 142, 225, 48], greeting: 'Tarot & Rings open soon!'
       }),
-      new FairVisitor(540, 176, 'kid', this.game.assets, {
-        bounds: [500, 144, 190, 72],
-        emote: 'Happy'
+      new FairVisitor(648, 166, 'kid', this.game.assets, {
+        bounds: [560, 144, 180, 46], emote: 'Happy'
       }),
       new FairVisitor(812, 184, 'new_bunny', this.game.assets, {
-        bounds: [720, 150, 170, 70],
-        emote: 'Heart'
+        bounds: [740, 154, 145, 54], emote: 'Heart'
       })
     ];
 
-    // 8. Papillons répartis doucement sur les 3 ailes
+    // 8. Papillons répartis sur tout le parc
     this.butterflies = [];
-    for (let i = 0; i < 10; i++) {
-      this.butterflies.push(
-        new HubButterfly(random(-420, 900), random(108, 228), this.game.assets)
-      );
+    for (let i = 0; i < 12; i++) {
+      this.butterflies.push(new HubButterfly(random(-430, 910), random(108, 226), this.game.assets));
     }
 
     this.game.sound.playMusic('hub');
     if (data && data.toast) this.showToast(data.toast, 2600);
   }
 
-  /** Pré-rend les sols des ailes Ouest [-480..0] et Est [480..960] dans le même style que hub_ground.png. */
-  buildWingGrounds() {
-    if (this.westGroundImg && this.eastGroundImg) return;
-    const ground = this.game.assets.getImage('hub/hub_ground.png');
-    if (!ground) return;
-    const grassCol = ground.get(4, 120);
+  /** Pré-rend les 3 sols du parc dans un style 100% unifié, sans aucun décalage ni chevauchement. */
+  buildAllWingGrounds() {
+    if (this.westGroundImg && this.plazaGroundImg && this.eastGroundImg) return;
+    const baseGround = this.game.assets.getImage('hub/hub_ground.png');
+    const grass = [156, 204, 102];
 
-    const makeWing = (isWest) => {
+    const makeSection = (section) => {
       const img = createGraphics(BUFFER_W, BUFFER_H);
       img.pixelDensity(1);
       img.noSmooth();
-      img.background(grassCol[0], grassCol[1], grassCol[2]);
-
-      // Allée sable principale prolongeant exactement celle du Hub central (y=134..168)
+      img.background(grass[0], grass[1], grass[2]);
       img.noStroke();
-      img.fill(218, 194, 148);
-      img.rect(0, 134, BUFFER_W, 34);
+
+      // Douces plaques d'herbe nuancées pour donner du relief
+      img.fill(146, 194, 94);
+      for (let i = 0; i < 18; i++) {
+        const px = ((i * 89 + (section === 'west' ? 17 : section === 'east' ? 41 : 7)) % 440) + 20;
+        const py = ((i * 53 + 104) % 126) + 102;
+        img.ellipse(px, py, 34 + (i % 3) * 10, 14 + (i % 2) * 6);
+      }
+
+      // Grande allée sable continue reliant les 3 ailes (y = 136..174)
+      img.fill(210, 184, 138);
+      img.rect(0, 134, BUFFER_W, 42);
       img.fill(232, 210, 166);
-      img.rect(0, 137, BUFFER_W, 28);
+      img.rect(0, 137, BUFFER_W, 36);
+      // Petits galets décoratifs sur l'allée
+      img.fill(218, 194, 148);
+      for (let gx = 12; gx < BUFFER_W; gx += 26) {
+        img.rect(gx, 143 + (gx % 5), 4, 2, 1);
+        img.rect(gx + 12, 163 - (gx % 4), 3, 2, 1);
+      }
 
-      // Parvis propres devant chaque stand / pavillon
-      if (isWest) {
-        // Coordonnées locales dans [-480..0] -> +480
-        img.rect(82, 126, 62, 16, 5);   // Cotton Candy (-398)
-        img.rect(225, 124, 70, 22, 6);  // Prize Booth (-245) — parvis central mis en valeur
-        img.rect(366, 126, 62, 16, 5);  // Photo Booth (-114)
+      if (section === 'west') {
+        // Parvis propres devant Barbe à Papa, Prize Boutique & Pop-Corn
+        img.fill(232, 210, 166);
+        img.rect(64,  126, 64, 18, 6);
+        img.rect(206, 124, 68, 22, 6);
+        img.rect(352, 126, 64, 18, 6);
+      } else if (section === 'plaza') {
+        // Place circulaire pavée au centre de la fête foraine + allée d'entrée sud
+        img.fill(210, 184, 138);
+        img.ellipse(240, 166, 118, 72);
+        img.rect(222, 174, 36, 98);
+        img.fill(232, 210, 166);
+        img.ellipse(240, 166, 110, 64);
+        img.rect(225, 174, 30, 98);
+        // Parvis devant les 4 stands de jeux
+        for (const bx of [24, 114, 300, 390]) {
+          img.rect(bx, 126, 66, 18, 6);
+        }
+        // Bassin de la mare aux canetons (cx=404, cy=214)
+        img.fill(107, 75, 91, 140);
+        img.ellipse(404, 215, 80, 42);
+        img.fill(128, 194, 218);
+        img.ellipse(404, 214, 76, 38);
+        img.fill(164, 218, 236);
+        img.ellipse(396, 210, 44, 20);
       } else {
-        // Coordonnées locales dans [480..960] -> -480
-        img.rect(78, 126, 62, 16, 5);   // Ring Toss (558)
-        img.rect(278, 126, 62, 16, 5);  // Fortune Tent (758)
+        // Aile Est : parvis devant Carrousel, Tarot, Anneaux + placette de la fontaine
+        img.fill(232, 210, 166);
+        img.rect(54,  124, 86, 20, 8);
+        img.rect(218, 126, 64, 18, 6);
+        img.rect(348, 126, 64, 18, 6);
+        img.fill(210, 184, 138);
+        img.ellipse(98, 206, 62, 34);
+        img.fill(232, 210, 166);
+        img.ellipse(98, 206, 56, 28);
       }
 
-      // Clôture bois basse copiée de hub_ground.png
-      for (let tx = 0; tx < BUFFER_W; tx += 16) {
-        img.image(ground, tx, 236, 16, 36, 16, 236, 16, 36);
+      // Clôture en bois Sprout Lands le long du bord sud (y=236)
+      if (baseGround) {
+        for (let tx = 0; tx < BUFFER_W; tx += 16) {
+          if (section === 'plaza' && tx >= 216 && tx <= 252) continue; // ouverture de l'allée d'entrée !
+          img.image(baseGround, tx, 236, 16, 36, 16, 236, 16, 36);
+        }
       }
 
-      // Poteaux de clôture d'extrémité tout à gauche (Ouest) ou tout à droite (Est)
-      const endX = isWest ? 8 : BUFFER_W - 12;
-      for (let py = 102; py < 236; py += 24) {
-        img.fill(107, 75, 91);
-        img.rect(endX, py, 4, 14);
-        img.fill(182, 137, 98);
-        img.rect(endX + 1, py + 1, 2, 11);
-      }
-
-      // Brins d'herbe subtils et réguliers
-      img.fill(Math.max(0, grassCol[0] - 16), Math.max(0, grassCol[1] - 14), Math.max(0, grassCol[2] - 14));
-      for (let i = 0; i < 48; i++) {
-        const gx = (i * 61 + (isWest ? 13 : 29)) % (BUFFER_W - 24) + 12;
-        const gy = (i * 41 + 104) % 124 + 102;
-        if (gy > 130 && gy < 172) continue;
-        img.rect(gx, gy, 2, 1);
+      // Poteaux de clôture aux extrémités Ouest & Est du parc
+      if (section === 'west' || section === 'east') {
+        const endX = section === 'west' ? 8 : BUFFER_W - 12;
+        for (let py = 104; py < 236; py += 22) {
+          img.fill(107, 75, 91);
+          img.rect(endX, py, 4, 14);
+          img.fill(182, 137, 98);
+          img.rect(endX + 1, py + 1, 2, 11);
+        }
       }
       return img;
     };
 
-    this.westGroundImg = makeWing(true);
-    this.eastGroundImg = makeWing(false);
+    this.westGroundImg  = makeSection('west');
+    this.plazaGroundImg = makeSection('plaza');
+    this.eastGroundImg  = makeSection('east');
   }
 
-  /** Place des décors logiques et aérés sur les ailes Ouest et Est (sans surcharge aléatoire). */
-  buildWingDecor() {
-    this.wingObjects = [
-      // --- Aile Ouest : arbres en lisière, bancs ordonnés, massifs fleuris ---
-      { sprite: 'tree_apple', x: -454, y: 66, sortY: 96 },
-      { sprite: 'tree_round', x: -322, y: 66, sortY: 96 },
-      { sprite: 'tree_tall',  x: -176, y: 68, sortY: 96 },
-      { sprite: 'tree_round', x: -44,  y: 66, sortY: 96 },
-      { sprite: 'log', x: -324, y: 196, sortY: 205 },
-      { sprite: 'log', x: -158, y: 196, sortY: 205 },
-      { sprite: 'flower_pink', x: -340, y: 198, sortY: 204 },
-      { sprite: 'flower_yellow', x: -136, y: 198, sortY: 204 },
-      { sprite: 'bush_berry', x: -444, y: 204, sortY: 218 },
-      { sprite: 'flower_blue', x: -240, y: 202, sortY: 210 },
-
-      // --- Aile Est : arbres en lisière, bancs de repos, parterres symétriques ---
-      { sprite: 'tree_round', x: 500, y: 66, sortY: 96 },
-      { sprite: 'tree_tall',  x: 642, y: 68, sortY: 96 },
-      { sprite: 'tree_apple', x: 706, y: 66, sortY: 96 },
-      { sprite: 'tree_round', x: 862, y: 66, sortY: 96 },
-      { sprite: 'tree_apple', x: 912, y: 66, sortY: 96 },
-      { sprite: 'log', x: 654, y: 196, sortY: 205 },
-      { sprite: 'log', x: 838, y: 196, sortY: 205 },
-      { sprite: 'flower_yellow', x: 636, y: 198, sortY: 204 },
-      { sprite: 'flower_pink', x: 860, y: 198, sortY: 204 },
-      { sprite: 'bush_berry', x: 904, y: 204, sortY: 218 }
+  /** Construit les arbres, cerisiers, fleurs animées et guirlandes sans aucun chevauchement. */
+  buildParkDecor() {
+    this.ambientTrees = [
+      // Arrière-plan Ouest
+      { kind: 'cherry_big', x: -468, y: 52, sortY: 96 },
+      { kind: 'tree_round', x: -344, y: 66, sortY: 96 },
+      { kind: 'cherry_med', x: -196, y: 64, sortY: 96 },
+      { kind: 'tree_tall',  x: -48,  y: 66, sortY: 96 },
+      // Arrière-plan Place Centrale (encadre proprement les 4 stands & l'arche)
+      { kind: 'tree_round', x: -2,   y: 66, sortY: 96 },
+      { kind: 'tree_apple', x: 86,   y: 66, sortY: 96 },
+      { kind: 'tree_apple', x: 360,  y: 66, sortY: 96 },
+      { kind: 'tree_round', x: 452,  y: 66, sortY: 96 },
+      // Arrière-plan Est
+      { kind: 'tree_tall',  x: 500,  y: 66, sortY: 96 },
+      { kind: 'cherry_big', x: 632,  y: 52, sortY: 96 },
+      { kind: 'tree_apple', x: 778,  y: 66, sortY: 96 },
+      { kind: 'cherry_med', x: 904,  y: 64, sortY: 96 }
     ];
 
-    // Pavillons "Coming Soon" cohérents avec l'esthétique des stands Sprout Lands
-    this.wingPlaceholders = [
-      { x: -394, y: 76, w: 50, h: 58, sortY: 134, stripe: [248, 178, 198], label: 'SWEETS' },
-      { x: -110, y: 76, w: 50, h: 58, sortY: 134, stripe: [176, 212, 240], label: 'PHOTO' },
-      { x: 562,  y: 76, w: 50, h: 58, sortY: 134, stripe: [192, 226, 166], label: 'RINGS' },
-      { x: 762,  y: 76, w: 50, h: 58, sortY: 134, stripe: [214, 184, 232], label: 'TAROT' }
+    this.ambientFlowers = [
+      { sprite: 'flower_pink',   x: -436, y: 204, phase: 0.2 },
+      { sprite: 'flower_yellow', x: -346, y: 214, phase: 1.1 },
+      { sprite: 'flower_blue',   x: -178, y: 212, phase: 2.0 },
+      { sprite: 'flower_pink',   x: -64,  y: 206, phase: 2.9 },
+      { sprite: 'flower_yellow', x: 108,  y: 218, phase: 0.6 },
+      { sprite: 'flower_pink',   x: 184,  y: 218, phase: 1.8 },
+      { sprite: 'flower_blue',   x: 206,  y: 224, phase: 2.5 },
+      { sprite: 'flower_yellow', x: 516,  y: 214, phase: 0.9 },
+      { sprite: 'flower_pink',   x: 646,  y: 216, phase: 1.7 },
+      { sprite: 'flower_blue',   x: 804,  y: 218, phase: 3.1 },
+      { sprite: 'flower_yellow', x: 906,  y: 212, phase: 4.0 }
     ];
 
-    // Ballons discrets encadrant le Prize Booth
-    this.wingBalloons = [
-      { sprite: 'balloon_pink',   x: -260, y: 84, phase: 0.4 },
-      { sprite: 'balloon_yellow', x: -190, y: 82, phase: 2.0 }
-    ];
-
-    // Guirlandes (y=90) et lumières basses (y=242) continues sur les deux ailes
-    this.wingBunting = [];
-    this.wingLights = [];
-    const buntingSprites = ['bunting_a', 'bunting_b'];
+    this.buntingRow = [];
+    this.lightsRow = [];
     let idx = 0;
-    for (let bx = -480; bx < 0; bx += 16) {
-      this.wingBunting.push({ sprite: buntingSprites[idx % 2], x: bx, y: 90 });
-      this.wingLights.push({ x: bx, y: 242 });
-      idx++;
-    }
-    for (let bx = 480; bx < 960; bx += 16) {
-      this.wingBunting.push({ sprite: buntingSprites[idx % 2], x: bx, y: 90 });
-      this.wingLights.push({ x: bx, y: 242 });
+    for (let bx = -480; bx < 960; bx += 16) {
+      this.buntingRow.push({ sprite: idx % 2 === 0 ? 'bunting_a' : 'bunting_b', x: bx });
+      this.lightsRow.push({ x: bx, y: 242, idx });
       idx++;
     }
   }
 
-  /** Caméra horizontale 100% continue : suit Moo sans aucun saut ni zone morte sur tout [-480 .. 960]. */
   computeTargetCamX() {
     const vw = this.game.viewW || BUFFER_W;
     const minCam = this.worldLeft;
@@ -386,34 +421,44 @@ class HubScene extends Scene {
 
     this.moo.step(this.solids, this.walkBounds);
 
-    // Glissement exponentiel ultra-fluide indépendant du framerate
+    // Glissement de caméra continu ultra-fluide
     const dt = Math.min(0.05, (typeof deltaTime === 'number' ? deltaTime : 16.6) / 1000);
     const smooth = 1 - Math.exp(-7.5 * dt);
     const targetCamX = this.computeTargetCamX();
     this.camX += (targetCamX - this.camX) * smooth;
     if (Math.abs(targetCamX - this.camX) < 0.08) this.camX = targetCamX;
 
-    // Mise à jour de la faune et des visiteurs (100% Steering Behaviors)
+    // Mise à jour de toute la faune et des visiteurs (Steering Behaviors + routines + NPC-à-NPC)
     for (const v of this.visitors) v.step(this.moo, this.visitors, this.obstacles);
     for (const d of this.ducklings) d.step(this.ducklings);
     for (const b of this.butterflies) b.step(this.moo);
+    for (let i = this.fx.length - 1; i >= 0; i--) {
+      this.fx[i].step();
+      if (this.fx[i].isDead) this.fx.splice(i, 1);
+    }
 
-    // Détection du stand devant lequel Moo se tient
+    // Sons d'ambiance discrets de fête foraine (gazouillis près de la mare)
+    this.ambientSoundTimer--;
+    if (this.ambientSoundTimer <= 0) {
+      this.ambientSoundTimer = Math.floor(random(340, 560));
+      const dPond = dist(this.moo.pos.x, this.moo.pos.y, this.pondCenter.x, this.pondCenter.y);
+      if (dPond < 110) {
+        this.game.sound.playSfx('squeak_1', 0.25);
+      }
+    }
+
+    // Détection de la zone d'interaction devant Moo
     const prevTrigger = this.promptTrigger;
     this.promptTrigger =
       this.triggers.find(({ rect: [x, y, w, h] }) =>
-        this.moo.pos.x > x &&
-        this.moo.pos.x < x + w &&
-        this.moo.pos.y > y &&
-        this.moo.pos.y < y + h
+        this.moo.pos.x > x && this.moo.pos.x < x + w &&
+        this.moo.pos.y > y && this.moo.pos.y < y + h
       ) || null;
 
     if (
       this.promptTrigger &&
       this.promptTrigger !== prevTrigger &&
-      this.promptTrigger.id !== 'poster' &&
-      this.promptTrigger.id !== 'map' &&
-      this.promptTrigger.id !== 'prize'
+      ['derby', 'snake', 'ducklings', 'fox'].includes(this.promptTrigger.id)
     ) {
       const awarded = this.game.save.claimFirstVisitBonus(this.promptTrigger.id);
       if (awarded) {
@@ -423,9 +468,41 @@ class HubScene extends Scene {
     }
   }
 
+  /** Déclenche une interaction joyeuse avec les objets environnementaux du parc. */
+  interactWithProp(id) {
+    if (id === 'fountain') {
+      this.game.sound.playSfx('success_bell', 0.65);
+      for (let i = 0; i < 10; i++) {
+        this.fx.push(new SparkleFX(this.fountainPos.x + random(-8, 8), this.fountainPos.y - 8, 'sparkle'));
+      }
+      this.fx.push(new SparkleFX(this.fountainPos.x, this.fountainPos.y - 18, 'text', 'MAKE A WISH!', color(255, 242, 150)));
+      this.showToast('You tossed a lucky wish into the fountain!', 2200);
+    } else if (id === 'cotton_candy') {
+      this.game.sound.playSfx('squeak_2', 0.55);
+      for (let i = 0; i < 8; i++) {
+        this.fx.push(new SparkleFX(this.moo.pos.x + random(-8, 8), this.moo.pos.y - 18, 'confetti'));
+      }
+      this.fx.push(new SparkleFX(this.moo.pos.x, this.moo.pos.y - 26, 'text', 'YUM!', color(252, 178, 206)));
+      this.showToast('Fluffy strawberry cotton candy! So sweet!', 2000);
+    } else if (id === 'popcorn') {
+      this.game.sound.playSfx('squeak_double_1', 0.55);
+      for (let i = 0; i < 10; i++) {
+        this.fx.push(new SparkleFX(this.popcornCartPos.x + 24 + random(-8, 8), this.popcornCartPos.y + 18, 'sparkle'));
+      }
+      this.fx.push(new SparkleFX(this.moo.pos.x, this.moo.pos.y - 26, 'text', 'POP POP!', color(255, 232, 128)));
+      this.showToast('Warm buttered carnival popcorn!', 2000);
+    } else if (id === 'carousel') {
+      this.game.sound.playSfx('success_bell', 0.7);
+      for (let i = 0; i < 12; i++) {
+        this.fx.push(new SparkleFX(this.carouselPos.x + 36 + random(-22, 22), this.carouselPos.y + 24, 'confetti'));
+      }
+      this.fx.push(new SparkleFX(this.carouselPos.x + 36, this.carouselPos.y + 4, 'text', 'DING-DING!', color(255, 244, 166)));
+      this.showToast('The Mini Carousel chimes merrily!', 2000);
+    }
+  }
+
   draw(g) {
     const assets = this.game.assets;
-    const layout = assets.hubLayout;
     const font = assets.font;
     const vw = this.game.viewW || BUFFER_W;
     const vh = this.game.viewH || BUFFER_H;
@@ -436,179 +513,181 @@ class HubScene extends Scene {
 
     g.background(156, 204, 102);
 
-    // === 0. CIEL PARALLAXE ANIMÉ ===
+    // === 0. CIEL PARALLAXE 7 COUCHES ===
     if (typeof SkyBackdrop !== 'undefined') {
       SkyBackdrop.draw(g, assets, skyMood, vw, this.camX, oy);
     }
 
-    // === MONDE CONTINU [-480 .. 960] ===
+    // === 1. MONDE CONTINU [-480 .. 960] ===
     g.push();
     g.translate(camOffset, oy);
 
-    // 1. Sols des 3 ailes sous l'horizon (y >= 94)
-    if (this.westGroundImg) {
-      g.image(this.westGroundImg, -BUFFER_W, groundTop, BUFFER_W, BUFFER_H - groundTop, 0, groundTop, BUFFER_W, BUFFER_H - groundTop);
-    }
-    const ground = assets.getImage('hub/hub_ground.png');
-    if (ground) {
-      g.image(ground, 0, groundTop, BUFFER_W, BUFFER_H - groundTop, 0, groundTop, BUFFER_W, BUFFER_H - groundTop);
-    }
-    if (this.eastGroundImg) {
-      g.image(this.eastGroundImg, BUFFER_W, groundTop, BUFFER_W, BUFFER_H - groundTop, 0, groundTop, BUFFER_W, BUFFER_H - groundTop);
-    }
+    // Sols pré-rendus des 3 ailes
+    if (this.westGroundImg)  g.image(this.westGroundImg,  -BUFFER_W, groundTop, BUFFER_W, BUFFER_H - groundTop, 0, groundTop, BUFFER_W, BUFFER_H - groundTop);
+    if (this.plazaGroundImg) g.image(this.plazaGroundImg, 0,         groundTop, BUFFER_W, BUFFER_H - groundTop, 0, groundTop, BUFFER_W, BUFFER_H - groundTop);
+    if (this.eastGroundImg)  g.image(this.eastGroundImg,  BUFFER_W,  groundTop, BUFFER_W, BUFFER_H - groundTop, 0, groundTop, BUFFER_W, BUFFER_H - groundTop);
 
     if (typeof SkyBackdrop !== 'undefined') {
       SkyBackdrop.drawHorizonBlend(g, skyMood, this.worldLeft, this.worldRight, groundTop);
     }
 
-    // Nappe de pique-nique à plat au sol + vrais encas pixel-art (picnic_foods.png)
-    const blanketObj = layout.objects.find((o) => o.id === 'picnic_blanket');
-    if (blanketObj) {
-      const bSp = assets.getSprite(blanketObj.sprite);
-      if (bSp) g.image(bSp, blanketObj.x, blanketObj.y);
-      const toast = assets.getSheetFrame('decor/picnic_foods.png', 16, 16, 2, 0);
-      const sandwich = assets.getSheetFrame('decor/picnic_foods.png', 16, 16, 6, 0);
-      const onigiri = assets.getSheetFrame('decor/picnic_foods.png', 16, 16, 0, 1);
-      if (toast) g.image(toast, blanketObj.x + 19, blanketObj.y + 7, 11, 11);
-      if (sandwich) g.image(sandwich, blanketObj.x + 28, blanketObj.y + 18, 11, 11);
-      if (onigiri) g.image(onigiri, blanketObj.x + 8, blanketObj.y + 24, 10, 10);
+    // Ondulations & nénuphars de la mare aux canetons
+    this.drawPondSurfaceDetails(g, this.pondCenter.x, this.pondCenter.y);
+
+    // Fleurs animées par la brise au sol
+    for (const fl of this.ambientFlowers) {
+      const sp = assets.getSprite(fl.sprite);
+      const sway = Math.round(Math.sin(frameCount * 0.045 + fl.phase) * 0.8);
+      if (sp) g.image(sp, fl.x + sway, fl.y);
     }
 
-    // 2. Objets Y-triés du Hub central original (les 4 stands + Grande Roue tournante + Poster + MAP)
+    // Nappe de pique-nique + encas pixel-art (picnic_foods.png)
+    const blanketSp = assets.getSprite('picnic_blanket');
+    if (blanketSp) g.image(blanketSp, 26, 192);
+    const toast = assets.getSheetFrame('decor/picnic_foods.png', 16, 16, 2, 0);
+    const sandwich = assets.getSheetFrame('decor/picnic_foods.png', 16, 16, 6, 0);
+    const onigiri = assets.getSheetFrame('decor/picnic_foods.png', 16, 16, 0, 1);
+    if (toast) g.image(toast, 45, 199, 11, 11);
+    if (sandwich) g.image(sandwich, 54, 210, 11, 11);
+    if (onigiri) g.image(onigiri, 34, 216, 10, 10);
+
+    // === 2. TOUS LES OBJETS TRIÉS EN Y (0 chevauchement) ===
     const nearId = this.promptTrigger ? this.promptTrigger.id : null;
-    const items = layout.objects
-      .filter((o) => {
-        if (o.id === 'picnic_blanket') return false;
-        if (o.id !== 'title_sign' && o.id !== 'ferris' && !o.sprite.startsWith('tree_') && !o.sprite.startsWith('booth_') && o.y < 88) {
-          return false;
-        }
-        return true;
-      })
-      .map((o) => {
-        let ox = o.x;
-        let oyObj = o.y;
-        let sortY = o.sortY;
-        if (o.id === 'poster') ox += this.posterOffsetX;
-        if (o.id === 'kid_balloon') sortY = 207;
-        if (o.id === 'picnic_basket') sortY = 226;
-        if (o.sprite.startsWith('tree_') && o.y < 52) {
-          oyObj = 66 + (o.x % 5);
-          sortY = 96;
-        }
-        return {
-          sortY,
-          draw: () => {
-            // Grande Roue animée qui tourne doucement avec ses nacelles et ses guirlandes lumineuses !
-            if (o.id === 'ferris') {
-              this.drawAnimatedFerrisWheel(g, ox + 41, oyObj + 44);
-              return;
-            }
-            if (o.id === 'title_sign') {
-              this.drawArchPillarsAndLanterns(g, ox, oyObj);
-            }
-            const isBooth = o.sprite && o.sprite.startsWith('booth_');
-            const boothGameId = isBooth ? o.sprite.replace('booth_', '') : null;
-            const isNear = boothGameId && nearId === boothGameId;
+    const items = [];
 
-            const sp = assets.getSprite(o.sprite);
-            if (sp) g.image(sp, ox, oyObj);
-
-            if (isBooth) {
-              this.drawMainBoothProps(g, font, boothGameId, ox, oyObj, isNear);
-            }
-            // Petit oiseau bleu perché sur le panneau GAMES
-            if (o.id === 'poster') {
-              this.drawPerchedBird(g, ox + 46, oyObj - 3);
-            }
-          }
-        };
-      });
-
-    // Miniatures des 4 jeux sur le panneau GAMES
-    const pb = layout.objects.find((o) => o.id === 'poster');
-    if (pb) {
-      const pbx = pb.x + this.posterOffsetX;
+    // Arbres & cerisiers en fleurs (avec léger balancement)
+    for (const tr of this.ambientTrees) {
       items.push({
-        sortY: pb.sortY + 0.1,
+        sortY: tr.sortY,
         draw: () => {
+          const sway = Math.round(Math.sin(frameCount * 0.03 + tr.x * 0.02) * 0.6);
+          if (tr.kind === 'cherry_big') this.drawCherryBlossom(g, tr.x + sway, tr.y, 'big');
+          else if (tr.kind === 'cherry_med') this.drawCherryBlossom(g, tr.x + sway, tr.y, 'med');
+          else {
+            const sp = assets.getSprite(tr.kind);
+            if (sp) g.image(sp, tr.x + sway, tr.y);
+          }
+        }
+      });
+    }
+
+    // Arche d'entrée MOO'S FUNFAIR + Grande Roue centrale illuminée
+    items.push({
+      sortY: 94,
+      draw: () => {
+        this.drawArchPillarsAndLanterns(g, 154, 18);
+        const sign = assets.getSprite('title_sign');
+        if (sign) g.image(sign, 154, 18);
+      }
+    });
+    items.push({
+      sortY: 134,
+      draw: () => this.drawAnimatedFerrisWheel(g, 240, 88)
+    });
+
+    // Les 4 stands de jeux principaux (architectures & props distincts)
+    for (const b of this.booths) {
+      items.push({
+        sortY: b.y + b.h,
+        draw: () => {
+          const sp = assets.getSprite(b.sprite);
+          if (sp) g.image(sp, b.x, b.y);
+          this.drawMainBoothProps(g, font, b.id, b.x, b.y, nearId === b.id);
+        }
+      });
+    }
+
+    // Aile Ouest : Barbe à Papa, Prize Boutique détaillé & Pop-Corn
+    items.push(
+      { sortY: this.cottonCartPos.y + this.cottonCartPos.h,  draw: () => this.drawCottonCandyCart(g, font, this.cottonCartPos, nearId === 'cotton_candy') },
+      { sortY: this.prizeBoothPos.y + this.prizeBoothPos.h,  draw: () => {
+        const sp = assets.getImage('generated/booths/booth_prize.png');
+        if (sp) g.image(sp, this.prizeBoothPos.x, this.prizeBoothPos.y);
+        this.drawPrizeBoothDecor(g, this.prizeBoothPos.x, this.prizeBoothPos.y, nearId === 'prize');
+      }},
+      { sortY: this.popcornCartPos.y + this.popcornCartPos.h, draw: () => this.drawPopcornCart(g, font, this.popcornCartPos, nearId === 'popcorn') }
+    );
+
+    // Aile Est : Mini Carrousel animé + Tente Tarot + Stand Anneaux
+    items.push(
+      { sortY: this.carouselPos.y + this.carouselPos.h,     draw: () => this.drawMiniCarousel(g, this.carouselPos, nearId === 'carousel') },
+      { sortY: this.tarotBoothPos.y + this.tarotBoothPos.h, draw: () => this.drawThemedSoonBooth(g, font, this.tarotBoothPos) },
+      { sortY: this.ringsBoothPos.y + this.ringsBoothPos.h, draw: () => this.drawThemedSoonBooth(g, font, this.ringsBoothPos) }
+    );
+
+    // Mobilier, scènes narratives, panneaux & animaux
+    items.push(
+      // Bancs en bois + buissons cerisiers
+      { sortY: 206, draw: () => this.drawWoodenBench(g, -386, 196) },
+      { sortY: 206, draw: () => this.drawWoodenBench(g, -104, 196) },
+      { sortY: 206, draw: () => this.drawWoodenBench(g, 690, 196) },
+      { sortY: 214, draw: () => this.drawCherryBlossom(g, -412, 198, 'bush') },
+      { sortY: 214, draw: () => this.drawCherryBlossom(g, 822,  198, 'bush') },
+
+      // Panier pique-nique + amis lapins + chat endormi (scène narrative)
+      { sortY: 222, draw: () => { const sp = assets.getSprite('picnic_basket'); if (sp) g.image(sp, 35, 208); } },
+      { sortY: 218, draw: () => { const img = assets.getSheetFrame('sprites/bunny/bunny_lavender.png', 32, 32, 0, 0); if (img) g.image(img, 42, 190); } },
+      { sortY: 220, draw: () => { const img = assets.getSheetFrame('sprites/bunny/bunny_mint.png', 32, 32, 1, 0); if (img) g.image(img, 58, 192); } },
+      { sortY: 222, draw: () => this.drawSleepingCat(g, 86, 214) },
+
+      // Chat aux ballons + ficelles
+      { sortY: 206, draw: () => {
+        const catBalloons = [
+          { sp: 'balloon_red',    x: 138, y: 158, ph: 0.2 },
+          { sp: 'balloon_yellow', x: 150, y: 152, ph: 1.4 },
+          { sp: 'balloon_blue',   x: 162, y: 158, ph: 2.6 }
+        ];
+        g.push();
+        g.stroke(107, 75, 91, 185);
+        g.strokeWeight(1);
+        for (const bl of catBalloons) {
+          const by = bl.y + Math.sin(frameCount * 0.05 + bl.ph) * 2;
+          g.line(bl.x + 6, Math.round(by + 13), 154, 196);
+        }
+        g.pop();
+        const catSp = assets.getSprite('kid_balloon');
+        if (catSp) g.image(catSp, 146, 190);
+        for (const bl of catBalloons) {
+          const sp = assets.getSprite(bl.sp);
+          if (sp) g.image(sp, bl.x, Math.round(bl.y + Math.sin(frameCount * 0.05 + bl.ph) * 2));
+        }
+      }},
+
+      // Panneau MAP & Panneau GAMES (espacés proprement sans chevauchement)
+      { sortY: this.mapBoardPos.y + this.mapBoardPos.h, draw: () => this.drawMapSignpost(g, font, this.mapBoardPos) },
+      { sortY: this.posterPos.y + this.posterPos.h, draw: () => {
+        const pSp = assets.getSprite('poster_board');
+        if (pSp) g.image(pSp, this.posterPos.x, this.posterPos.y);
+        const layout = assets.hubLayout;
+        if (layout && layout.games) {
           layout.games.forEach((gm, i) => {
             const [sx, sy] = layout.poster.slots_in_sprite[i];
             const bSp = assets.getSprite('booth_' + gm.id);
-            if (bSp) g.image(bSp, pbx + sx + 4, pb.y + sy + 2, 14, 12, 18, 1, 14, 12);
+            if (bSp) g.image(bSp, this.posterPos.x + sx + 4, this.posterPos.y + sy + 2, 14, 12, 18, 1, 14, 12);
           });
         }
-      });
-    }
+        this.drawPerchedBird(g, this.posterPos.x + 44, this.posterPos.y - 2);
+      }},
 
-    // Panneau MAP en bois juste à côté du panneau GAMES !
-    items.push({
-      sortY: this.mapBoardPos.sortY,
-      draw: () => this.drawMapSignpost(g, font, this.mapBoardPos)
-    });
+      // Grenouille près de la mare + Vache paisible
+      { sortY: 224, draw: () => this.drawPondFrog(g, 356, 218) },
+      { sortY: 202, draw: () => {
+        const cowCol = Math.floor(frameCount / 22) % 3;
+        const cow = assets.getSheetFrame('sprites/ambient/cow_sheet.png', 32, 32, cowCol, 0);
+        if (cow) g.image(cow, 438, 174);
+      }},
 
-    // Stand Prize Booth dans l'aile Ouest (avec peluches, paquets cadeaux et guirlande lumineuse)
-    items.push({
-      sortY: this.prizeBoothPos.sortY,
-      draw: () => {
-        const isNearPrize = nearId === 'prize';
-        const sp = assets.getImage('generated/booths/booth_prize.png');
-        if (sp) g.image(sp, this.prizeBoothPos.x, this.prizeBoothPos.y);
-        this.drawPrizeBoothDecor(g, this.prizeBoothPos.x, this.prizeBoothPos.y, isNearPrize);
-      }
-    });
-
-    // Pavillons "Coming Soon" thématiques des ailes Ouest & Est
-    for (const ph of this.wingPlaceholders) {
-      items.push({
-        sortY: ph.sortY,
-        draw: () => this.drawPlaceholderBooth(g, font, ph)
-      });
-    }
-
-    // Détails vivants, cerisiers en fleurs & faune pixel-art sur les 3 ailes
-    items.push(
-      { sortY: 96,  draw: () => this.drawCherryBlossom(g, -464, 54, 'big') },
-      { sortY: 96,  draw: () => this.drawCherryBlossom(g, -206, 64, 'med') },
-      { sortY: 96,  draw: () => this.drawCherryBlossom(g, 616,  54, 'big') },
-      { sortY: 96,  draw: () => this.drawCherryBlossom(g, 876,  64, 'med') },
-      { sortY: 214, draw: () => this.drawCherryBlossom(g, -356, 200, 'bush') },
-      { sortY: 214, draw: () => this.drawCherryBlossom(g, 796,  200, 'bush') },
-      { sortY: 222, draw: () => this.drawPondFrog(g, 368, 220) },
+      // Fontaine à vœux (Est) + Faon paisible + Lampadaires de jardin
+      { sortY: this.fountainPos.y + 8, draw: () => this.drawHubFountain(g, this.fountainPos.x, this.fountainPos.y, nearId === 'fountain') },
       { sortY: 208, draw: () => this.drawMeadowDeer(g, 878, 204) },
-      { sortY: 218, draw: () => this.drawSleepingCat(g, 96, 214) },
-      { sortY: 204, draw: () => this.drawHubFountain(g, 694, 196) },
-      { sortY: 132, draw: () => this.drawGardenLamp(g, -296, 114, skyMood) },
-      { sortY: 132, draw: () => this.drawGardenLamp(g, -162, 114, skyMood) },
-      { sortY: 132, draw: () => this.drawGardenLamp(g, 526, 114, skyMood) },
-      { sortY: 132, draw: () => this.drawGardenLamp(g, 734, 114, skyMood) }
+      { sortY: 132, draw: () => this.drawGardenLamp(g, -306, 114, skyMood) },
+      { sortY: 132, draw: () => this.drawGardenLamp(g, -166, 114, skyMood) },
+      { sortY: 132, draw: () => this.drawGardenLamp(g, 514,  114, skyMood) },
+      { sortY: 132, draw: () => this.drawGardenLamp(g, 664,  114, skyMood) },
+      { sortY: 132, draw: () => this.drawGardenLamp(g, 796,  114, skyMood) }
     );
 
-    // Décors des ailes Ouest & Est
-    for (const wo of this.wingObjects) {
-      items.push({
-        sortY: wo.sortY,
-        draw: () => {
-          const sp = assets.getSprite(wo.sprite);
-          if (sp) g.image(sp, wo.x, wo.y);
-        }
-      });
-    }
-
-    // Amis lapins du coin pique-nique
-    layout.friends.forEach((f) => {
-      items.push({
-        sortY: f.y,
-        draw: () => {
-          const img = assets.getSheetFrame(f.sheet, 32, 32, f.frame[1], f.frame[0]);
-          if (img) g.image(img, f.x - 16, f.y - 32);
-        }
-      });
-    });
-
-    // Ondulations douces sur la mare aux canetons (Place Centrale)
-    this.drawPondRipples(g, 396, 214);
-
-    // Visiteurs & mascottes sur les 3 ailes
+    // Visiteurs, canetons & Moo
     for (const v of this.visitors) {
       items.push({
         sortY: v.pos.y,
@@ -618,96 +697,56 @@ class HubScene extends Scene {
         }
       });
     }
-
-    // Canetons de la mare
-    for (const d of this.ducklings) {
-      items.push({ sortY: d.pos.y, draw: () => d.show(g) });
-    }
-
-    // Ficelles des ballons du chat
-    items.push({
-      sortY: 206.5,
-      draw: () => {
-        g.push();
-        g.stroke(107, 75, 91, 190);
-        g.strokeWeight(1);
-        layout.balloons.forEach((b) => {
-          const by = b.y + Math.sin(frameCount * 0.05 + b.phase) * 2;
-          g.line(Math.round(b.x + 6), Math.round(by + 13), 167, 196);
-        });
-        g.pop();
-      }
-    });
-
-    // Moo (avec tenue cosmétique sauvegardée)
-    items.push({
-      sortY: this.moo.pos.y,
-      draw: () => this.moo.show(g, this.game.save.data.equippedOutfit)
-    });
+    for (const d of this.ducklings) items.push({ sortY: d.pos.y, draw: () => d.show(g) });
+    items.push({ sortY: this.moo.pos.y, draw: () => this.moo.show(g, this.game.save.data.equippedOutfit) });
 
     items.sort((a, b) => a.sortY - b.sortY).forEach((it) => it.draw());
 
-    // 3. Guirlandes ondulantes au vent, lumières, ballons et papillons
-    layout.rows.bunting.forEach((b) => {
+    // === 3. GUIRLANDES, LUMIÈRES, PAPILLONS, ABEILLES & FX ===
+    for (const b of this.buntingRow) {
       const sp = assets.getSprite(b.sprite);
       const sway = Math.round(Math.sin(frameCount * 0.045 + b.x * 0.04) * 1);
       if (sp) g.image(sp, b.x, 90 + ((Math.abs(b.x) / 16) % 2 ? 1 : 0) + sway);
-    });
-    this.wingBunting.forEach((b) => {
-      const sp = assets.getSprite(b.sprite);
-      const sway = Math.round(Math.sin(frameCount * 0.045 + b.x * 0.04) * 1);
-      if (sp) g.image(sp, b.x, 90 + ((Math.abs(b.x) / 16) % 2 ? 1 : 0) + sway);
-    });
-    layout.rows.lights.forEach((l, i) => {
-      const sp = assets.getSprite((Math.floor(frameCount / 30) + i) % 2 ? 'lights_on' : 'lights_dim');
+    }
+    for (const l of this.lightsRow) {
+      const sp = assets.getSprite((Math.floor(frameCount / 28) + l.idx) % 2 ? 'lights_on' : 'lights_dim');
       if (sp) g.image(sp, l.x, l.y);
-    });
-    this.wingLights.forEach((l, i) => {
-      const sp = assets.getSprite((Math.floor(frameCount / 30) + i) % 2 ? 'lights_on' : 'lights_dim');
-      if (sp) g.image(sp, l.x, l.y);
-    });
-    layout.balloons.forEach((b) => {
-      const sp = assets.getSprite(b.sprite);
-      if (sp) g.image(sp, b.x, Math.round(b.y + Math.sin(frameCount * 0.05 + b.phase) * 2));
-    });
-    this.wingBalloons.forEach((b) => {
-      const sp = assets.getSprite(b.sprite);
-      if (sp) g.image(sp, b.x, Math.round(b.y + Math.sin(frameCount * 0.05 + b.phase) * 2));
-    });
+    }
     for (const bf of this.butterflies) bf.show(g);
     this.drawHubBees(g);
+    for (const fx of this.fx) fx.show(g, assets);
 
     if (Vehicle.debug) {
       for (const obs of this.obstacles) obs.showDebug(g);
     }
 
-    // Bulle d'interaction au-dessus de Moo
+    // Bulle d'invitation au-dessus de Moo
     if (this.promptTrigger && !this.overlay && !this.mapOverlay && !this.prizeShop.open) {
-      const label =
-        this.promptTrigger.id === 'poster'
-          ? 'Pick a game! (P)'
-          : (this.promptTrigger.id === 'map'
-            ? 'Open Funfair Map! (Space)'
-            : (this.promptTrigger.id === 'prize'
-              ? 'Open Prize Booth! (Space)'
-              : 'Play ' + this.promptTrigger.title + '? (Space)'));
-      const bob = Math.sin(frameCount * 0.12) * 1.5;
-      PixelUI.drawTag(g, font, label, this.moo.pos.x, this.moo.pos.y - 40 + bob);
+      const labels = {
+        poster:       'Pick a game! (P / Space)',
+        map:          'Open Funfair Map! (Space)',
+        prize:        'Open Prize Boutique! (Space)',
+        cotton_candy: 'Get Cotton Candy! (Space)',
+        popcorn:      'Grab Popcorn! (Space)',
+        carousel:     'Ring Carousel Bell! (Space)',
+        fountain:     'Make a Wish! (Space)'
+      };
+      const label = labels[this.promptTrigger.id] || ('Play ' + this.promptTrigger.title + '? (Space)');
+      PixelUI.drawTag(g, font, label, this.moo.pos.x, this.moo.pos.y - 40 + Math.sin(frameCount * 0.12) * 1.4);
     }
 
     g.pop();
 
+    // Voile chaud & lucioles au coucher du soleil
     if (typeof SkyBackdrop !== 'undefined') {
       SkyBackdrop.drawMoodGlaze(g, skyMood, vw, vh);
     }
 
-    // === INTERFACE ÉCRAN ===
     if (Vehicle.debug) {
-      PixelUI.drawTag(g, font, 'DEBUG [H]: Vehicles & Avoid', vw - 102, 22, g.color(223, 240, 187));
+      PixelUI.drawTag(g, font, 'DEBUG [H]: Vehicles, Routines & Avoid', vw - 118, 22, g.color(223, 240, 187));
     }
 
     this.drawHud(g);
-
     if (this.overlay) this.drawPosterOverlay(g);
     if (this.mapOverlay) this.drawMapOverlay(g);
     if (this.prizeShop && this.prizeShop.open) this.prizeShop.draw(g);
@@ -720,101 +759,238 @@ class HubScene extends Scene {
     }
   }
 
-  /**
-   * Grande Roue centrale animée :
-   * - Support en A en bois Sprout Lands fixe
-   * - Roue et rayons qui tournent doucement en continu
-   * - 8 nacelles colorées pastel qui restent toujours droites pendant la rotation
-   * - Guirlande de petites ampoules chaudes qui scintillent sur la jante !
-   */
+  /** Mini Carrousel animé avec toit rayé pastel, lampions et 4 poneys qui tournent et montent/descendent ! */
+  drawMiniCarousel(g, c, isNear) {
+    const t = frameCount;
+    const cx = c.x + 36;
+    const baseY = c.y + 56;
+    g.push();
+    g.noStroke();
+    if (isNear) {
+      g.fill(255, 246, 176, Math.round(28 + Math.sin(t * 0.14) * 14));
+      g.ellipse(cx, baseY - 12, 76, 56);
+    }
+    // Plateforme circulaire en bois
+    g.fill(107, 75, 91);
+    g.ellipse(cx, baseY + 2, 68, 20);
+    g.fill(224, 186, 138);
+    g.ellipse(cx, baseY, 64, 16);
+    g.fill(247, 232, 188);
+    g.ellipse(cx, baseY - 1, 56, 12);
+
+    // Poteau central doré
+    g.fill(218, 172, 86);
+    g.rect(cx - 3, c.y + 20, 6, 36);
+    g.fill(252, 228, 134);
+    g.rect(cx - 1, c.y + 20, 2, 36);
+
+    // 4 Poneys pastel en orbite 3D (triés par profondeur sin(a))
+    const ponyCols = [[250, 168, 192], [164, 214, 242], [252, 224, 134], [212, 178, 236]];
+    const ponies = [];
+    for (let i = 0; i < 4; i++) {
+      const a = t * 0.025 + (TWO_PI * i) / 4;
+      ponies.push({
+        x: Math.round(cx + Math.cos(a) * 21),
+        z: Math.sin(a),
+        bob: Math.round(Math.sin(t * 0.09 + i * 1.6) * 3),
+        col: ponyCols[i]
+      });
+    }
+    ponies.sort((a, b) => a.z - b.z);
+    for (const p of ponies) {
+      const py = Math.round(baseY - 10 + p.z * 5 + p.bob);
+      g.fill(244, 214, 122);
+      g.rect(p.x, c.y + 24, 1, 28);
+      g.fill(107, 75, 91);
+      g.rect(p.x - 5, py - 4, 11, 7, 2);
+      g.fill(p.col[0], p.col[1], p.col[2]);
+      g.rect(p.x - 4, py - 3, 9, 5, 1);
+      g.fill(255, 250, 238);
+      g.rect(p.x - 4, py - 5, 3, 3); // petite tête du poney
+    }
+
+    // Toit conique rayé pastel + lampions scintillants
+    g.fill(107, 75, 91);
+    g.triangle(cx - 35, c.y + 25, cx, c.y + 4, cx + 35, c.y + 25);
+    g.fill(246, 152, 174);
+    g.triangle(cx - 32, c.y + 24, cx, c.y + 6, cx + 32, c.y + 24);
+    g.fill(252, 244, 214);
+    g.triangle(cx - 18, c.y + 24, cx, c.y + 6, cx + 18, c.y + 24);
+    g.fill(158, 212, 236);
+    g.triangle(cx - 7, c.y + 24, cx, c.y + 6, cx + 7, c.y + 24);
+
+    // Bordure & ampoules du chapiteau
+    g.fill(107, 75, 91);
+    g.rect(cx - 34, c.y + 23, 68, 5, 2);
+    for (let i = 0; i < 8; i++) {
+      const lit = (Math.floor(t / 12) + i) % 2 === 0;
+      g.fill(lit ? g.color(255, 248, 170) : g.color(255, 194, 206));
+      g.rect(cx - 30 + i * 8, c.y + 24, 3, 3);
+    }
+    // Flèche dorée au sommet
+    g.fill(248, 208, 86);
+    g.rect(cx - 1, c.y, 2, 6);
+    g.circle(cx, c.y, 4);
+    g.pop();
+  }
+
+  /** Chariot Barbe à Papa & Douceurs (decor/candy_and_pie.png) — Interactif ! */
+  drawCottonCandyCart(g, font, c, isNear) {
+    const x = c.x;
+    const y = c.y;
+    g.push();
+    g.noStroke();
+    if (isNear) {
+      g.fill(255, 236, 200, Math.round(28 + Math.sin(frameCount * 0.14) * 14));
+      g.rect(x - 2, y + 4, c.w + 4, c.h, 4);
+    }
+    // Roues + corps du chariot
+    g.fill(107, 75, 91);
+    g.circle(x + 11, y + 45, 10);
+    g.circle(x + 37, y + 45, 10);
+    g.fill(218, 178, 134);
+    g.circle(x + 11, y + 45, 6);
+    g.circle(x + 37, y + 45, 6);
+    g.fill(107, 75, 91);
+    g.rect(x + 4, y + 26, 40, 19, 2);
+    g.fill(248, 186, 206);
+    g.rect(x + 5, y + 27, 38, 17, 1);
+    g.fill(252, 244, 218);
+    g.rect(x + 5, y + 27, 38, 4);
+    // Poteaux + auvent rayé rose & crème
+    g.fill(144, 98, 93);
+    g.rect(x + 6, y + 12, 3, 16);
+    g.rect(x + 39, y + 12, 3, 16);
+    for (let i = 0; i < 6; i++) {
+      g.fill(i % 2 === 0 ? g.color(246, 152, 174) : g.color(252, 244, 218));
+      g.rect(x + 3 + i * 7, y + 6, 7, 8);
+    }
+    // Vrais bonbons pixel-art (decor/candy_and_pie.png) sur le chariot !
+    const pie = this.game.assets.getSheetFrame('decor/candy_and_pie.png', 16, 16, 0, 0);
+    const candy = this.game.assets.getSheetFrame('decor/candy_and_pie.png', 16, 16, 1, 0);
+    const pop = this.game.assets.getSheetFrame('decor/candy_and_pie.png', 16, 16, 3, 0);
+    if (pie) g.image(pie, x + 8, y + 16, 11, 11);
+    if (candy) g.image(candy, x + 19, y + 15, 11, 11);
+    if (pop) g.image(pop, x + 30, y + 16, 11, 11);
+    PixelUI.panel(g, x + 4, y + 33, 40, 10, g.color(252, 244, 218));
+    PixelUI.txt(g, font, 'SWEETS', x + 24, y + 34, g.color(168, 78, 104), CENTER, 6, 38);
+    g.pop();
+  }
+
+  /** Chariot Pop-Corn animé avec grains dorés qui sautent — Interactif ! */
+  drawPopcornCart(g, font, c, isNear) {
+    const x = c.x;
+    const y = c.y;
+    const t = frameCount;
+    g.push();
+    g.noStroke();
+    if (isNear) {
+      g.fill(255, 244, 180, Math.round(28 + Math.sin(t * 0.14) * 14));
+      g.rect(x - 2, y + 4, c.w + 4, c.h, 4);
+    }
+    // Roues + caisse rayée rouge/crème
+    g.fill(107, 75, 91);
+    g.circle(x + 11, y + 45, 10);
+    g.circle(x + 37, y + 45, 10);
+    g.fill(218, 178, 134);
+    g.circle(x + 11, y + 45, 6);
+    g.circle(x + 37, y + 45, 6);
+    g.fill(107, 75, 91);
+    g.rect(x + 4, y + 26, 40, 19, 2);
+    for (let i = 0; i < 6; i++) {
+      g.fill(i % 2 === 0 ? g.color(224, 92, 98) : g.color(252, 244, 218));
+      g.rect(x + 6 + i * 6, y + 27, 6, 17);
+    }
+    // Vitrine transparente avec pop-corn animé !
+    g.fill(224, 244, 252, 165);
+    g.rect(x + 8, y + 13, 32, 13);
+    g.fill(255, 238, 152);
+    for (let i = 0; i < 6; i++) {
+      const popY = Math.round(Math.abs(Math.sin(t * 0.12 + i * 1.3)) * 4);
+      g.circle(x + 12 + i * 5, y + 23 - popY, 4);
+    }
+    // Auvent doré & rouge
+    for (let i = 0; i < 6; i++) {
+      g.fill(i % 2 === 0 ? g.color(252, 214, 102) : g.color(224, 92, 98));
+      g.rect(x + 3 + i * 7, y + 6, 7, 7);
+    }
+    PixelUI.panel(g, x + 3, y + 33, 42, 10, g.color(252, 244, 218));
+    PixelUI.txt(g, font, 'POPCORN', x + 24, y + 34, g.color(168, 66, 68), CENTER, 5.8, 40);
+    g.pop();
+  }
+
+  /** Grande Roue centrale illuminée (8 nacelles droites + passagers + 16 ampoules + halo). */
   drawAnimatedFerrisWheel(g, cx, cy) {
     const r = 34;
     const rot = frameCount * 0.008;
     const podColors = [
-      [246, 152, 174], // rose
-      [252, 222, 128], // jaune
-      [158, 212, 236], // bleu ciel
-      [176, 226, 158], // menthe
-      [212, 176, 232], // lavande
-      [250, 188, 138], // pêche
-      [246, 152, 174],
-      [158, 212, 236]
+      [246, 152, 174], [252, 222, 128], [158, 212, 236], [176, 226, 158],
+      [212, 176, 232], [250, 188, 138], [246, 152, 174], [158, 212, 236]
     ];
-
     g.push();
-    // 0. Halo lumineux pastel derrière la Grande Roue + petites étincelles
     g.noStroke();
-    g.fill(255, 244, 194, 24);
+    g.fill(255, 244, 194, 26);
     g.circle(cx, cy, r * 2.45);
-    g.fill(255, 250, 224, 26);
+    g.fill(255, 250, 224, 28);
     g.circle(cx, cy, r * 1.7);
 
-    // 1. Structure arrière (support en A)
+    // Support en A + socle
     g.stroke(107, 75, 91);
     g.strokeWeight(5);
-    g.line(cx, cy, cx - 22, cy + 48);
-    g.line(cx, cy, cx + 22, cy + 48);
+    g.line(cx, cy, cx - 22, cy + 44);
+    g.line(cx, cy, cx + 22, cy + 44);
     g.stroke(166, 118, 92);
     g.strokeWeight(3);
-    g.line(cx, cy, cx - 22, cy + 48);
-    g.line(cx, cy, cx + 22, cy + 48);
-
-    // Socle en bois
+    g.line(cx, cy, cx - 22, cy + 44);
+    g.line(cx, cy, cx + 22, cy + 44);
     g.noStroke();
     g.fill(107, 75, 91);
-    g.rect(cx - 28, cy + 45, 56, 7, 2);
+    g.rect(cx - 28, cy + 41, 56, 7, 2);
     g.fill(182, 137, 98);
-    g.rect(cx - 26, cy + 46, 52, 5, 1);
+    g.rect(cx - 26, cy + 42, 52, 5, 1);
 
-    // 2. Rayons tournants + double jante
+    // Rayons + jante
     g.stroke(144, 98, 93);
     g.strokeWeight(1.5);
     for (let i = 0; i < 8; i++) {
       const a = rot + (TWO_PI * i) / 8;
       g.line(cx, cy, Math.round(cx + Math.cos(a) * r), Math.round(cy + Math.sin(a) * r));
     }
-
     g.noFill();
     g.stroke(107, 75, 91);
     g.strokeWeight(4);
     g.circle(cx, cy, r * 2);
-    g.stroke(232, 207, 166);
+    g.stroke(236, 212, 172);
     g.strokeWeight(2);
     g.circle(cx, cy, r * 2);
     g.stroke(182, 137, 98);
     g.strokeWeight(1);
     g.circle(cx, cy, r * 1.2);
 
-    // 3. Guirlande d'ampoules scintillantes autour de la roue (16 lumières)
+    // 16 ampoules scintillantes
     g.noStroke();
     for (let i = 0; i < 16; i++) {
       const a = rot + (TWO_PI * i) / 16;
-      const lx = Math.round(cx + Math.cos(a) * r);
-      const ly = Math.round(cy + Math.sin(a) * r);
       const lit = (Math.floor(frameCount / 14) + i) % 2 === 0;
       g.fill(lit ? g.color(255, 246, 164) : g.color(255, 188, 198, 210));
-      g.rect(lx - 1, ly - 1, 2, 2);
+      g.rect(Math.round(cx + Math.cos(a) * r) - 1, Math.round(cy + Math.sin(a) * r) - 1, 2, 2);
     }
 
-    // 4. Moyeu central doré
+    // Moyeu doré
     g.fill(107, 75, 91);
     g.circle(cx, cy, 10);
     g.fill(247, 224, 134);
     g.circle(cx, cy, 6);
 
-    // 5. 8 Nacelles suspendues qui restent droites pendant la rotation !
+    // 8 Nacelles droites avec silhouettes de passagers
     for (let i = 0; i < 8; i++) {
       const a = rot + (TWO_PI * i) / 8;
       const gx = Math.round(cx + Math.cos(a) * r);
       const gy = Math.round(cy + Math.sin(a) * r);
       const col = podColors[i];
-
-      // Barre de suspension
       g.stroke(107, 75, 91);
       g.strokeWeight(1);
       g.line(gx, gy, gx, gy + 3);
-
-      // Nacelle pastel avec petites silhouettes de passagers
       g.fill(col[0], col[1], col[2]);
       g.rect(gx - 4, gy + 3, 8, 7, 1);
       g.noStroke();
@@ -826,24 +1002,11 @@ class HubScene extends Scene {
         g.rect(gx + 1, gy + 5, 2, 1);
       }
     }
-    // Étincelles dorées intermittentes autour de la roue
-    for (let s = 0; s < 3; s++) {
-      const phase = (frameCount * 0.05 + s * 2.1) % TWO_PI;
-      const a = Math.round(Math.max(0, Math.sin(phase)) * 220);
-      if (a > 40) {
-        const sx = Math.round(cx + Math.cos(s * 2.1 + 0.5) * (r + 8));
-        const sy = Math.round(cy + Math.sin(s * 2.1 + 0.5) * (r + 8));
-        g.fill(255, 248, 180, a);
-        g.rect(sx, sy, 2, 2);
-      }
-    }
     g.pop();
   }
 
-  /** Piliers en bois de l'arche MOO'S FUNFAIR avec lanternes suspendues et fleurs au pied. */
   drawArchPillarsAndLanterns(g, ox, oyObj) {
-    const t = frameCount;
-    const glow = Math.round(45 + Math.sin(t * 0.08) * 16);
+    const glow = Math.round(45 + Math.sin(frameCount * 0.08) * 16);
     g.push();
     g.noStroke();
     const xs = [ox + 10, ox + 154];
@@ -856,7 +1019,6 @@ class HubScene extends Scene {
       g.fill(218, 178, 134);
       g.rect(px + 1, oyObj + 34, 2, 58);
 
-      // Lanterne chaude suspendue sur le côté intérieur du pilier
       const lx = i === 0 ? px + 9 : px - 5;
       const ly = oyObj + 40;
       g.fill(255, 232, 148, glow);
@@ -866,7 +1028,6 @@ class HubScene extends Scene {
       g.fill(255, 236, 152);
       g.rect(lx + 1, ly + 1, 2, 4);
 
-      // Touffe fleurie au pied du pilier
       g.fill(118, 174, 98);
       g.rect(px - 2, oyObj + 91, 12, 4, 1);
       g.fill(i === 0 ? g.color(246, 152, 174) : g.color(252, 224, 134));
@@ -876,21 +1037,17 @@ class HubScene extends Scene {
     g.pop();
   }
 
-  /** Accessoires thématiques distinctifs et enseigne lisible pour chacun des 4 stands principaux. */
+  /** Architectures & props distincts pour les 4 stands principaux (sans rebond). */
   drawMainBoothProps(g, font, id, x, y, isNear) {
     const t = frameCount;
     g.push();
     g.noStroke();
-
-    // Lueur d'invitation douce quand Moo est devant le stand
     if (isNear) {
-      const pulse = Math.round(32 + Math.sin(t * 0.14) * 18);
-      g.fill(255, 246, 176, pulse);
+      g.fill(255, 246, 176, Math.round(28 + Math.sin(t * 0.14) * 14));
       g.rect(x - 2, y + 6, 54, 52, 4);
     }
 
     if (id === 'derby') {
-      // Drapeaux à damier + mini trophée doré sur le comptoir
       const wave = Math.round(Math.sin(t * 0.1) * 1);
       g.fill(107, 75, 91);
       g.rect(x + 2, y + 2, 1, 12);
@@ -903,14 +1060,12 @@ class HubScene extends Scene {
       g.rect(x + 6, y + 4 + wave, 3, 2);
       g.rect(x + 41, y + 2 - wave, 3, 2);
       g.rect(x + 44, y + 4 - wave, 3, 2);
-      // Mini trophée doré
       g.fill(244, 198, 78);
       g.rect(x + 38, y + 32, 5, 5);
       g.rect(x + 39, y + 37, 3, 2);
       PixelUI.panel(g, x + 7, y + 43, 36, 10, g.color(248, 236, 198));
       PixelUI.txt(g, font, 'DERBY', x + 25, y + 44, g.color(142, 66, 78), CENTER, 6.2, 34);
     } else if (id === 'snake') {
-      // Emblème Poké Ball + baie décorative
       g.fill(107, 75, 91);
       g.circle(x + 25, y + 7, 11);
       g.fill(220, 74, 80);
@@ -921,13 +1076,11 @@ class HubScene extends Scene {
       g.rect(x + 20, y + 6, 10, 2);
       g.fill(250, 248, 240);
       g.circle(x + 25, y + 7, 3);
-      // Petit rocher Onix à côté du comptoir
       g.fill(134, 138, 152);
       g.ellipse(x + 9, y + 36, 8, 6);
       PixelUI.panel(g, x + 5, y + 43, 40, 10, g.color(248, 236, 198));
       PixelUI.txt(g, font, 'POKEMOO', x + 25, y + 44, g.color(184, 58, 66), CENTER, 6, 38);
     } else if (id === 'ducklings') {
-      // Emblème Purin (chapeau caramel + corps jaune crème) + jardinière fleurie
       g.fill(252, 224, 128);
       g.ellipse(x + 25, y + 8, 10, 8);
       g.fill(136, 84, 56);
@@ -935,7 +1088,6 @@ class HubScene extends Scene {
       g.fill(92, 60, 48);
       g.rect(x + 23, y + 7, 1, 1);
       g.rect(x + 26, y + 7, 1, 1);
-      // Petites fleurs sur le comptoir
       g.fill(116, 176, 104);
       g.rect(x + 36, y + 35, 8, 4);
       g.fill(252, 224, 134);
@@ -945,48 +1097,37 @@ class HubScene extends Scene {
       PixelUI.panel(g, x + 7, y + 43, 36, 10, g.color(248, 236, 198));
       PixelUI.txt(g, font, 'PURINS', x + 25, y + 44, g.color(150, 96, 56), CENTER, 6.2, 34);
     } else if (id === 'fox') {
-      // Crête Triforce dorée + petit coffre au trésor sur le côté
       g.fill(246, 206, 82);
       g.triangle(x + 25, y + 1, x + 21, y + 7, x + 29, y + 7);
       g.triangle(x + 21, y + 7, x + 18, y + 11, x + 24, y + 11);
       g.triangle(x + 29, y + 7, x + 26, y + 11, x + 32, y + 11);
-      // Mini coffre au trésor
-      g.fill(107, 75, 91);
-      g.rect(x + 7, y + 32, 9, 7);
-      g.fill(166, 114, 72);
-      g.rect(x + 8, y + 33, 7, 5);
-      g.fill(246, 206, 82);
-      g.rect(x + 8, y + 35, 7, 1);
-      g.rect(x + 11, y + 34, 1, 3);
+      const pot = this.game.assets.getImage('Legend_of_Zink_Asset_Pack/Legend_of_Zink_Asset_Pack/Props/PNG/sprFancyPot.png');
+      if (pot) g.image(pot, x + 5, y + 29, 11, 11);
       PixelUI.panel(g, x + 7, y + 43, 36, 10, g.color(248, 236, 198));
       PixelUI.txt(g, font, 'LEGEND', x + 25, y + 44, g.color(102, 72, 136), CENTER, 6.2, 34);
     }
     g.pop();
   }
 
-  /** Décorations animées du Prize Booth (guirlande lumineuse, peluches suspendues, cadeaux). */
+  /** Prize Boutique détaillé avec peluches suspendues, guirlande et cadeaux animés. */
   drawPrizeBoothDecor(g, x, y, isNear) {
     const t = frameCount;
     g.push();
     g.noStroke();
     if (isNear) {
-      g.fill(255, 242, 178, Math.round(30 + Math.sin(t * 0.14) * 16));
+      g.fill(255, 242, 178, Math.round(28 + Math.sin(t * 0.14) * 14));
       g.rect(x - 2, y + 6, 54, 52, 4);
     }
-    // Guirlande d'ampoules pastel sous l'auvent
     for (let i = 0; i < 6; i++) {
       const lit = (Math.floor(t / 16) + i) % 2 === 0;
       g.fill(lit ? g.color(255, 248, 172) : g.color(248, 176, 198));
       g.rect(x + 7 + i * 7, y + 23, 2, 2);
     }
-    // Petites peluches suspendues (lapin rose, caneton jaune, renard pêche)
-    g.fill(246, 168, 192);
-    g.rect(x + 10, y + 26, 4, 5, 1);
-    g.fill(252, 224, 128);
-    g.rect(x + 23, y + 26, 4, 5, 1);
-    g.fill(242, 164, 108);
-    g.rect(x + 36, y + 26, 4, 5, 1);
-    // Paquets cadeaux animés pixel-art (present_red.png & present_green.png) empilés à gauche du comptoir
+    // Peluches suspendues (lapin rose, caneton jaune, renard pêche)
+    g.fill(246, 168, 192); g.rect(x + 10, y + 26, 4, 5, 1);
+    g.fill(252, 224, 128); g.rect(x + 23, y + 26, 4, 5, 1);
+    g.fill(242, 164, 108); g.rect(x + 36, y + 26, 4, 5, 1);
+
     const giftCol = Math.floor(t / 16) % 4;
     const redGift = this.game.assets.getSheetFrame('decor/present_red.png', 16, 16, giftCol, 0);
     const greenGift = this.game.assets.getSheetFrame('decor/present_green.png', 16, 16, (giftCol + 2) % 4, 0);
@@ -995,7 +1136,75 @@ class HubScene extends Scene {
     g.pop();
   }
 
-  /** Cerisiers en fleurs roses (decor/cherry_blossom.png) pour enrichir les ailes Ouest & Est. */
+  /** Stands Tarot & Rings "SOON" de l'Aile Est. */
+  drawThemedSoonBooth(g, font, ph) {
+    const x = ph.x;
+    const y = ph.y;
+    const t = frameCount;
+    g.push();
+    g.noStroke();
+    g.fill(ph.label === 'TAROT' ? g.color(84, 62, 108) : g.color(236, 224, 198));
+    g.rect(x + 5, y + 22, 40, 20);
+    g.fill(107, 75, 91);
+    g.rect(x + 4, y + 22, 5, 34);
+    g.rect(x + 41, y + 22, 5, 34);
+    g.fill(182, 137, 98);
+    g.rect(x + 5, y + 23, 3, 32);
+    g.rect(x + 42, y + 23, 3, 32);
+
+    if (ph.label === 'RINGS') {
+      g.fill(246, 244, 236);
+      g.rect(x + 14, y + 31, 3, 7);
+      g.rect(x + 23, y + 31, 3, 7);
+      g.rect(x + 32, y + 31, 3, 7);
+      g.noFill();
+      g.stroke(246, 152, 174); g.strokeWeight(1); g.ellipse(x + 18, y + 36, 6, 3);
+      g.stroke(252, 222, 128); g.ellipse(x + 30, y + 36, 6, 3);
+      g.noStroke();
+    } else {
+      g.fill(248, 214, 114);
+      g.rect(x + 13, y + 26, 2, 2);
+      g.rect(x + 34, y + 27, 2, 2);
+      g.fill(176, 224, 248);
+      g.triangle(x + 25, y + 24, x + 22, y + 30, x + 28, y + 30);
+      const flick = Math.floor(t / 10) % 2;
+      g.fill(255, 236, 156);
+      g.rect(x + 13, y + 34 - flick, 2, 2);
+      g.rect(x + 35, y + 34 + flick, 2, 2);
+    }
+
+    g.fill(107, 75, 91); g.rect(x + 3, y + 38, 44, 19);
+    g.fill(218, 178, 134); g.rect(x + 4, y + 39, 42, 5);
+    g.fill(166, 118, 92); g.rect(x + 4, y + 45, 42, 11);
+
+    for (let i = 0; i < 6; i++) {
+      const sx = x + 2 + i * 8;
+      const sw = Math.min(8, x + 48 - sx);
+      g.fill(107, 75, 91); g.rect(sx, y + 13, sw, 13);
+      g.fill(i % 2 === 0 ? g.color(ph.stripe[0], ph.stripe[1], ph.stripe[2]) : g.color(247, 236, 198));
+      g.rect(sx + 1, y + 14, sw - 2, 10);
+    }
+    PixelUI.panel(g, x + 8, y + 2, 34, 11, g.color(247, 236, 198));
+    PixelUI.txt(g, font, ph.label, x + 25, y + 3, g.color(107, 75, 91), CENTER, 6.5, 32);
+    PixelUI.panel(g, x + 11, y + 45, 28, 10, g.color(247, 236, 198));
+    PixelUI.txt(g, font, 'SOON', x + 25, y + 46, g.color(144, 98, 93), CENTER, 6.2, 26);
+    g.pop();
+  }
+
+  drawWoodenBench(g, x, y) {
+    g.push();
+    g.noStroke();
+    g.fill(68, 96, 62, 70);
+    g.rect(x + 1, y + 8, 22, 4, 2);
+    g.fill(107, 75, 91);
+    g.rect(x, y, 24, 10, 2);
+    g.fill(198, 152, 108);
+    g.rect(x + 1, y + 1, 22, 4);
+    g.fill(166, 118, 92);
+    g.rect(x + 1, y + 6, 22, 3);
+    g.pop();
+  }
+
   drawCherryBlossom(g, x, y, size = 'big') {
     const img = this.game.assets.getImage('decor/cherry_blossom.png');
     if (!img) return;
@@ -1004,16 +1213,33 @@ class HubScene extends Scene {
     else g.image(img, x, y, 16, 16, 80, 64, 16, 16);
   }
 
-  /** Petite grenouille animée près de la mare (sprites/ambient/frog_sheet.png). */
+  drawPondSurfaceDetails(g, cx, cy) {
+    const t = frameCount;
+    g.push();
+    g.noFill();
+    g.strokeWeight(1);
+    for (let i = 0; i < 2; i++) {
+      const p = (t * 0.014 + i * 0.5) % 1;
+      g.stroke(236, 250, 255, Math.round((1 - p) * 140));
+      g.ellipse(cx + (i === 0 ? -10 : 12), cy + (i === 0 ? -2 : 4), 6 + p * 20, 3 + p * 9);
+    }
+    g.noStroke();
+    g.fill(118, 182, 104);
+    g.circle(cx - 18, cy + 7, 7);
+    g.circle(cx + 22, cy - 6, 6);
+    g.fill(248, 174, 198);
+    g.rect(cx - 19, cy + 6, 2, 2);
+    g.pop();
+  }
+
   drawPondFrog(g, x, y) {
     const cycle = frameCount % 220;
-    const row = cycle > 172 ? 4 : 2; // row 4 = coup de langue rose, row 2 = respiration
+    const row = cycle > 172 ? 4 : 2;
     const col = row === 4 ? Math.min(7, Math.floor((cycle - 172) / 6)) : Math.floor(frameCount / 10) % 14;
     const img = this.game.assets.getSheetFrame('sprites/ambient/frog_sheet.png', 16, 16, col, row);
     if (img) g.image(img, x, y, 14, 14);
   }
 
-  /** Petit faon tacheté paisible dans la prairie Est (sprites/ambient/deer1_sheet.png). */
   drawMeadowDeer(g, x, y) {
     const col = Math.floor(frameCount / 16) % 4;
     const img = this.game.assets.getSheetFrame('sprites/ambient/deer1_sheet.png', 32, 32, col, 0);
@@ -1026,12 +1252,11 @@ class HubScene extends Scene {
     }
   }
 
-  /** Petites abeilles animées bourdonnant autour des parterres de fleurs (bee_small_sheet.png). */
   drawHubBees(g) {
     const spots = [
-      { cx: -340, cy: 192, ph: 0.4 },
-      { cx: 122,  cy: 204, ph: 1.9 },
-      { cx: 636,  cy: 192, ph: 3.5 }
+      { cx: -346, cy: 204, ph: 0.4 },
+      { cx: 108,  cy: 208, ph: 1.9 },
+      { cx: 646,  cy: 206, ph: 3.5 }
     ];
     const col = Math.floor(frameCount / 5) % 8;
     const img = this.game.assets.getSheetFrame('sprites/ambient/bee_small_sheet.png', 16, 16, col, 0);
@@ -1043,7 +1268,6 @@ class HubScene extends Scene {
     }
   }
 
-  /** Petit chat endormi près des fleurs (Place Centrale) avec respiration douce. */
   drawSleepingCat(g, x, y) {
     const breath = Math.floor(frameCount / 36) % 2;
     g.push();
@@ -1056,7 +1280,6 @@ class HubScene extends Scene {
     g.rect(x + 1, y + 1 + breath, 8, 4 - breath, 1);
     g.fill(186, 118, 86);
     g.rect(x + 2, y + 1 + breath, 3, 2);
-    // Petites oreilles + queue enroulée
     g.fill(246, 196, 146);
     g.rect(x + 7, y - 1 + breath, 2, 2);
     g.rect(x + 9, y + 4, 2, 2);
@@ -1064,34 +1287,20 @@ class HubScene extends Scene {
     g.pop();
   }
 
-  /** Vrai petit oiseau pixel-art perché sur le panneau GAMES (sprites/ambient/bird_sheet.png). */
   drawPerchedBird(g, x, y) {
     const col = Math.floor(frameCount / 18) % 4;
     const img = this.game.assets.getSheetFrame('sprites/ambient/bird_sheet.png', 16, 16, col, 0);
-    if (img) {
-      g.image(img, x - 4, y - 9, 14, 14);
-    }
+    if (img) g.image(img, x - 4, y - 9, 14, 14);
   }
 
-  /** Ondulations douces et nénuphars scintillants sur la mare aux canetons. */
-  drawPondRipples(g, cx, cy) {
-    const t = frameCount;
-    g.push();
-    g.noFill();
-    g.strokeWeight(1);
-    for (let i = 0; i < 2; i++) {
-      const p = ((t * 0.014 + i * 0.5) % 1);
-      g.stroke(236, 250, 255, Math.round((1 - p) * 130));
-      g.ellipse(cx + (i === 0 ? -8 : 10), cy + (i === 0 ? -2 : 4), 6 + p * 18, 3 + p * 8);
-    }
-    g.pop();
-  }
-
-  /** Fontaine à vœux animée dans l'Aile Est. */
-  drawHubFountain(g, cx, cy) {
+  drawHubFountain(g, cx, cy, isNear) {
     const t = frameCount;
     g.push();
     g.noStroke();
+    if (isNear) {
+      g.fill(210, 244, 255, Math.round(32 + Math.sin(t * 0.14) * 16));
+      g.ellipse(cx, cy + 2, 42, 20);
+    }
     g.fill(107, 75, 91);
     g.ellipse(cx, cy + 4, 34, 14);
     g.fill(212, 202, 190);
@@ -1109,7 +1318,7 @@ class HubScene extends Scene {
     g.fill(226, 216, 206);
     g.rect(cx - 5, cy - 10, 10, 3);
     for (let i = 0; i < 4; i++) {
-      const p = ((t * 0.06 + i * 0.25) % 1);
+      const p = (t * 0.06 + i * 0.25) % 1;
       const dir = i % 2 === 0 ? 1 : -1;
       const wx = Math.round(cx + dir * p * 8);
       const wy = Math.round(cy - 11 - Math.sin(p * Math.PI) * 7 + p * 11);
@@ -1119,14 +1328,13 @@ class HubScene extends Scene {
     g.pop();
   }
 
-  /** Petit lampadaire de jardin avec halo chaud (plus lumineux au coucher du soleil). */
   drawGardenLamp(g, x, y, skyMood) {
     const isSunset = skyMood === 'sunset';
-    const glowA = Math.round((isSunset ? 66 : 26) + Math.sin(frameCount * 0.08 + x) * 10);
+    const glowA = Math.round((isSunset ? 68 : 26) + Math.sin(frameCount * 0.08 + x) * 10);
     g.push();
     g.noStroke();
     g.fill(255, 232, 148, glowA);
-    g.circle(x + 2, y + 3, isSunset ? 22 : 14);
+    g.circle(x + 2, y + 3, isSunset ? 24 : 14);
     g.fill(107, 75, 91);
     g.rect(x + 1, y + 5, 2, 14);
     g.rect(x, y + 17, 4, 2);
@@ -1136,7 +1344,6 @@ class HubScene extends Scene {
     g.pop();
   }
 
-  /** Petites bulles "zZz" flottantes au-dessus des animaux endormis (Renard & Chat). */
   drawSleepZzz(g, x, y) {
     const p = (frameCount * 0.022) % 1;
     const zx = Math.round(x + Math.sin(p * TWO_PI) * 2);
@@ -1152,123 +1359,29 @@ class HubScene extends Scene {
     g.pop();
   }
 
-  /** Dessine les pavillons "Coming Soon" thématiques des ailes Ouest & Est (Sweets, Photo, Rings, Tarot). */
-  drawPlaceholderBooth(g, font, ph) {
-    const x = ph.x;
-    const y = ph.y;
-    const t = frameCount;
-    g.push();
-    g.noStroke();
-    // Fond intérieur + poteaux
-    g.fill(ph.label === 'TAROT' ? g.color(84, 62, 108) : g.color(236, 224, 198));
-    g.rect(x + 5, y + 22, 40, 20);
-    g.fill(107, 75, 91);
-    g.rect(x + 4, y + 22, 5, 34);
-    g.rect(x + 41, y + 22, 5, 34);
-    g.fill(182, 137, 98);
-    g.rect(x + 5, y + 23, 3, 32);
-    g.rect(x + 42, y + 23, 3, 32);
-
-    // Décoration intérieure thématique
-    if (ph.label === 'SWEETS') {
-      // Vrais bonbons, sucette & tarte pixel-art (decor/candy_and_pie.png) sur le comptoir !
-      const pie = this.game.assets.getSheetFrame('decor/candy_and_pie.png', 16, 16, 0, 0);
-      const candy = this.game.assets.getSheetFrame('decor/candy_and_pie.png', 16, 16, 1, 0);
-      const pop = this.game.assets.getSheetFrame('decor/candy_and_pie.png', 16, 16, 3, 0);
-      if (pie) g.image(pie, x + 9, y + 27, 11, 11);
-      if (candy) g.image(candy, x + 20, y + 26, 11, 11);
-      if (pop) g.image(pop, x + 31, y + 27, 11, 11);
-    } else if (ph.label === 'PHOTO') {
-      // Rideaux roses entrouverts + polaroïds suspendus
-      g.fill(236, 146, 174);
-      g.rect(x + 9, y + 24, 7, 14);
-      g.rect(x + 34, y + 24, 7, 14);
-      g.fill(255, 252, 244);
-      g.rect(x + 19, y + 25, 5, 6);
-      g.rect(x + 26, y + 26, 5, 6);
-    } else if (ph.label === 'RINGS') {
-      // Bouteilles de lait + anneaux colorés
-      g.fill(246, 244, 236);
-      g.rect(x + 14, y + 31, 3, 7);
-      g.rect(x + 23, y + 31, 3, 7);
-      g.rect(x + 32, y + 31, 3, 7);
-      g.noFill();
-      g.stroke(246, 152, 174);
-      g.strokeWeight(1);
-      g.ellipse(x + 18, y + 36, 6, 3);
-      g.stroke(252, 222, 128);
-      g.ellipse(x + 30, y + 36, 6, 3);
-      g.noStroke();
-    } else if (ph.label === 'TAROT') {
-      // Étoiles dorées, cristal suspendu et petites bougies vacillantes
-      g.fill(248, 214, 114);
-      g.rect(x + 13, y + 26, 2, 2);
-      g.rect(x + 34, y + 27, 2, 2);
-      g.fill(176, 224, 248);
-      g.triangle(x + 25, y + 24, x + 22, y + 30, x + 28, y + 30);
-      const flick = Math.floor(t / 10) % 2;
-      g.fill(255, 236, 156);
-      g.rect(x + 13, y + 34 - flick, 2, 2);
-      g.rect(x + 35, y + 34 + flick, 2, 2);
-    }
-
-    // Comptoir bois
-    g.fill(107, 75, 91);
-    g.rect(x + 3, y + 38, 44, 19);
-    g.fill(218, 178, 134);
-    g.rect(x + 4, y + 39, 42, 5);
-    g.fill(166, 118, 92);
-    g.rect(x + 4, y + 45, 42, 11);
-
-    // Auvent rayé pastel
-    for (let i = 0; i < 6; i++) {
-      const sx = x + 2 + i * 8;
-      const sw = Math.min(8, x + 48 - sx);
-      g.fill(107, 75, 91);
-      g.rect(sx, y + 13, sw, 13);
-      g.fill(i % 2 === 0 ? g.color(ph.stripe[0], ph.stripe[1], ph.stripe[2]) : g.color(247, 236, 198));
-      g.rect(sx + 1, y + 14, sw - 2, 10);
-    }
-
-    // Enseigne bois + badge SOON bien lisible
-    PixelUI.panel(g, x + 8, y + 2, 34, 11, g.color(247, 236, 198));
-    PixelUI.txt(g, font, ph.label, x + 25, y + 3, g.color(107, 75, 91), CENTER, 6.5, 32);
-    PixelUI.panel(g, x + 11, y + 45, 28, 10, g.color(247, 236, 198));
-    PixelUI.txt(g, font, 'SOON', x + 25, y + 46, g.color(144, 98, 93), CENTER, 6.2, 26);
-    g.pop();
-  }
-
-  /** Dessine le petit panneau en bois MAP juste à côté du panneau GAMES. */
   drawMapSignpost(g, font, m) {
     g.push();
     g.noStroke();
-    // Poteau bois
     g.fill(107, 75, 91);
     g.rect(m.x + 9, m.y + 20, 6, 16);
     g.fill(166, 118, 92);
     g.rect(m.x + 10, m.y + 20, 4, 15);
-    // Panneau parchemin encadré
     PixelUI.panel(g, m.x, m.y, m.w, 22, g.color(247, 236, 198));
     g.fill(112, 162, 198);
     g.rect(m.x + 1, m.y + 1, m.w - 2, 9);
     PixelUI.txt(g, font, 'MAP', m.x + m.w / 2, m.y + 2, g.color(255, 252, 238), CENTER, 6.5);
-    // Mini schéma de 3 points reliés
-    g.fill(189, 117, 126);
-    g.rect(m.x + 4, m.y + 14, 3, 3);
-    g.fill(114, 172, 106);
-    g.rect(m.x + 11, m.y + 14, 3, 3);
-    g.fill(112, 162, 198);
-    g.rect(m.x + 18, m.y + 14, 3, 3);
+    g.fill(189, 117, 126); g.rect(m.x + 4,  m.y + 14, 3, 3);
+    g.fill(114, 172, 106); g.rect(m.x + 11, m.y + 14, 3, 3);
+    g.fill(112, 162, 198); g.rect(m.x + 18, m.y + 14, 3, 3);
     g.pop();
   }
 
-  /** Carte interactive de la fête foraine (3 ailes + position en direct de Moo + téléportation rapide). */
   getMapDestinations() {
     const { ox, oy } = this.getOverlayOffsets();
     return [
-      { id: 'west',  label: 'Prize Booth',  x: ox + 80,  y: oy + 102, w: 96, h: 42, targetX: -220, targetY: 152, col: [248, 184, 200] },
-      { id: 'plaza', label: 'Main Plaza',   x: ox + 192, y: oy + 102, w: 96, h: 42, targetX: 240,  targetY: 160, col: [223, 240, 187] },
-      { id: 'east',  label: 'East Meadow',  x: ox + 304, y: oy + 102, w: 96, h: 42, targetX: 660,  targetY: 156, col: [186, 224, 244] }
+      { id: 'west',  label: 'Prize & Treats', x: ox + 80,  y: oy + 102, w: 96, h: 42, targetX: -240, targetY: 152, col: [248, 184, 200] },
+      { id: 'plaza', label: 'Main Plaza',     x: ox + 192, y: oy + 102, w: 96, h: 42, targetX: 240,  targetY: 162, col: [223, 240, 187] },
+      { id: 'east',  label: 'Carousel & East',x: ox + 304, y: oy + 102, w: 96, h: 42, targetX: 578,  targetY: 156, col: [186, 224, 244] }
     ];
   }
 
@@ -1286,34 +1399,27 @@ class HubScene extends Scene {
     g.fill(112, 162, 198);
     g.rect(ox + 60, oy + 44, 360, 22, 1);
     PixelUI.txt(g, font, "MOO'S FUNFAIR — PARK MAP", ox + 240, oy + 49, g.color(255, 252, 238), CENTER, 10);
+    PixelUI.txt(g, font, 'Walk left/right smoothly or click any wing to fast-travel:', ox + 240, oy + 76, g.color(107, 75, 91), CENTER, 8.5, 340);
 
-    PixelUI.txt(g, font, 'Walk left/right smoothly or click any area to fast-travel:', ox + 240, oy + 76, g.color(107, 75, 91), CENTER, 8.5, 340);
-
-    // Ligne de promenade reliant les 3 zones
     g.stroke(182, 137, 98);
     g.strokeWeight(4);
     g.line(ox + 128, oy + 123, ox + 352, oy + 123);
 
-    const dests = this.getMapDestinations();
-    for (const d of dests) {
+    for (const d of this.getMapDestinations()) {
       const hov = PixelUI.pointInRect(mx, my, d);
       PixelUI.panel(g, d.x, d.y, d.w, d.h, hov ? g.color(255, 248, 208) : g.color(d.col[0], d.col[1], d.col[2]));
-      PixelUI.txt(g, font, d.label, d.x + d.w / 2, d.y + 8, g.color(82, 52, 66), CENTER, 8.5, d.w - 8);
-      const sub = d.id === 'west' ? 'Shop + Soon' : (d.id === 'plaza' ? '4 Games + Wheel' : 'Rest + Soon');
+      PixelUI.txt(g, font, d.label, d.x + d.w / 2, d.y + 8, g.color(82, 52, 66), CENTER, 8.2, d.w - 8);
+      const sub = d.id === 'west' ? 'Shop + Carts' : (d.id === 'plaza' ? '4 Games + Wheel' : 'Carousel + Wish');
       PixelUI.txt(g, font, sub, d.x + d.w / 2, d.y + 24, g.color(107, 75, 91), CENTER, 7, d.w - 8);
     }
 
-    // Marqueur animé "YOU ARE HERE" sur la position réelle de Moo [-480 .. 960]
     const normX = constrain((this.moo.pos.x - this.worldLeft) / (this.worldRight - this.worldLeft), 0, 1);
     const pinX = Math.round(ox + 80 + normX * 320);
     const pinY = oy + 158 + Math.round(Math.sin(frameCount * 0.14) * 1.5);
     g.noStroke();
-    g.fill(189, 117, 126);
-    g.circle(pinX, pinY, 8);
-    g.fill(255, 248, 210);
-    g.circle(pinX, pinY, 4);
+    g.fill(189, 117, 126); g.circle(pinX, pinY, 8);
+    g.fill(255, 248, 210); g.circle(pinX, pinY, 4);
     PixelUI.txt(g, font, 'Moo is here!', pinX, pinY + 8, g.color(168, 86, 98), CENTER, 7.5);
-
     PixelUI.txt(g, font, 'Click outside or press Esc / M to close', ox + 240, oy + 194, g.color(144, 98, 93), CENTER, 8);
     g.pop();
   }
@@ -1331,50 +1437,29 @@ class HubScene extends Scene {
       const { mx, my } = this.game.getMouseBufferPos();
       const hov = PixelUI.pointInRect(mx, my, this.ticketPlusBtn);
       PixelUI.panel(
-        g,
-        this.ticketPlusBtn.x,
-        this.ticketPlusBtn.y,
-        this.ticketPlusBtn.w,
-        this.ticketPlusBtn.h,
+        g, this.ticketPlusBtn.x, this.ticketPlusBtn.y, this.ticketPlusBtn.w, this.ticketPlusBtn.h,
         hov ? g.color(202, 236, 162) : g.color(223, 240, 187)
       );
-      PixelUI.txt(
-        g,
-        font,
-        '+',
-        this.ticketPlusBtn.x + Math.round(this.ticketPlusBtn.w / 2),
-        this.ticketPlusBtn.y + 3,
-        g.color(62, 108, 70),
-        CENTER,
-        10
-      );
+      PixelUI.txt(g, font, '+', this.ticketPlusBtn.x + 9, this.ticketPlusBtn.y + 3, g.color(62, 108, 70), CENTER, 10);
     }
   }
 
   getOverlayOffsets() {
     const vw = this.game.viewW || BUFFER_W;
     const vh = this.game.viewH || BUFFER_H;
-    return {
-      ox: Math.floor((vw - BUFFER_W) / 2),
-      oy: Math.floor((vh - BUFFER_H) / 2),
-      vw,
-      vh
-    };
+    return { ox: Math.floor((vw - BUFFER_W) / 2), oy: Math.floor((vh - BUFFER_H) / 2), vw, vh };
   }
 
   cardRects() {
-    const layout = this.game.assets.hubLayout;
     const { ox, oy } = this.getOverlayOffsets();
     const x0 = ox + 80;
     const y0 = oy + 66;
-    const cw = 156;
-    const ch = 56;
-    return layout.games.map((gm, i) => ({
+    return this.booths.map((gm, i) => ({
       gm,
-      x: x0 + (i % 2) * (cw + 8),
-      y: y0 + Math.floor(i / 2) * (ch + 8),
-      w: cw,
-      h: ch
+      x: x0 + (i % 2) * 164,
+      y: y0 + Math.floor(i / 2) * 64,
+      w: 156,
+      h: 56
     }));
   }
 
@@ -1393,26 +1478,16 @@ class HubScene extends Scene {
     g.rect(ox + 70, oy + 34, 340, 22);
     PixelUI.txt(g, font, "TODAY'S GAMES", ox + 240, oy + 40, g.color(243, 244, 231), CENTER, 10);
 
-    const titleMap = {
-      derby: 'Bunny Derby',
-      snake: 'PokeMoo Feast!!',
-      ducklings: 'Catch the Purins!',
-      fox: 'The Legend of Moo'
-    };
     this.cardRects().forEach((c, i) => {
       const hov = PixelUI.pointInRect(mx, my, c);
       const yy = Math.round(c.y + (hov ? -2 + Math.sin(frameCount * 0.3) : 0));
       PixelUI.panel(g, c.x, yy, c.w, c.h, g.color(232, 207, 166));
-      PixelUI.txt(g, font, titleMap[c.gm.id] || c.gm.title, c.x + 8, yy + 5, g.color(107, 75, 91), LEFT, 9, c.w - 14);
-
-      const bSp = assets.getSprite('booth_' + c.gm.id);
+      PixelUI.txt(g, font, c.gm.title, c.x + 8, yy + 5, g.color(107, 75, 91), LEFT, 9, c.w - 14);
+      const bSp = assets.getSprite(c.gm.sprite);
       if (bSp) g.image(bSp, c.x + 8, yy + 26, 28, 24, 18, 1, 14, 12);
-
       const stars = this.game.save.data.stars[c.gm.id] || 0;
-      const starStr = '*'.repeat(stars) + '-'.repeat(3 - stars);
-      PixelUI.txt(g, font, 'press ' + (i + 1) + '  [' + starStr + ']', c.x + 42, yy + 32, g.color(144, 98, 93), LEFT, 8.5, 108);
+      PixelUI.txt(g, font, 'press ' + (i + 1) + '  [' + '*'.repeat(stars) + '-'.repeat(3 - stars) + ']', c.x + 42, yy + 32, g.color(144, 98, 93), LEFT, 8.5, 108);
     });
-
     PixelUI.txt(g, font, 'Esc / M to close', ox + 240, oy + 190, g.color(144, 98, 93), CENTER, 8.5);
   }
 
@@ -1425,13 +1500,8 @@ class HubScene extends Scene {
   }
 
   mousePressed(mx, my) {
-    const layout = this.game.assets.hubLayout;
     const { ox, oy } = this.getOverlayOffsets();
-
-    if (this.prizeShop && this.prizeShop.open) {
-      this.prizeShop.mousePressed(mx, my);
-      return;
-    }
+    if (this.prizeShop && this.prizeShop.open) { this.prizeShop.mousePressed(mx, my); return; }
 
     if (Vehicle.debug && this.showTicketCheat && !this.overlay && !this.mapOverlay && PixelUI.pointInRect(mx, my, this.ticketPlusBtn)) {
       this.game.save.addTickets(50);
@@ -1448,9 +1518,7 @@ class HubScene extends Scene {
         this.game.sound.playSfx('ui_click', 0.8);
         return;
       }
-      if (mx < ox + 58 || mx > ox + 422 || my < oy + 42 || my > oy + 214) {
-        this.mapOverlay = false;
-      }
+      if (mx < ox + 58 || mx > ox + 422 || my < oy + 42 || my > oy + 214) this.mapOverlay = false;
       return;
     }
 
@@ -1464,73 +1532,33 @@ class HubScene extends Scene {
     const wx = mx + this.camX;
     const wy = my - oy;
 
-    // Clic sur le panneau MAP à côté des affiches GAMES
-    const mb = this.mapBoardPos;
-    if (wx >= mb.x && wx <= mb.x + mb.w && wy >= mb.y && wy <= mb.y + mb.h) {
-      this.moo.stop();
-      this.game.sound.playSfx('ui_click');
-      this.mapOverlay = true;
-      return;
-    }
+    const hitBox = (b) => wx >= b.x && wx <= b.x + b.w && wy >= b.y && wy <= b.y + b.h;
+    if (hitBox(this.mapBoardPos)) { this.moo.stop(); this.game.sound.playSfx('ui_click'); this.mapOverlay = true; return; }
+    if (hitBox(this.prizeBoothPos)) { this.moo.stop(); this.prizeShop.show(); return; }
+    if (hitBox(this.posterPos)) { this.game.sound.playSfx('ui_click'); this.overlay = true; return; }
+    if (hitBox(this.cottonCartPos)) { this.interactWithProp('cotton_candy'); return; }
+    if (hitBox(this.popcornCartPos)) { this.interactWithProp('popcorn'); return; }
+    if (hitBox(this.carouselPos)) { this.interactWithProp('carousel'); return; }
+    if (dist(wx, wy, this.fountainPos.x, this.fountainPos.y) < 22) { this.interactWithProp('fountain'); return; }
 
-    // Clic sur le Prize Booth (Aile Ouest)
-    const pbPos = this.prizeBoothPos;
-    if (wx >= pbPos.x && wx <= pbPos.x + pbPos.w && wy >= pbPos.y && wy <= pbPos.y + pbPos.h) {
-      this.moo.stop();
-      this.prizeShop.show();
-      return;
-    }
-
-    // Clic sur le panneau GAMES
-    const posterObj = layout.objects.find((o) => o.id === 'poster');
-    if (posterObj) {
-      const sp = this.game.assets.getSprite(posterObj.sprite);
-      const pbx = posterObj.x + this.posterOffsetX;
-      if (sp && wx >= pbx && wx <= pbx + sp.width && wy >= posterObj.y && wy <= posterObj.y + sp.height) {
-        this.game.sound.playSfx('ui_click');
-        this.overlay = true;
-        return;
-      }
-    }
-
-    // Clic sur un stand -> Moo y marche
-    const t = this.triggers.find(
-      ({ rect: [x, y, w, h] }) => wx > x - 10 && wx < x + w + 10 && wy > y - 70 && wy < y + h + 4
-    );
-    if (t) {
-      this.moo.setTarget(t.stand[0], t.stand[1]);
-      return;
-    }
-
+    const t = this.triggers.find(({ rect: [x, y, w, h] }) => wx > x - 8 && wx < x + w + 8 && wy > y - 64 && wy < y + h + 4);
+    if (t) { this.moo.setTarget(t.stand[0], t.stand[1]); return; }
     this.moo.setTarget(wx, wy);
   }
 
   keyPressed(k, kc) {
-    const layout = this.game.assets.hubLayout;
-
-    if (this.prizeShop && this.prizeShop.open) {
-      this.prizeShop.keyPressed(k, kc);
-      return;
-    }
+    if (this.prizeShop && this.prizeShop.open) { this.prizeShop.keyPressed(k, kc); return; }
 
     if (Vehicle.debug) {
-      if (k === 'n' || k === 'N') {
-        this.secretLastWasN = true;
-        this.secretStarCount = 0;
-        return;
-      }
+      if (k === 'n' || k === 'N') { this.secretLastWasN = true; this.secretStarCount = 0; return; }
       if (k === '*') {
         if (this.secretLastWasN) {
-          this.showTicketCheat = false;
-          this.secretLastWasN = false;
-          this.secretStarCount = 0;
-          this.game.sound.playSfx('ui_click', 0.5);
-          return;
+          this.showTicketCheat = false; this.secretLastWasN = false; this.secretStarCount = 0;
+          this.game.sound.playSfx('ui_click', 0.5); return;
         }
         this.secretStarCount++;
         if (this.secretStarCount >= 3) {
-          this.showTicketCheat = true;
-          this.secretStarCount = 0;
+          this.showTicketCheat = true; this.secretStarCount = 0;
           this.game.sound.playSfx('success_bell', 0.7);
         }
         return;
@@ -1539,7 +1567,6 @@ class HubScene extends Scene {
       this.secretStarCount = 0;
     }
 
-    // Touche T : basculer Jour / Sunset
     if (k === 't' || k === 'T') {
       const next = this.game.save.data.skyMood === 'sunset' ? 'day' : 'sunset';
       this.game.save.data.skyMood = next;
@@ -1557,24 +1584,18 @@ class HubScene extends Scene {
     }
 
     if (this.overlay && k >= '1' && k <= '4') {
-      const gm = layout.games[parseInt(k, 10) - 1];
+      const gm = this.booths[parseInt(k, 10) - 1];
       if (gm) this.enterGame(gm.id);
       return;
     }
 
     if (k === ' ' && this.promptTrigger && !this.overlay && !this.mapOverlay) {
-      if (this.promptTrigger.id === 'poster') {
-        this.game.sound.playSfx('ui_click');
-        this.overlay = true;
-      } else if (this.promptTrigger.id === 'map') {
-        this.game.sound.playSfx('ui_click');
-        this.mapOverlay = true;
-      } else if (this.promptTrigger.id === 'prize') {
-        this.moo.stop();
-        this.prizeShop.show();
-      } else {
-        this.enterGame(this.promptTrigger.id);
-      }
+      const id = this.promptTrigger.id;
+      if (id === 'poster') { this.game.sound.playSfx('ui_click'); this.overlay = true; }
+      else if (id === 'map') { this.game.sound.playSfx('ui_click'); this.mapOverlay = true; }
+      else if (id === 'prize') { this.moo.stop(); this.prizeShop.show(); }
+      else if (['cotton_candy', 'popcorn', 'carousel', 'fountain'].includes(id)) { this.interactWithProp(id); }
+      else { this.enterGame(id); }
     }
   }
 }
