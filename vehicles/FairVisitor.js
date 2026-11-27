@@ -65,12 +65,18 @@ class FairVisitor extends Vehicle {
     }
   }
 
-  /** Choisit un nouveau stand / attraction différent à visiter dans le parc. */
+  /** Choisit un nouveau stand / attraction peu fréquenté dans sa zone du parc (évite les attroupements !). */
   pickNextParkSpot() {
     if (!this.parkSpots || this.parkSpots.length === 0) return;
     const candidates = this.parkSpots.filter((s) => s !== this.destSpot);
     const list = candidates.length > 0 ? candidates : this.parkSpots;
-    const chosen = list[Math.floor(random(list.length))];
+
+    // Préférer les spots libres (où aucun autre visiteur ne se rend déjà) pour garder tout le parc bien réparti
+    const others = this.othersRef || [];
+    const freeSpots = list.filter((s) => !others.some((o) => o !== this && o.destSpot === s));
+    const pool = freeSpots.length > 0 ? freeSpots : list;
+
+    const chosen = pool[Math.floor(random(pool.length))];
     this.destSpot = chosen;
     this.destVec = createVector(chosen.x + random(-14, 14), chosen.y + random(-6, 8));
     this.routineState = 'STROLL';

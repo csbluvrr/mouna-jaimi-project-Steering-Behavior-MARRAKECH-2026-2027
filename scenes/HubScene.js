@@ -409,14 +409,16 @@ class HubScene extends Scene {
       })
     ];
 
-    // Attribuer de vrais points d'intérêt du parc à chaque visiteur mobile (finit les cercles sur place !)
+    // Attribuer des points d'intérêt dédiés par aile afin que l'Ouest, le Centre et l'Est restent TOUJOURS vivants !
     const westSpots = [
+      { x: -430, y: 174, lookUp: false, emote: 'Heart' },       // Cherry Grove Ouest
       { x: -384, y: 150, lookUp: true,  emote: 'Heart' },       // Cotton Candy
       { x: -312, y: 150, lookUp: true,  emote: 'Happy' },       // Lemonade
       { x: -240, y: 152, lookUp: true,  emote: 'Star' },        // Prize Boutique
       { x: -334, y: 184, lookUp: false, emote: 'Happy' },       // Picnic Table 1
       { x: -194, y: 184, lookUp: false, emote: 'Heart' },       // Picnic Table 2
-      { x: -96,  y: 150, lookUp: true,  emote: 'Exclamation' }  // Popcorn Cart
+      { x: -96,  y: 150, lookUp: true,  emote: 'Exclamation' }, // Popcorn Cart
+      { x: -64,  y: 182, lookUp: false, emote: 'Happy' }        // Bord Ouest-Centre
     ];
     const plazaSpots = [
       { x: 57,   y: 152, lookUp: true,  emote: 'Exclamation' }, // Bunny Derby
@@ -428,22 +430,29 @@ class HubScene extends Scene {
       { x: 374,  y: 184, lookUp: false, emote: 'Heart' }        // Duck Pond
     ];
     const eastSpots = [
+      { x: 522,  y: 172, lookUp: false, emote: 'Happy' },       // Entrée Aile Est
       { x: 578,  y: 154, lookUp: true,  emote: 'Star' },        // Mini Carousel
-      { x: 578,  y: 182, lookUp: false, emote: 'Heart' },       // Wishing Fountain
+      { x: 534,  y: 196, lookUp: false, emote: 'Heart' },       // Fountain Plaza Ouest
+      { x: 622,  y: 196, lookUp: false, emote: 'Heart' },       // Fountain Plaza Est
       { x: 718,  y: 154, lookUp: true,  emote: 'Exclamation' }, // Stage + Fireworks
       { x: 800,  y: 158, lookUp: false, emote: 'Happy' },       // Wooden Bridge
-      { x: 874,  y: 154, lookUp: true,  emote: 'Interrogation' } // Ring Toss
+      { x: 874,  y: 154, lookUp: true,  emote: 'Interrogation' }, // Ring Toss
+      { x: 902,  y: 184, lookUp: false, emote: 'Star' }         // Prairie Est
     ];
     const allSpots = westSpots.concat(plazaSpots, eastSpots);
 
     for (const v of this.visitors) {
       if (v.stationary || v.trioMode || v.kind === 'new_bunny') continue;
-      if (v.name === 'Zoro') v.parkSpots = allSpots; // Zoro se perd dans TOUT le parc !
-      else if (v.name === 'Chopper') v.parkSpots = westSpots;
-      else if (v.name === 'Luffy') v.parkSpots = westSpots.concat(plazaSpots);
-      else if (v.pos.x < 0) v.parkSpots = westSpots.concat(plazaSpots.slice(0, 2));
-      else if (v.pos.x > 480) v.parkSpots = eastSpots.concat(plazaSpots.slice(4));
-      else v.parkSpots = plazaSpots.concat(westSpots.slice(4), eastSpots.slice(0, 2));
+      v.othersRef = this.visitors;
+      if (v.name === 'Zoro') {
+        v.parkSpots = allSpots; // Seul Zoro traverse tout le parc (toujours perdu !)
+      } else if (v.pos.x < 0) {
+        v.parkSpots = westSpots; // Habitués de l'Aile Ouest (Sweet Street & Boutique)
+      } else if (v.pos.x > 480) {
+        v.parkSpots = eastSpots; // Habitués de l'Aile Est (Carrousel, Fontaine, Scène, Pont)
+      } else {
+        v.parkSpots = plazaSpots; // Habitués de la Place Centrale
+      }
       v.pickNextParkSpot();
       // Décaler le départ de chacun (certains admirent déjà un stand, d'autres marchent)
       if (Math.random() < 0.45) {
