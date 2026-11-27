@@ -181,9 +181,27 @@ class PixelUI {
   static drawTag(g, font, label, cx, cy, fillc) {
     const w = Math.round(PixelUI.measureText(g, label, 9) + 14);
     const maxScreenW = (g && g.width) ? g.width : 480;
-    const x = constrain(Math.round(cx - w / 2), 4, Math.max(4, maxScreenW - 4 - w));
+    // Tient compte de la translation caméra courante (g.translate(-camX, oy)) pour les ailes Ouest [-480..0] et Est [480..960] !
+    let tx = 0;
+    if (g && g.drawingContext && typeof g.drawingContext.getTransform === 'function') {
+      tx = g.drawingContext.getTransform().e || 0;
+    }
+    const minX = Math.round(4 - tx);
+    const maxX = Math.max(minX, Math.round(maxScreenW - 4 - w - tx));
+    const x = constrain(Math.round(cx - w / 2), minX, maxX);
     const y = Math.round(cy - 15);
     PixelUI.panel(g, x, y, w, 16, fillc);
+
+    // Petite pointe de bulle attachée au-dessus du personnage qui parle
+    const tailX = constrain(Math.round(cx), x + 6, x + w - 6);
+    g.push();
+    g.noStroke();
+    g.fill(107, 75, 91);
+    g.triangle(tailX - 4, y + 16, tailX + 4, y + 16, tailX, y + 20);
+    g.fill(fillc || g.color(247, 236, 198));
+    g.triangle(tailX - 3, y + 15, tailX + 3, y + 15, tailX, y + 19);
+    g.pop();
+
     PixelUI.txt(g, font, label, x + w / 2, y + 3, g.color(107, 75, 91), CENTER, 9, w - 6);
   }
 
