@@ -1609,51 +1609,179 @@ class HubScene extends Scene {
     g.pop();
   }
 
-  getMapDestinations() {
+  /** Convertit une coordonnée monde (wx, wy) vers le cadre de la mini-carte illustrée. */
+  worldToMiniMap(wx, wy) {
     const { ox, oy } = this.getOverlayOffsets();
-    return [
-      { id: 'west',  label: 'Prize & Treats', x: ox + 80,  y: oy + 102, w: 96, h: 42, targetX: -240, targetY: 152, col: [248, 184, 200] },
-      { id: 'plaza', label: 'Main Plaza',     x: ox + 192, y: oy + 102, w: 96, h: 42, targetX: 240,  targetY: 162, col: [223, 240, 187] },
-      { id: 'east',  label: 'Carousel & East',x: ox + 304, y: oy + 102, w: 96, h: 42, targetX: 578,  targetY: 156, col: [186, 224, 244] }
-    ];
+    const mx0 = ox + 52;
+    const my0 = oy + 62;
+    const mw = 376;
+    const mh = 128;
+    const nx = constrain((wx - this.worldLeft) / (this.worldRight - this.worldLeft), 0, 1);
+    const ny = constrain((wy - 60) / (244 - 60), 0, 1);
+    return { x: Math.round(mx0 + nx * mw), y: Math.round(my0 + ny * mh), mx0, my0, mw, mh };
   }
 
+  /** Tous les stands & attractions cliquables sur la mini-carte (téléportation directe !). */
+  getMapDestinations() {
+    const spots = [
+      { id: 'cotton_candy', label: 'Cotton Candy Cart', wx: -384, wy: 108, targetX: -384, targetY: 146, kind: 'sweets' },
+      { id: 'prize',        label: 'Prize Boutique',    wx: -240, wy: 105, targetX: -240, targetY: 148, kind: 'prize' },
+      { id: 'popcorn',      label: 'Popcorn Cart',      wx: -96,  wy: 108, targetX: -96,  targetY: 146, kind: 'popcorn' },
+      { id: 'derby',        label: 'Bunny Derby',       wx: 57,   wy: 105, targetX: 57,   targetY: 148, kind: 'derby' },
+      { id: 'snake',        label: 'PokeMoo Feast!!',   wx: 147,  wy: 105, targetX: 147,  targetY: 148, kind: 'snake' },
+      { id: 'ferris',       label: 'Ferris Wheel Plaza',wx: 240,  wy: 96,  targetX: 240,  targetY: 162, kind: 'ferris' },
+      { id: 'ducklings',    label: 'Catch the Purins!', wx: 333,  wy: 105, targetX: 333,  targetY: 148, kind: 'ducklings' },
+      { id: 'fox',          label: 'The Legend of Moo', wx: 423,  wy: 105, targetX: 423,  targetY: 148, kind: 'fox' },
+      { id: 'carousel',     label: 'Mini Carousel',     wx: 578,  wy: 102, targetX: 578,  targetY: 148, kind: 'carousel' },
+      { id: 'fountain',     label: 'Wishing Fountain',  wx: 578,  wy: 204, targetX: 578,  targetY: 222, kind: 'fountain' },
+      { id: 'tarot',        label: 'Tarot Tent (Soon)', wx: 731,  wy: 105, targetX: 731,  targetY: 148, kind: 'tarot' },
+      { id: 'rings',        label: 'Ring Toss (Soon)',  wx: 861,  wy: 105, targetX: 861,  targetY: 148, kind: 'rings' }
+    ];
+    return spots.map((s) => {
+      const p = this.worldToMiniMap(s.wx, s.wy);
+      return { ...s, cx: p.x, cy: p.y, x: p.x - 13, y: p.y - 11, w: 26, h: 22 };
+    });
+  }
+
+  /** Mini-carte illustrée adorable montrant les 3 ailes, chemins, mare, stands, logos & position de Moo. */
   drawMapOverlay(g) {
     const font = this.game.assets.font;
     const { mx, my } = this.game.getMouseBufferPos();
     const { ox, oy, vw, vh } = this.getOverlayOffsets();
+    const t = frameCount;
 
     g.push();
     g.noStroke();
-    g.fill(26, 20, 32, 130);
+    g.fill(26, 20, 32, 135);
     g.rect(0, 0, vw, vh);
 
-    PixelUI.panel(g, ox + 58, oy + 42, 364, 172, g.color(250, 242, 212));
+    // Cadre parchemin principal de la carte
+    PixelUI.panel(g, ox + 40, oy + 28, 400, 212, g.color(250, 242, 212));
     g.fill(112, 162, 198);
-    g.rect(ox + 60, oy + 44, 360, 22, 1);
-    PixelUI.txt(g, font, "MOO'S FUNFAIR — PARK MAP", ox + 240, oy + 49, g.color(255, 252, 238), CENTER, 10);
-    PixelUI.txt(g, font, 'Walk left/right smoothly or click any wing to fast-travel:', ox + 240, oy + 76, g.color(107, 75, 91), CENTER, 8.5, 340);
+    g.rect(ox + 42, oy + 30, 396, 22, 1);
+    PixelUI.txt(g, font, "MOO'S FUNFAIR — MINI MAP", ox + 240, oy + 35, g.color(255, 252, 238), CENTER, 10);
 
-    g.stroke(182, 137, 98);
-    g.strokeWeight(4);
-    g.line(ox + 128, oy + 123, ox + 352, oy + 123);
+    // Zone prairie illustrée de la mini-carte (mx0..mx0+mw, my0..my0+mh)
+    const mx0 = ox + 52;
+    const my0 = oy + 62;
+    const mw = 376;
+    const mh = 128;
+    PixelUI.panel(g, mx0, my0, mw, mh, g.color(164, 208, 114));
 
-    for (const d of this.getMapDestinations()) {
-      const hov = PixelUI.pointInRect(mx, my, d);
-      PixelUI.panel(g, d.x, d.y, d.w, d.h, hov ? g.color(255, 248, 208) : g.color(d.col[0], d.col[1], d.col[2]));
-      PixelUI.txt(g, font, d.label, d.x + d.w / 2, d.y + 8, g.color(82, 52, 66), CENTER, 8.2, d.w - 8);
-      const sub = d.id === 'west' ? 'Shop + Carts' : (d.id === 'plaza' ? '4 Games + Wheel' : 'Carousel + Wish');
-      PixelUI.txt(g, font, sub, d.x + d.w / 2, d.y + 24, g.color(107, 75, 91), CENTER, 7, d.w - 8);
+    // Lignes subtiles séparant les 3 ailes (West | Main Plaza | East)
+    g.stroke(134, 182, 92);
+    g.strokeWeight(1);
+    g.line(mx0 + Math.round(mw / 3), my0 + 2, mx0 + Math.round(mw / 3), my0 + mh - 2);
+    g.line(mx0 + Math.round((mw * 2) / 3), my0 + 2, mx0 + Math.round((mw * 2) / 3), my0 + mh - 2);
+    g.noStroke();
+
+    // Allée sable principale + place circulaire centrale + entrée sud
+    const pathY = this.worldToMiniMap(0, 155).y;
+    g.fill(218, 194, 148);
+    g.rect(mx0 + 4, pathY - 10, mw - 8, 20, 4);
+    g.fill(236, 216, 174);
+    g.rect(mx0 + 5, pathY - 8, mw - 10, 16, 3);
+    const plazaC = this.worldToMiniMap(240, 166);
+    g.fill(218, 194, 148); g.ellipse(plazaC.x, plazaC.y, 44, 30);
+    g.fill(236, 216, 174); g.ellipse(plazaC.x, plazaC.y, 38, 24);
+    g.rect(plazaC.x - 6, plazaC.y + 8, 12, my0 + mh - plazaC.y - 10);
+
+    // Petits cerisiers roses & arbres verts le long du bord haut
+    for (const tr of this.ambientTrees) {
+      const tp = this.worldToMiniMap(tr.x + 12, tr.y + 14);
+      g.fill(tr.kind.startsWith('cherry') ? g.color(246, 176, 198) : g.color(112, 166, 86));
+      g.circle(tp.x, tp.y, 8);
     }
 
-    const normX = constrain((this.moo.pos.x - this.worldLeft) / (this.worldRight - this.worldLeft), 0, 1);
-    const pinX = Math.round(ox + 80 + normX * 320);
-    const pinY = oy + 158 + Math.round(Math.sin(frameCount * 0.14) * 1.5);
-    g.noStroke();
-    g.fill(189, 117, 126); g.circle(pinX, pinY, 8);
-    g.fill(255, 248, 210); g.circle(pinX, pinY, 4);
-    PixelUI.txt(g, font, 'Moo is here!', pinX, pinY + 8, g.color(168, 86, 98), CENTER, 7.5);
-    PixelUI.txt(g, font, 'Click outside or press Esc / M to close', ox + 240, oy + 194, g.color(144, 98, 93), CENTER, 8);
+    // Mare aux canetons (bleu) + Coin Pique-nique (rose)
+    const pondP = this.worldToMiniMap(this.pondCenter.x, this.pondCenter.y);
+    g.fill(128, 194, 218); g.ellipse(pondP.x, pondP.y, 24, 14);
+    g.fill(252, 224, 118); g.circle(pondP.x - 3, pondP.y - 1, 3); g.circle(pondP.x + 4, pondP.y + 1, 3);
+    const picP = this.worldToMiniMap(50, 212);
+    g.fill(244, 162, 176); g.rect(picP.x - 7, picP.y - 5, 14, 10, 2);
+    g.fill(255, 244, 232); g.rect(picP.x - 5, picP.y - 3, 4, 3); g.rect(picP.x + 1, picP.y + 1, 4, 3);
+
+    // Dessiner tous les stands & attractions miniatures cliquables
+    const dests = this.getMapDestinations();
+    let hoveredDest = null;
+    for (const d of dests) {
+      const hov = PixelUI.pointInRect(mx, my, d);
+      if (hov) hoveredDest = d;
+
+      if (hov) {
+        g.fill(255, 248, 168, 200);
+        g.circle(d.cx, d.cy, 22);
+      }
+
+      if (['derby', 'snake', 'ducklings', 'fox'].includes(d.kind)) {
+        // Mini stand de jeu + son vrai logo thématique !
+        g.fill(107, 75, 91); g.rect(d.cx - 9, d.cy - 8, 18, 16, 2);
+        g.fill(247, 236, 198); g.rect(d.cx - 8, d.cy - 7, 16, 14, 1);
+        this.drawGameLogo(g, d.kind, d.cx, d.cy, 0.85);
+      } else if (d.kind === 'ferris') {
+        // Mini Grande Roue tournante !
+        g.noFill();
+        g.stroke(107, 75, 91); g.strokeWeight(2); g.circle(d.cx, d.cy, 18);
+        g.stroke(252, 224, 128); g.strokeWeight(1); g.circle(d.cx, d.cy, 15);
+        g.noStroke();
+        for (let i = 0; i < 6; i++) {
+          const a = t * 0.03 + (TWO_PI * i) / 6;
+          g.fill(i % 2 === 0 ? g.color(246, 152, 174) : g.color(158, 212, 236));
+          g.circle(d.cx + Math.cos(a) * 8, d.cy + Math.sin(a) * 8, 3);
+        }
+      } else if (d.kind === 'carousel') {
+        // Mini Carrousel rayé
+        g.fill(107, 75, 91); g.circle(d.cx, d.cy, 17);
+        g.fill(246, 152, 174); g.circle(d.cx, d.cy, 14);
+        g.fill(252, 244, 214); g.circle(d.cx, d.cy, 8);
+        g.fill(248, 208, 86); g.circle(d.cx, d.cy, 3);
+      } else if (d.kind === 'fountain') {
+        // Mini Fontaine à Vœux
+        g.fill(107, 75, 91); g.circle(d.cx, d.cy, 14);
+        g.fill(138, 206, 230); g.circle(d.cx, d.cy, 11);
+        g.fill(255, 250, 236); g.circle(d.cx, d.cy, 4);
+      } else if (d.kind === 'prize') {
+        // Mini Prize Boutique (paquet cadeau rose & doré)
+        g.fill(107, 75, 91); g.rect(d.cx - 8, d.cy - 7, 16, 14, 2);
+        g.fill(246, 152, 174); g.rect(d.cx - 7, d.cy - 6, 14, 12, 1);
+        g.fill(255, 234, 134); g.rect(d.cx - 1, d.cy - 6, 2, 12); g.rect(d.cx - 7, d.cy - 1, 14, 2);
+      } else {
+        // Chariots Sweets / Popcorn / Tarot / Rings
+        const colMap = {
+          sweets: [248, 178, 198],
+          popcorn: [236, 114, 110],
+          tarot: [198, 164, 224],
+          rings: [176, 222, 154]
+        };
+        const cc = colMap[d.kind] || [232, 207, 166];
+        g.fill(107, 75, 91); g.rect(d.cx - 7, d.cy - 6, 14, 12, 2);
+        g.fill(cc[0], cc[1], cc[2]); g.rect(d.cx - 6, d.cy - 5, 12, 10, 1);
+      }
+    }
+
+    // Étiquettes discrètes des 3 ailes en bas de la mini-carte
+    PixelUI.txt(g, font, 'WEST: SHOP & TREATS', mx0 + Math.round(mw / 6), my0 + mh - 12, g.color(72, 106, 62), CENTER, 6.8);
+    PixelUI.txt(g, font, 'MAIN PLAZA', mx0 + Math.round(mw / 2), my0 + mh - 12, g.color(72, 106, 62), CENTER, 6.8);
+    PixelUI.txt(g, font, 'EAST: RIDES & WISH', mx0 + Math.round((mw * 5) / 6), my0 + mh - 12, g.color(72, 106, 62), CENTER, 6.8);
+
+    // Marqueur animé en direct de Moo (suit X et Y dans tout le parc !)
+    const mp = this.worldToMiniMap(this.moo.pos.x, this.moo.pos.y);
+    const pinY = mp.y + Math.round(Math.sin(t * 0.16) * 1.5);
+    g.fill(107, 75, 91); g.circle(mp.x, pinY, 10);
+    g.fill(246, 134, 164); g.circle(mp.x, pinY, 8);
+    g.fill(255, 250, 228); g.circle(mp.x, pinY, 4);
+    // Petites oreilles de lapin sur le marqueur de Moo !
+    g.fill(246, 134, 164);
+    g.rect(mp.x - 3, pinY - 8, 2, 4);
+    g.rect(mp.x + 1, pinY - 8, 2, 4);
+
+    // Barre d'info en bas : nom du lieu survolé + astuce clic
+    const infoTxt = hoveredDest
+      ? 'Click to travel to: ' + hoveredDest.label
+      : 'Click any booth or attraction to fast-travel!  •  Esc / M to close';
+    PixelUI.panel(g, ox + 52, oy + 198, 376, 20, hoveredDest ? g.color(223, 240, 187) : g.color(244, 232, 194));
+    PixelUI.txt(g, font, infoTxt, ox + 240, oy + 203, hoveredDest ? g.color(62, 106, 70) : g.color(107, 75, 91), CENTER, 8.2, 366);
+    PixelUI.txt(g, font, 'Pink Bunny Pin = You are here!', ox + 240, oy + 223, g.color(168, 86, 98), CENTER, 7.5);
     g.pop();
   }
 
@@ -1861,7 +1989,7 @@ class HubScene extends Scene {
         this.game.sound.playSfx('ui_click', 0.8);
         return;
       }
-      if (mx < ox + 58 || mx > ox + 422 || my < oy + 42 || my > oy + 214) this.mapOverlay = false;
+      if (mx < ox + 40 || mx > ox + 440 || my < oy + 28 || my > oy + 240) this.mapOverlay = false;
       return;
     }
 
