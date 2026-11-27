@@ -380,19 +380,21 @@ function draw() {
     g.pop();
   }
 
-  // Voile de transition fluide entre scènes
-  if (game.scenes && typeof game.scenes.drawTransitionOverlay === 'function') {
+  // Voile de transition fluide entre scènes (valide d'abord la couche scène + ses textes HD)
+  if (game.scenes && typeof game.scenes.drawTransitionOverlay === 'function' && game.scenes.transPhase !== 'IDLE') {
+    PixelUI.flushLayer(g);
     game.scenes.drawTransitionOverlay(g, game.viewW, game.viewH);
   }
 
-  // Menu pause global dessiné par-dessus la scène
+  // Menu livre global dessiné par-dessus une couche propre (recouvre 100% des textes HD dessous !)
   if (game.pauseMenu && game.pauseMenu.open) {
+    PixelUI.flushLayer(g);
     game.pauseMenu.draw(g);
   }
 
   image(g, 0, 0, width, height);
 
-  // Rendu natif HD de tous les textes UI par-dessus le pixel-art (ultra net, zéro pixelisation !)
+  // Rendu natif HD des textes de la couche supérieure
   PixelUI.flushText(width / Math.max(1, game.viewW), height / Math.max(1, game.viewH));
 }
 

@@ -470,8 +470,8 @@ class FoxScene extends Scene {
     this.drawHud(g);
 
     if (this.state === 'INTRO') this.drawIntroCard(g);
-    else if (this.state === 'PAUSED') this.drawPauseMenu(g);
-    else if (this.state === 'WIN' || this.state === 'LOSE') this.drawEndCard(g);
+    else if (this.state === 'PAUSED') { PixelUI.flushLayer(g); this.drawPauseMenu(g); }
+    else if (this.state === 'WIN' || this.state === 'LOSE') { PixelUI.flushLayer(g); this.drawEndCard(g); }
   }
 
   /** Dessine le Boss Zelda (Fire Cultist) sur la position & l'IA Steering Behaviors de FoxBoss. */

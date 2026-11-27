@@ -272,8 +272,10 @@ class DucklingScene extends Scene {
     } else if (this.state === 'INTRO_CARD') {
       this.drawIntroCard(g);
     } else if (this.state === 'PAUSED') {
+      PixelUI.flushLayer(g);
       this.drawPauseMenu(g);
     } else if (this.state === 'WIN' || this.state === 'TIMEUP') {
+      PixelUI.flushLayer(g);
       this.drawEndCard(g);
     }
   }

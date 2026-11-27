@@ -101,6 +101,27 @@ class PixelUI {
     PixelUI._textQueue.length = 0;
   }
 
+  /**
+   * Valide la couche courante (pixel-art + textes HD accumulés) sur l'écran principal,
+   * puis efface le buffer `g` afin qu'un menu ou overlay dessiné ensuite recouvre
+   * proprement TOUS les textes HD situés dessous (tout en gardant 100% du texte en HD !).
+   */
+  static flushLayer(g) {
+    if (!g || typeof image !== 'function') return;
+    const vw = (typeof game !== 'undefined' && game.viewW) ? game.viewW : g.width;
+    const vh = (typeof game !== 'undefined' && game.viewH) ? game.viewH : g.height;
+    image(g, 0, 0, width, height);
+    PixelUI.flushText(width / Math.max(1, vw), height / Math.max(1, vh));
+    if (g.drawingContext) {
+      g.drawingContext.save();
+      g.drawingContext.setTransform(1, 0, 0, 1, 0, 0);
+      g.drawingContext.clearRect(0, 0, g.width, g.height);
+      g.drawingContext.restore();
+    } else {
+      g.clear();
+    }
+  }
+
   /** Mesure proprement la largeur d'un texte avec la police UI courante. */
   static measureText(g, textStr, size = 9.5) {
     g.push();
@@ -198,6 +219,7 @@ class PixelUI {
    * @param {Object} cfg { title, headerCol, rules: string[], controls: string, btnRect, btnLabel, mx, my }
    */
   static drawRulesCard(g, font, cfg) {
+    PixelUI.flushLayer(g);
     const px = 54;
     const py = 32;
     const pw = 372;

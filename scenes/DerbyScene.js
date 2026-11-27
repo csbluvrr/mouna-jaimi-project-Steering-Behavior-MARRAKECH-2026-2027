@@ -570,11 +570,11 @@ class DerbyScene extends Scene {
       PixelUI.txt(g, font, hudText, 12, 4, g.color(107, 75, 91), LEFT, 7.5, 278);
     }
 
-    // Overlays
-    if (this.state === 'INTRO') this.drawIntroCard(g);
-    else if (this.state === 'BETTING') this.drawBettingCard(g);
-    else if (this.state === 'PAUSED') this.drawPauseMenu(g);
-    else if (this.state === 'GRADUATED' || this.state === 'RACE_FINISH') this.drawFinishCard(g);
+    // Overlays (flushLayer pour que les cartes recouvrent proprement le HUD HD derrière)
+    if (this.state === 'INTRO') { PixelUI.flushLayer(g); this.drawIntroCard(g); }
+    else if (this.state === 'BETTING') { PixelUI.flushLayer(g); this.drawBettingCard(g); }
+    else if (this.state === 'PAUSED') { PixelUI.flushLayer(g); this.drawPauseMenu(g); }
+    else if (this.state === 'GRADUATED' || this.state === 'RACE_FINISH') { PixelUI.flushLayer(g); this.drawFinishCard(g); }
   }
 
   /** Petit schéma temps réel des entrées (rayons) -> couche cachée -> sorties du leader. */

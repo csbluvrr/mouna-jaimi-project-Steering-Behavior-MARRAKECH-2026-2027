@@ -755,9 +755,9 @@ class HubScene extends Scene {
     }
 
     this.drawHud(g);
-    if (this.overlay) this.drawPosterOverlay(g);
-    if (this.mapOverlay) this.drawMapOverlay(g);
-    if (this.prizeShop && this.prizeShop.open) this.prizeShop.draw(g);
+    if (this.overlay) { PixelUI.flushLayer(g); this.drawPosterOverlay(g); }
+    if (this.mapOverlay) { PixelUI.flushLayer(g); this.drawMapOverlay(g); }
+    if (this.prizeShop && this.prizeShop.open) { PixelUI.flushLayer(g); this.prizeShop.draw(g); }
 
     if (millis() < this.toastUntil && this.toast) {
       const w = Math.round(PixelUI.measureText(g, this.toast, 9) + 16);
