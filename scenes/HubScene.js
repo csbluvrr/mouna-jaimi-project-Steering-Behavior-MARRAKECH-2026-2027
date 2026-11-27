@@ -379,10 +379,10 @@ class HubScene extends Scene {
         name: 'Link', guestFile: 'link_walk', guestW: 32, guestH: 32, guestFrames: 6,
         bounds: [320, 138, 130, 42], emote: 'Star',
         dialogue: {
-          text: "Hyaa! The Fire Mage inside the Legend of Moo booth is tough!",
+          text: "HUT! HYAAH! ... Hup! Hyaa!",
           choices: [
-            { label: '1. Any tips for the boss?', reply: "Double-jump across the stone platforms and aim your Boomerang!" },
-            { label: '2. Cool green tunic!', reply: "*Link nods proudly and adjusts his Triforce cap!*" }
+            { label: '1. Any tips for the boss?', reply: "HYAAH! HUP! HUT-HUT! SEIYAAH!" },
+            { label: '2. Cool green tunic!', reply: "Heh! ... Hup! HYAA!" }
           ]
         }
       }),
