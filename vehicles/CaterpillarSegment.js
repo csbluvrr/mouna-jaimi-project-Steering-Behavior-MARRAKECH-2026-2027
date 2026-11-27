@@ -36,10 +36,11 @@ class CaterpillarSegment extends Vehicle {
     this.vel.limit(this.maxSpeed);
   }
 
-  show(g, colorName = 'green') {
+  show(g, colorName = 'normal') {
+    const isShiny = colorName === 'shiny';
     const file = this.isTail
-      ? 'minigames/pokemoo/onix_tail.png'
-      : 'minigames/pokemoo/onix_rock.png';
+      ? (isShiny ? 'minigames/pokemoo/onix_tail_shiny.png' : 'minigames/pokemoo/onix_tail.png')
+      : (isShiny ? 'minigames/pokemoo/onix_rock_shiny.png' : 'minigames/pokemoo/onix_rock.png');
     const img = this.assets.getImage(file);
 
     const wiggle = Math.sin(frameCount * 0.2 - this.index * 0.65) * 0.6;

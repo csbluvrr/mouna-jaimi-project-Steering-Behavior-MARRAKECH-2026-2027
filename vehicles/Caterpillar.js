@@ -185,8 +185,8 @@ class Caterpillar extends Vehicle {
   }
 
   getActiveColor() {
-    if (this.boostFrames > 0) return 'blue';
-    return 'green';
+    if (this.boostFrames > 0) return 'shiny';
+    return 'normal';
   }
 
   show(g) {
@@ -206,17 +206,20 @@ class Caterpillar extends Vehicle {
       this.segments[i].show(g, colName);
     }
 
-    // Halo Pokémon si boost actif (vitesse Quick Ball ou Rare Candy 2x)
+    // Halo Shiny Onix doré si boost de vitesse actif (Quick Ball)
     const px = Math.round(this.pos.x);
     const py = Math.round(this.pos.y);
-    if (this.boostFrames > 0) {
+    const isShiny = this.boostFrames > 0;
+    if (isShiny) {
       g.noFill();
-      g.stroke(96, 198, 255, 190);
+      g.stroke(224, 242, 112, 195);
       g.strokeWeight(1.5);
-      g.circle(px, py, 22 + Math.sin(frameCount * 0.3) * 2);
+      g.circle(px, py, 24 + Math.sin(frameCount * 0.3) * 2);
     }
 
-    const headImg = this.assets.getImage('minigames/pokemoo/onix_head.png');
+    const headImg = this.assets.getImage(
+      isShiny ? 'minigames/pokemoo/onix_head_shiny.png' : 'minigames/pokemoo/onix_head.png'
+    );
     g.push();
     g.translate(px, py);
     if (this.vel.x < -0.1) {
