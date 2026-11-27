@@ -150,7 +150,7 @@ function applyPixelCrispness() {
   }
 }
 
-/** Verrouille Échap en plein écran (Chrome/Opera/Edge) pour ouvrir le menu au lieu de quitter le plein écran. */
+/** Verrouille Échap en plein écran (Chrome/Opera/Edge) : un appui court ouvre le livre-menu, un appui long quitte le plein écran. */
 function lockEscapeInFullscreen() {
   if (navigator.keyboard && typeof navigator.keyboard.lock === 'function') {
     navigator.keyboard.lock(['Escape']).catch(() => {});
@@ -167,7 +167,7 @@ function unlockEscapeFromFullscreen() {
 
 function toggleFullscreen() {
   if (!document.fullscreenElement) {
-    document.documentElement.requestFullscreen()
+    document.documentElement.requestFullscreen({ navigationUI: 'hide' })
       .then(() => lockEscapeInFullscreen())
       .catch(() => {});
   } else {
@@ -175,6 +175,26 @@ function toggleFullscreen() {
     document.exitFullscreen().catch(() => {});
   }
 }
+
+/** Ouvre/ferme le menu livre (ou ferme un sous-panneau éventuel). */
+function triggerMenuToggle() {
+  if (!game.assets || !game.assets.ready) return;
+  const cur = game.scenes ? game.scenes.current : null;
+  if (cur && cur.showCredits) {
+    cur.showCredits = false;
+    return;
+  }
+  if (cur && cur.overlay) {
+    cur.overlay = false;
+    return;
+  }
+  if (game.pauseMenu) {
+    game.pauseMenu.toggle();
+  }
+}
+
+let escHoldTimer = null;
+let escLongTriggered = false;
 
 function setupFullscreenButton() {
   const btn = document.getElementById('fullscreen-btn');
@@ -200,12 +220,62 @@ function setupFullscreenButton() {
     setTimeout(windowResized, 60);
   });
 
-  // Empêcher le comportement navigateur par défaut sur Échap (géré par notre menu pause)
+  // Ré-appliquer le verrou Échap si la fenêtre reprend le focus en plein écran
+  window.addEventListener('focus', () => {
+    if (document.fullscreenElement) lockEscapeInFullscreen();
+  });
+
+  // Gestion native en phase capture pour F (geste utilisateur garanti) et Échap (court = menu, long = quitter plein écran)
   window.addEventListener('keydown', (e) => {
+    if (!game.assets || !game.assets.ready) return;
+
+    // Touche F : plein écran natif (hors champs texte)
+    if ((e.key === 'f' || e.key === 'F') && !e.repeat) {
+      const tag = e.target && e.target.tagName;
+      if (tag !== 'INPUT' && tag !== 'TEXTAREA' && tag !== 'SELECT') {
+        e.preventDefault();
+        toggleFullscreen();
+        return;
+      }
+    }
+
+    // Touche Échap : appui court -> menu livre ; appui long (>= 800ms) en plein écran -> quitter plein écran
     if (e.key === 'Escape') {
       e.preventDefault();
+      e.stopPropagation();
+      if (e.repeat) return;
+
+      if (!document.fullscreenElement) {
+        triggerMenuToggle();
+        return;
+      }
+
+      escLongTriggered = false;
+      clearTimeout(escHoldTimer);
+      escHoldTimer = setTimeout(() => {
+        escLongTriggered = true;
+        unlockEscapeFromFullscreen();
+        if (document.fullscreenElement) {
+          document.exitFullscreen().catch(() => {});
+        }
+      }, 800);
     }
-  });
+  }, true);
+
+  window.addEventListener('keyup', (e) => {
+    if (e.key === 'Escape') {
+      e.preventDefault();
+      e.stopPropagation();
+      if (escHoldTimer) {
+        clearTimeout(escHoldTimer);
+        escHoldTimer = null;
+        if (!escLongTriggered) {
+          triggerMenuToggle();
+        }
+      }
+      escLongTriggered = false;
+    }
+  }, true);
 
   updateLabel();
 }
@@ -330,27 +400,14 @@ function mousePressed(event) {
 function keyPressed() {
   if (!game.assets.ready) return;
 
-  // Touche F : bascule plein écran
-  if (key === 'f' || key === 'F') {
-    toggleFullscreen();
+  // F et Échap sont gérés en phase capture native (pour garantir Keyboard Lock & appui long)
+  if (key === 'f' || key === 'F' || keyCode === ESCAPE) {
     return false;
   }
 
-  // Touches Échap ou M : ferme un sous-panneau éventuel, sinon ouvre/ferme le menu pause
-  // (sans jamais quitter le plein écran grâce à Keyboard Lock API)
-  if (keyCode === ESCAPE || key === 'm' || key === 'M') {
-    const cur = game.scenes.current;
-    if (cur && cur.showCredits) {
-      cur.showCredits = false;
-      return false;
-    }
-    if (cur && cur.overlay) {
-      cur.overlay = false;
-      return false;
-    }
-    if (game.pauseMenu) {
-      game.pauseMenu.toggle();
-    }
+  // Touche M : ouvre/ferme le menu livre
+  if (key === 'm' || key === 'M') {
+    triggerMenuToggle();
     return false;
   }
 
