@@ -327,21 +327,55 @@ class DucklingScene extends Scene {
       }
     }
 
-    // Petites fleurs crème & caramel dans l'herbe
-    for (let i = 0; i < 14; i++) {
-      const fx = 28 + (i * 73) % 315;
-      const fy = 40 + (i * 47) % 205;
+    // Petites fleurs crème & caramel qui ondulent doucement dans la brise
+    const t = frameCount;
+    for (let i = 0; i < 16; i++) {
+      const fx = 24 + (i * 73) % 320 + Math.round(Math.sin(t * 0.04 + i) * 0.8);
+      const fy = 38 + (i * 47) % 208;
       g.fill(255, 244, 182);
       g.circle(fx, fy, 4);
-      g.fill(158, 96, 56);
+      g.fill(i % 3 === 0 ? g.color(246, 152, 174) : g.color(158, 96, 56));
       g.circle(fx, fy, 1.5);
     }
 
-    // Mare caramel-lait / bleue douce à contourner
+    // Petites bottes de foin & champignons décoratifs près des bords (hors trajectoire centrale)
+    g.fill(232, 194, 108);
+    g.rect(20, 34, 14, 9, 2);
+    g.rect(24, 242, 14, 9, 2);
+    g.fill(186, 134, 68);
+    g.rect(24, 34, 2, 9);
+    g.rect(28, 242, 2, 9);
+
+    // Mare caramel-lait / bleue douce avec ondulations, nénuphars et reflet coucher de soleil
+    g.fill(118, 182, 206);
+    g.ellipse(this.pond.x, this.pond.y + 1, this.pond.rx * 2 + 2, this.pond.ry * 2 + 2);
     g.fill(134, 198, 218);
     g.ellipse(this.pond.x, this.pond.y, this.pond.rx * 2, this.pond.ry * 2);
     g.fill(174, 224, 240);
     g.ellipse(this.pond.x - 6, this.pond.y - 3, this.pond.rx * 1.1, this.pond.ry * 0.9);
+    // Reflet chaud progressif sur l'eau
+    const duskRatio = 1 - this.timeLeft / this.totalTime;
+    if (duskRatio > 0.2) {
+      g.fill(255, 192, 142, Math.round((duskRatio - 0.2) * 115));
+      g.ellipse(this.pond.x + 4, this.pond.y + 2, this.pond.rx * 0.9, this.pond.ry * 0.5);
+    }
+    // Ondulation animée + nénuphar + roseaux
+    const rip = (t % 48) / 48;
+    g.noFill();
+    g.stroke(236, 250, 255, Math.round((1 - rip) * 150));
+    g.strokeWeight(1);
+    g.ellipse(this.pond.x, this.pond.y, 10 + rip * 26, 6 + rip * 16);
+    g.noStroke();
+    g.fill(118, 182, 104);
+    g.circle(this.pond.x + 12, this.pond.y + 6, 7);
+    g.fill(248, 174, 198);
+    g.rect(this.pond.x + 11, this.pond.y + 5, 2, 2);
+    // Petits roseaux sur le bord gauche de la mare
+    g.fill(114, 162, 92);
+    g.rect(this.pond.x - this.pond.rx + 2, this.pond.y - 8, 2, 10);
+    g.rect(this.pond.x - this.pond.rx + 6, this.pond.y - 6, 2, 8);
+    g.fill(138, 86, 56);
+    g.rect(this.pond.x - this.pond.rx + 2, this.pond.y - 10, 2, 3);
 
     // Clôture caramel Pompompurin
     g.noFill();
@@ -361,6 +395,16 @@ class DucklingScene extends Scene {
     g.rect(p.x, p.y, p.w, p.h);
     g.fill(244, 220, 146);
     g.rect(p.x + 4, p.y + 4, p.w - 8, p.h - 8);
+
+    // Petite maisonnette / grange kawaii des Purins dans le coin haut-droit de l'enclos
+    g.fill(250, 240, 206);
+    g.rect(p.x + p.w - 28, p.y + 6, 22, 18);
+    g.fill(142, 88, 58);
+    g.triangle(p.x + p.w - 30, p.y + 8, p.x + p.w - 17, p.y + 1, p.x + p.w - 4, p.y + 8);
+    g.fill(118, 72, 52);
+    g.rect(p.x + p.w - 20, p.y + 15, 6, 9, 2, 2, 0, 0);
+    g.fill(252, 224, 128);
+    g.circle(p.x + p.w - 17, p.y + 11, 3);
 
     // Clôtures solides chocolat-caramel (porte UNIQUEMENT à gauche de y+30 à y+78)
     g.stroke(118, 72, 52);

@@ -507,7 +507,37 @@ class DerbyScene extends Scene {
       b.show(g, scaleX, scaleY, b === leader, (this.showRays || Vehicle.debug) && b === leader);
     }
 
-    // Ballons colorés qui flottent autour du circuit + pollen doré
+    // Ballons colorés qui flottent autour du circuit + tribune de spectateurs animés + pollen doré
+    // Mini tribune festive de spectateurs en haut à droite (hors piste)
+    g.push();
+    g.noStroke();
+    g.fill(107, 75, 91);
+    g.rect(314, 4, 156, 17, 2);
+    g.fill(186, 138, 102);
+    g.rect(315, 5, 154, 15, 1);
+    g.fill(236, 212, 172);
+    g.rect(316, 13, 152, 6);
+    const fanCols = [
+      [246, 152, 174], [252, 224, 134], [158, 212, 236],
+      [212, 176, 232], [176, 226, 158], [250, 188, 138]
+    ];
+    for (let i = 0; i < 12; i++) {
+      const fx = 322 + i * 12;
+      const cheer = Math.floor((frameCount + i * 9) / 14) % 2 === 0 ? -1 : 0;
+      const c = fanCols[i % fanCols.length];
+      g.fill(c[0], c[1], c[2]);
+      g.rect(fx, 8 + cheer, 6, 6, 1);
+      g.fill(107, 75, 91);
+      g.rect(fx + 1, 10 + cheer, 1, 1);
+      g.rect(fx + 4, 10 + cheer, 1, 1);
+      // Petit drapeau agité par un spectateur sur 3
+      if (i % 3 === 0) {
+        g.fill(255, 246, 182);
+        g.rect(fx + 6, 6 + cheer, 3, 2);
+      }
+    }
+    g.pop();
+
     for (const bl of this.balloons) {
       const bsp = assets.getSprite(bl.sprite);
       if (bsp) {

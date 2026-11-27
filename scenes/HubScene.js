@@ -424,6 +424,7 @@ class HubScene extends Scene {
     }
 
     // 2. Objets Y-triés du Hub central original (les 4 stands + Grande Roue tournante + Poster + MAP)
+    const nearId = this.promptTrigger ? this.promptTrigger.id : null;
     const items = layout.objects
       .filter((o) => {
         if (o.id === 'picnic_blanket') return false;
@@ -452,18 +453,23 @@ class HubScene extends Scene {
               return;
             }
             if (o.id === 'title_sign') {
-              g.push();
-              g.noStroke();
-              g.fill(107, 75, 91);
-              g.rect(ox + 10, oyObj + 32, 8, 64);
-              g.rect(ox + 154, oyObj + 32, 8, 64);
-              g.fill(144, 98, 93);
-              g.rect(ox + 11, oyObj + 32, 6, 63);
-              g.rect(ox + 155, oyObj + 32, 6, 63);
-              g.pop();
+              this.drawArchPillarsAndLanterns(g, ox, oyObj);
             }
+            const isBooth = o.sprite && o.sprite.startsWith('booth_');
+            const boothGameId = isBooth ? o.sprite.replace('booth_', '') : null;
+            const isNear = boothGameId && nearId === boothGameId;
+            const bounceY = isNear ? Math.round(Math.sin(frameCount * 0.16) * 1.2) : 0;
+
             const sp = assets.getSprite(o.sprite);
-            if (sp) g.image(sp, ox, oyObj);
+            if (sp) g.image(sp, ox, oyObj + bounceY);
+
+            if (isBooth) {
+              this.drawMainBoothProps(g, font, boothGameId, ox, oyObj + bounceY, isNear);
+            }
+            // Petit oiseau bleu perché sur le panneau GAMES
+            if (o.id === 'poster') {
+              this.drawPerchedBird(g, ox + 46, oyObj - 3);
+            }
           }
         };
       });
@@ -490,22 +496,35 @@ class HubScene extends Scene {
       draw: () => this.drawMapSignpost(g, font, this.mapBoardPos)
     });
 
-    // Stand Prize Booth dans l'aile Ouest
+    // Stand Prize Booth dans l'aile Ouest (avec peluches, paquets cadeaux et guirlande lumineuse)
     items.push({
       sortY: this.prizeBoothPos.sortY,
       draw: () => {
+        const isNearPrize = nearId === 'prize';
+        const bounceY = isNearPrize ? Math.round(Math.sin(frameCount * 0.16) * 1.2) : 0;
         const sp = assets.getImage('generated/booths/booth_prize.png');
-        if (sp) g.image(sp, this.prizeBoothPos.x, this.prizeBoothPos.y);
+        if (sp) g.image(sp, this.prizeBoothPos.x, this.prizeBoothPos.y + bounceY);
+        this.drawPrizeBoothDecor(g, this.prizeBoothPos.x, this.prizeBoothPos.y + bounceY, isNearPrize);
       }
     });
 
-    // Pavillons "Coming Soon" cohérents des ailes Ouest & Est
+    // Pavillons "Coming Soon" thématiques des ailes Ouest & Est
     for (const ph of this.wingPlaceholders) {
       items.push({
         sortY: ph.sortY,
         draw: () => this.drawPlaceholderBooth(g, font, ph)
       });
     }
+
+    // Détails vivants & mobilier de parc sur les 3 ailes (fontaine Est, chat endormi, lampadaires)
+    items.push(
+      { sortY: 218, draw: () => this.drawSleepingCat(g, 96, 214) },
+      { sortY: 204, draw: () => this.drawHubFountain(g, 694, 196) },
+      { sortY: 132, draw: () => this.drawGardenLamp(g, -296, 114, skyMood) },
+      { sortY: 132, draw: () => this.drawGardenLamp(g, -162, 114, skyMood) },
+      { sortY: 132, draw: () => this.drawGardenLamp(g, 526, 114, skyMood) },
+      { sortY: 132, draw: () => this.drawGardenLamp(g, 734, 114, skyMood) }
+    );
 
     // Décors des ailes Ouest & Est
     for (const wo of this.wingObjects) {
@@ -529,9 +548,18 @@ class HubScene extends Scene {
       });
     });
 
+    // Ondulations douces sur la mare aux canetons (Place Centrale)
+    this.drawPondRipples(g, 396, 214);
+
     // Visiteurs & mascottes sur les 3 ailes
     for (const v of this.visitors) {
-      items.push({ sortY: v.pos.y, draw: () => v.show(g) });
+      items.push({
+        sortY: v.pos.y,
+        draw: () => {
+          v.show(g);
+          if (v.kind === 'fox_nap') this.drawSleepZzz(g, v.pos.x + 6, v.pos.y - 16);
+        }
+      });
     }
 
     // Canetons de la mare
@@ -562,14 +590,16 @@ class HubScene extends Scene {
 
     items.sort((a, b) => a.sortY - b.sortY).forEach((it) => it.draw());
 
-    // 3. Guirlandes, lumières, ballons et papillons
+    // 3. Guirlandes ondulantes au vent, lumières, ballons et papillons
     layout.rows.bunting.forEach((b) => {
       const sp = assets.getSprite(b.sprite);
-      if (sp) g.image(sp, b.x, 90 + ((Math.abs(b.x) / 16) % 2 ? 1 : 0));
+      const sway = Math.round(Math.sin(frameCount * 0.045 + b.x * 0.04) * 1);
+      if (sp) g.image(sp, b.x, 90 + ((Math.abs(b.x) / 16) % 2 ? 1 : 0) + sway);
     });
     this.wingBunting.forEach((b) => {
       const sp = assets.getSprite(b.sprite);
-      if (sp) g.image(sp, b.x, 90 + ((Math.abs(b.x) / 16) % 2 ? 1 : 0));
+      const sway = Math.round(Math.sin(frameCount * 0.045 + b.x * 0.04) * 1);
+      if (sp) g.image(sp, b.x, 90 + ((Math.abs(b.x) / 16) % 2 ? 1 : 0) + sway);
     });
     layout.rows.lights.forEach((l, i) => {
       const sp = assets.getSprite((Math.floor(frameCount / 30) + i) % 2 ? 'lights_on' : 'lights_dim');
@@ -654,6 +684,13 @@ class HubScene extends Scene {
     ];
 
     g.push();
+    // 0. Halo lumineux pastel derrière la Grande Roue + petites étincelles
+    g.noStroke();
+    g.fill(255, 244, 194, 24);
+    g.circle(cx, cy, r * 2.45);
+    g.fill(255, 250, 224, 26);
+    g.circle(cx, cy, r * 1.7);
+
     // 1. Structure arrière (support en A)
     g.stroke(107, 75, 91);
     g.strokeWeight(5);
@@ -719,24 +756,312 @@ class HubScene extends Scene {
       g.strokeWeight(1);
       g.line(gx, gy, gx, gy + 3);
 
-      // Nacelle pastel
+      // Nacelle pastel avec petites silhouettes de passagers
       g.fill(col[0], col[1], col[2]);
       g.rect(gx - 4, gy + 3, 8, 7, 1);
       g.noStroke();
       g.fill(255, 250, 232);
-      g.rect(gx - 3, gy + 4, 6, 2);
+      g.rect(gx - 3, gy + 4, 6, 3);
+      if (i % 2 === 0) {
+        g.fill(107, 75, 91, 185);
+        g.rect(gx - 2, gy + 4, 2, 2);
+        g.rect(gx + 1, gy + 5, 2, 1);
+      }
+    }
+    // Étincelles dorées intermittentes autour de la roue
+    for (let s = 0; s < 3; s++) {
+      const phase = (frameCount * 0.05 + s * 2.1) % TWO_PI;
+      const a = Math.round(Math.max(0, Math.sin(phase)) * 220);
+      if (a > 40) {
+        const sx = Math.round(cx + Math.cos(s * 2.1 + 0.5) * (r + 8));
+        const sy = Math.round(cy + Math.sin(s * 2.1 + 0.5) * (r + 8));
+        g.fill(255, 248, 180, a);
+        g.rect(sx, sy, 2, 2);
+      }
     }
     g.pop();
   }
 
-  /** Dessine un pavillon "Coming Soon" proprement intégré dans le style Sprout Lands. */
+  /** Piliers en bois de l'arche MOO'S FUNFAIR avec lanternes suspendues et fleurs au pied. */
+  drawArchPillarsAndLanterns(g, ox, oyObj) {
+    const t = frameCount;
+    const glow = Math.round(45 + Math.sin(t * 0.08) * 16);
+    g.push();
+    g.noStroke();
+    const xs = [ox + 10, ox + 154];
+    for (let i = 0; i < xs.length; i++) {
+      const px = xs[i];
+      g.fill(107, 75, 91);
+      g.rect(px, oyObj + 32, 8, 64);
+      g.fill(144, 98, 93);
+      g.rect(px + 1, oyObj + 32, 6, 63);
+      g.fill(218, 178, 134);
+      g.rect(px + 1, oyObj + 34, 2, 58);
+
+      // Lanterne chaude suspendue sur le côté intérieur du pilier
+      const lx = i === 0 ? px + 9 : px - 5;
+      const ly = oyObj + 40;
+      g.fill(255, 232, 148, glow);
+      g.circle(lx + 2, ly + 4, 14);
+      g.fill(107, 75, 91);
+      g.rect(lx, ly, 4, 6, 1);
+      g.fill(255, 236, 152);
+      g.rect(lx + 1, ly + 1, 2, 4);
+
+      // Touffe fleurie au pied du pilier
+      g.fill(118, 174, 98);
+      g.rect(px - 2, oyObj + 91, 12, 4, 1);
+      g.fill(i === 0 ? g.color(246, 152, 174) : g.color(252, 224, 134));
+      g.rect(px, oyObj + 90, 2, 2);
+      g.rect(px + 6, oyObj + 91, 2, 2);
+    }
+    g.pop();
+  }
+
+  /** Accessoires thématiques distinctifs et enseigne lisible pour chacun des 4 stands principaux. */
+  drawMainBoothProps(g, font, id, x, y, isNear) {
+    const t = frameCount;
+    g.push();
+    g.noStroke();
+
+    // Lueur d'invitation douce quand Moo est devant le stand
+    if (isNear) {
+      const pulse = Math.round(32 + Math.sin(t * 0.14) * 18);
+      g.fill(255, 246, 176, pulse);
+      g.rect(x - 2, y + 6, 54, 52, 4);
+    }
+
+    if (id === 'derby') {
+      // Drapeaux à damier + mini trophée doré sur le comptoir
+      const wave = Math.round(Math.sin(t * 0.1) * 1);
+      g.fill(107, 75, 91);
+      g.rect(x + 2, y + 2, 1, 12);
+      g.rect(x + 47, y + 2, 1, 12);
+      g.fill(252, 248, 236);
+      g.rect(x + 3, y + 2 + wave, 6, 4);
+      g.rect(x + 41, y + 2 - wave, 6, 4);
+      g.fill(64, 48, 60);
+      g.rect(x + 3, y + 2 + wave, 3, 2);
+      g.rect(x + 6, y + 4 + wave, 3, 2);
+      g.rect(x + 41, y + 2 - wave, 3, 2);
+      g.rect(x + 44, y + 4 - wave, 3, 2);
+      // Mini trophée doré
+      g.fill(244, 198, 78);
+      g.rect(x + 38, y + 32, 5, 5);
+      g.rect(x + 39, y + 37, 3, 2);
+      PixelUI.panel(g, x + 7, y + 43, 36, 10, g.color(248, 236, 198));
+      PixelUI.txt(g, font, 'DERBY', x + 25, y + 44, g.color(142, 66, 78), CENTER, 6.2, 34);
+    } else if (id === 'snake') {
+      // Emblème Poké Ball + baie décorative
+      g.fill(107, 75, 91);
+      g.circle(x + 25, y + 7, 11);
+      g.fill(220, 74, 80);
+      g.arc(x + 25, y + 7, 9, 9, PI, TWO_PI);
+      g.fill(250, 248, 240);
+      g.arc(x + 25, y + 7, 9, 9, 0, PI);
+      g.fill(58, 44, 56);
+      g.rect(x + 20, y + 6, 10, 2);
+      g.fill(250, 248, 240);
+      g.circle(x + 25, y + 7, 3);
+      // Petit rocher Onix à côté du comptoir
+      g.fill(134, 138, 152);
+      g.ellipse(x + 9, y + 36, 8, 6);
+      PixelUI.panel(g, x + 5, y + 43, 40, 10, g.color(248, 236, 198));
+      PixelUI.txt(g, font, 'POKEMOO', x + 25, y + 44, g.color(184, 58, 66), CENTER, 6, 38);
+    } else if (id === 'ducklings') {
+      // Emblème Purin (chapeau caramel + corps jaune crème) + jardinière fleurie
+      g.fill(252, 224, 128);
+      g.ellipse(x + 25, y + 8, 10, 8);
+      g.fill(136, 84, 56);
+      g.rect(x + 21, y + 3, 8, 3, 1);
+      g.fill(92, 60, 48);
+      g.rect(x + 23, y + 7, 1, 1);
+      g.rect(x + 26, y + 7, 1, 1);
+      // Petites fleurs sur le comptoir
+      g.fill(116, 176, 104);
+      g.rect(x + 36, y + 35, 8, 4);
+      g.fill(252, 224, 134);
+      g.rect(x + 37, y + 34, 2, 2);
+      g.fill(246, 152, 174);
+      g.rect(x + 41, y + 34, 2, 2);
+      PixelUI.panel(g, x + 7, y + 43, 36, 10, g.color(248, 236, 198));
+      PixelUI.txt(g, font, 'PURINS', x + 25, y + 44, g.color(150, 96, 56), CENTER, 6.2, 34);
+    } else if (id === 'fox') {
+      // Crête Triforce dorée + petit coffre au trésor sur le côté
+      g.fill(246, 206, 82);
+      g.triangle(x + 25, y + 1, x + 21, y + 7, x + 29, y + 7);
+      g.triangle(x + 21, y + 7, x + 18, y + 11, x + 24, y + 11);
+      g.triangle(x + 29, y + 7, x + 26, y + 11, x + 32, y + 11);
+      // Mini coffre au trésor
+      g.fill(107, 75, 91);
+      g.rect(x + 7, y + 32, 9, 7);
+      g.fill(166, 114, 72);
+      g.rect(x + 8, y + 33, 7, 5);
+      g.fill(246, 206, 82);
+      g.rect(x + 8, y + 35, 7, 1);
+      g.rect(x + 11, y + 34, 1, 3);
+      PixelUI.panel(g, x + 7, y + 43, 36, 10, g.color(248, 236, 198));
+      PixelUI.txt(g, font, 'LEGEND', x + 25, y + 44, g.color(102, 72, 136), CENTER, 6.2, 34);
+    }
+    g.pop();
+  }
+
+  /** Décorations animées du Prize Booth (guirlande lumineuse, peluches suspendues, cadeaux). */
+  drawPrizeBoothDecor(g, x, y, isNear) {
+    const t = frameCount;
+    g.push();
+    g.noStroke();
+    if (isNear) {
+      g.fill(255, 242, 178, Math.round(30 + Math.sin(t * 0.14) * 16));
+      g.rect(x - 2, y + 6, 54, 52, 4);
+    }
+    // Guirlande d'ampoules pastel sous l'auvent
+    for (let i = 0; i < 6; i++) {
+      const lit = (Math.floor(t / 16) + i) % 2 === 0;
+      g.fill(lit ? g.color(255, 248, 172) : g.color(248, 176, 198));
+      g.rect(x + 7 + i * 7, y + 23, 2, 2);
+    }
+    // Petites peluches suspendues (lapin rose, caneton jaune, renard pêche)
+    g.fill(246, 168, 192);
+    g.rect(x + 10, y + 26, 4, 5, 1);
+    g.fill(252, 224, 128);
+    g.rect(x + 23, y + 26, 4, 5, 1);
+    g.fill(242, 164, 108);
+    g.rect(x + 36, y + 26, 4, 5, 1);
+    // Paquets cadeaux empilés à gauche du comptoir
+    g.fill(107, 75, 91);
+    g.rect(x - 9, y + 44, 9, 9);
+    g.fill(246, 152, 174);
+    g.rect(x - 8, y + 45, 7, 7);
+    g.fill(255, 242, 166);
+    g.rect(x - 5, y + 45, 1, 7);
+    g.rect(x - 8, y + 48, 7, 1);
+    g.pop();
+  }
+
+  /** Petit chat endormi près des fleurs (Place Centrale) avec respiration douce. */
+  drawSleepingCat(g, x, y) {
+    const breath = Math.floor(frameCount / 36) % 2;
+    g.push();
+    g.noStroke();
+    g.fill(68, 48, 62, 55);
+    g.ellipse(x + 5, y + 6, 13, 4);
+    g.fill(107, 75, 91);
+    g.rect(x, y + breath, 10, 6 - breath, 2);
+    g.fill(246, 196, 146);
+    g.rect(x + 1, y + 1 + breath, 8, 4 - breath, 1);
+    g.fill(186, 118, 86);
+    g.rect(x + 2, y + 1 + breath, 3, 2);
+    // Petites oreilles + queue enroulée
+    g.fill(246, 196, 146);
+    g.rect(x + 7, y - 1 + breath, 2, 2);
+    g.rect(x + 9, y + 4, 2, 2);
+    this.drawSleepZzz(g, x + 9, y - 4);
+    g.pop();
+  }
+
+  /** Petit oiseau bleu perché sur le panneau GAMES qui sautille parfois. */
+  drawPerchedBird(g, x, y) {
+    const hop = (frameCount % 160) < 14 ? -Math.round(Math.sin(((frameCount % 160) / 14) * Math.PI) * 3) : 0;
+    g.push();
+    g.noStroke();
+    g.fill(107, 75, 91);
+    g.rect(x, y + hop, 6, 4, 1);
+    g.fill(134, 198, 236);
+    g.rect(x + 1, y + 1 + hop, 4, 2);
+    g.fill(248, 196, 98);
+    g.rect(x + 6, y + 1 + hop, 2, 1);
+    g.pop();
+  }
+
+  /** Ondulations douces et nénuphars scintillants sur la mare aux canetons. */
+  drawPondRipples(g, cx, cy) {
+    const t = frameCount;
+    g.push();
+    g.noFill();
+    g.strokeWeight(1);
+    for (let i = 0; i < 2; i++) {
+      const p = ((t * 0.014 + i * 0.5) % 1);
+      g.stroke(236, 250, 255, Math.round((1 - p) * 130));
+      g.ellipse(cx + (i === 0 ? -8 : 10), cy + (i === 0 ? -2 : 4), 6 + p * 18, 3 + p * 8);
+    }
+    g.pop();
+  }
+
+  /** Fontaine à vœux animée dans l'Aile Est. */
+  drawHubFountain(g, cx, cy) {
+    const t = frameCount;
+    g.push();
+    g.noStroke();
+    g.fill(107, 75, 91);
+    g.ellipse(cx, cy + 4, 34, 14);
+    g.fill(212, 202, 190);
+    g.ellipse(cx, cy + 2, 32, 12);
+    g.fill(138, 206, 230);
+    g.ellipse(cx, cy + 2, 26, 8);
+    const rip = (t % 38) / 38;
+    g.noFill();
+    g.stroke(232, 248, 255, Math.round((1 - rip) * 170));
+    g.strokeWeight(1);
+    g.ellipse(cx, cy + 2, 6 + rip * 16, 2 + rip * 5);
+    g.noStroke();
+    g.fill(186, 174, 164);
+    g.rect(cx - 3, cy - 9, 6, 11);
+    g.fill(226, 216, 206);
+    g.rect(cx - 5, cy - 10, 10, 3);
+    for (let i = 0; i < 4; i++) {
+      const p = ((t * 0.06 + i * 0.25) % 1);
+      const dir = i % 2 === 0 ? 1 : -1;
+      const wx = Math.round(cx + dir * p * 8);
+      const wy = Math.round(cy - 11 - Math.sin(p * Math.PI) * 7 + p * 11);
+      g.fill(224, 248, 255, 220);
+      g.rect(wx, wy, 2, 2);
+    }
+    g.pop();
+  }
+
+  /** Petit lampadaire de jardin avec halo chaud (plus lumineux au coucher du soleil). */
+  drawGardenLamp(g, x, y, skyMood) {
+    const isSunset = skyMood === 'sunset';
+    const glowA = Math.round((isSunset ? 66 : 26) + Math.sin(frameCount * 0.08 + x) * 10);
+    g.push();
+    g.noStroke();
+    g.fill(255, 232, 148, glowA);
+    g.circle(x + 2, y + 3, isSunset ? 22 : 14);
+    g.fill(107, 75, 91);
+    g.rect(x + 1, y + 5, 2, 14);
+    g.rect(x, y + 17, 4, 2);
+    g.rect(x, y, 4, 5, 1);
+    g.fill(255, 242, 166);
+    g.rect(x + 1, y + 1, 2, 3);
+    g.pop();
+  }
+
+  /** Petites bulles "zZz" flottantes au-dessus des animaux endormis (Renard & Chat). */
+  drawSleepZzz(g, x, y) {
+    const p = (frameCount * 0.022) % 1;
+    const zx = Math.round(x + Math.sin(p * TWO_PI) * 2);
+    const zy = Math.round(y - p * 10);
+    const a = Math.round(Math.sin(p * Math.PI) * 210);
+    if (a < 20) return;
+    g.push();
+    g.noStroke();
+    g.fill(255, 250, 236, a);
+    g.rect(zx, zy, 3, 1);
+    g.rect(zx + 1, zy + 1, 1, 1);
+    g.rect(zx, zy + 2, 3, 1);
+    g.pop();
+  }
+
+  /** Dessine les pavillons "Coming Soon" thématiques des ailes Ouest & Est (Sweets, Photo, Rings, Tarot). */
   drawPlaceholderBooth(g, font, ph) {
     const x = ph.x;
     const y = ph.y;
+    const t = frameCount;
     g.push();
-    // Fond intérieur + poteaux
     g.noStroke();
-    g.fill(236, 224, 198);
+    // Fond intérieur + poteaux
+    g.fill(ph.label === 'TAROT' ? g.color(84, 62, 108) : g.color(236, 224, 198));
     g.rect(x + 5, y + 22, 40, 20);
     g.fill(107, 75, 91);
     g.rect(x + 4, y + 22, 5, 34);
@@ -744,6 +1069,49 @@ class HubScene extends Scene {
     g.fill(182, 137, 98);
     g.rect(x + 5, y + 23, 3, 32);
     g.rect(x + 42, y + 23, 3, 32);
+
+    // Décoration intérieure thématique
+    if (ph.label === 'SWEETS') {
+      // Bocaux de bonbons + barbe à papa
+      g.fill(248, 178, 198);
+      g.circle(x + 15, y + 32, 8);
+      g.fill(176, 224, 246);
+      g.circle(x + 35, y + 32, 8);
+      g.fill(252, 224, 134);
+      g.rect(x + 22, y + 33, 6, 5, 1);
+    } else if (ph.label === 'PHOTO') {
+      // Rideaux roses entrouverts + polaroïds suspendus
+      g.fill(236, 146, 174);
+      g.rect(x + 9, y + 24, 7, 14);
+      g.rect(x + 34, y + 24, 7, 14);
+      g.fill(255, 252, 244);
+      g.rect(x + 19, y + 25, 5, 6);
+      g.rect(x + 26, y + 26, 5, 6);
+    } else if (ph.label === 'RINGS') {
+      // Bouteilles de lait + anneaux colorés
+      g.fill(246, 244, 236);
+      g.rect(x + 14, y + 31, 3, 7);
+      g.rect(x + 23, y + 31, 3, 7);
+      g.rect(x + 32, y + 31, 3, 7);
+      g.noFill();
+      g.stroke(246, 152, 174);
+      g.strokeWeight(1);
+      g.ellipse(x + 18, y + 36, 6, 3);
+      g.stroke(252, 222, 128);
+      g.ellipse(x + 30, y + 36, 6, 3);
+      g.noStroke();
+    } else if (ph.label === 'TAROT') {
+      // Étoiles dorées, cristal suspendu et petites bougies vacillantes
+      g.fill(248, 214, 114);
+      g.rect(x + 13, y + 26, 2, 2);
+      g.rect(x + 34, y + 27, 2, 2);
+      g.fill(176, 224, 248);
+      g.triangle(x + 25, y + 24, x + 22, y + 30, x + 28, y + 30);
+      const flick = Math.floor(t / 10) % 2;
+      g.fill(255, 236, 156);
+      g.rect(x + 13, y + 34 - flick, 2, 2);
+      g.rect(x + 35, y + 34 + flick, 2, 2);
+    }
 
     // Comptoir bois
     g.fill(107, 75, 91);
@@ -763,10 +1131,11 @@ class HubScene extends Scene {
       g.rect(sx + 1, y + 14, sw - 2, 10);
     }
 
-    // Enseigne bois "SOON"
+    // Enseigne bois + badge SOON bien lisible
     PixelUI.panel(g, x + 8, y + 2, 34, 11, g.color(247, 236, 198));
     PixelUI.txt(g, font, ph.label, x + 25, y + 3, g.color(107, 75, 91), CENTER, 6.5, 32);
-    PixelUI.txt(g, font, 'SOON', x + 25, y + 28, g.color(144, 98, 93), CENTER, 6.5, 34);
+    PixelUI.panel(g, x + 11, y + 45, 28, 10, g.color(247, 236, 198));
+    PixelUI.txt(g, font, 'SOON', x + 25, y + 46, g.color(144, 98, 93), CENTER, 6.2, 26);
     g.pop();
   }
 

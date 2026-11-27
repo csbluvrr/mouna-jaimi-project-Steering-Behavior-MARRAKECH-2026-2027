@@ -307,25 +307,76 @@ class FoxScene extends Scene {
       g.background(126, 178, 212);
     }
 
-    // Collines & colonnes antiques du temple Zelda
+    // Collines, murs antiques & colonnes du temple Zelda avec torches vacillantes, bannières et runes
+    const t = frameCount;
     g.noStroke();
     g.fill(88, 128, 96);
     g.rect(0, 94, 480, 178);
-    g.fill(74, 108, 86, 180);
-    for (const px of [24, 168, 296, 440]) {
+    // Arche lointaine du sanctuaire
+    g.fill(66, 94, 80, 150);
+    g.rect(92, 102, 296, 138);
+    g.fill(82, 118, 96, 140);
+    g.rect(112, 114, 256, 126);
+
+    for (let idx = 0; idx < 4; idx++) {
+      const px = [24, 168, 296, 440][idx];
+      g.fill(74, 108, 86, 200);
       g.rect(px, 98, 16, 142);
-      g.fill(102, 138, 114, 170);
+      g.fill(102, 138, 114, 185);
       g.rect(px + 2, 98, 4, 142);
-      g.fill(74, 108, 86, 180);
+      // Chapiteau & socle de colonne
+      g.fill(116, 148, 124, 210);
+      g.rect(px - 2, 96, 20, 5);
+      g.rect(px - 2, 234, 20, 6);
+
+      // Runes mystiques cyan scintillantes sur les colonnes centrales
+      if (idx === 1 || idx === 2) {
+        const runeA = Math.round(95 + Math.sin(t * 0.08 + idx) * 65);
+        g.fill(124, 226, 246, runeA);
+        g.rect(px + 6, 146, 4, 2);
+        g.rect(px + 7, 150, 2, 5);
+        g.rect(px + 6, 157, 4, 2);
+      }
+
+      // Bannière royale rouge & or suspendue
+      g.fill(168, 64, 78, 210);
+      g.rect(px + 3, 104, 10, 20);
+      g.triangle(px + 3, 124, px + 8, 130, px + 13, 124);
+      g.fill(248, 208, 92, 220);
+      g.rect(px + 6, 108, 4, 10);
+
+      // Torche murale animée avec halo chaud
+      const tx = px + 8;
+      const ty = 176;
+      const flick = Math.sin(t * 0.25 + idx * 1.9);
+      g.fill(255, 194, 96, Math.round(42 + flick * 14));
+      g.circle(tx, ty - 2, 24 + flick * 3);
+      g.fill(92, 62, 54);
+      g.rect(tx - 2, ty, 4, 8);
+      g.fill(255, 142, 64);
+      g.triangle(tx - 3, ty, tx, ty - 7 - Math.round(flick), tx + 3, ty);
+      g.fill(255, 238, 148);
+      g.rect(tx - 1, ty - 4, 2, 4);
     }
 
-    // Symbole Triforce doré lumineux gravé au centre du temple
+    // Symbole Triforce doré lumineux gravé au centre du temple (s'illumine en victoire !)
     g.push();
     g.noStroke();
-    g.fill(252, 216, 102, 120);
+    const winBoost = this.state === 'WIN' ? 90 : 0;
+    const triPulse = Math.round(36 + Math.sin(t * 0.07) * 16 + winBoost * 0.5);
+    g.fill(255, 226, 118, triPulse);
+    g.circle(240, 78, this.state === 'WIN' ? 76 : 46);
+    g.fill(252, 216, 102, Math.min(255, 145 + winBoost));
     g.triangle(240, 62, 232, 76, 248, 76);
     g.triangle(232, 76, 224, 90, 240, 90);
     g.triangle(248, 76, 240, 90, 256, 90);
+    // Particules de mana dorées dérivant dans le temple
+    for (let i = 0; i < 10; i++) {
+      const mx = Math.round(((i * 53 + t * (0.14 + (i % 3) * 0.05)) % 470) + 5);
+      const my = Math.round(108 + ((i * 31) % 124) + Math.sin(t * 0.06 + i) * 5);
+      g.fill(255, 238, 162, Math.round(90 + Math.sin(t * 0.1 + i) * 70));
+      g.rect(mx, my, 2, 2);
+    }
     g.pop();
 
     // 2. Sol du temple + 3 plateformes en blocs Zelda (sprBlueBlock / sprDarkPurpleBlock)

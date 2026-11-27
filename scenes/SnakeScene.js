@@ -521,6 +521,27 @@ class SnakeScene extends Scene {
     g.arc(fcx, fcy, 66, 66, PI, TWO_PI);
     g.fill(255, 255, 245, 36);
     g.arc(fcx, fcy, 66, 66, 0, PI);
+    // Projecteurs doux de stade depuis les 4 coins
+    const spotA = Math.round(14 + Math.sin(frameCount * 0.05) * 6);
+    g.fill(255, 248, 206, spotA);
+    g.triangle(bx, by, bx + 95, by + 25, bx + 42, by + 85);
+    g.triangle(bx + bw, by, bx + bw - 95, by + 25, bx + bw - 42, by + 85);
+    g.pop();
+
+    // Spectateurs miniatures dans les tribunes autour du stade PokéMoo
+    g.push();
+    g.noStroke();
+    const crowdCols = [[238, 104, 110], [252, 224, 128], [148, 206, 238], [210, 174, 232], [174, 226, 158]];
+    for (let i = 0; i < 16; i++) {
+      const cx = bx + 14 + i * 28;
+      const hop = Math.floor((frameCount + i * 7) / 16) % 2 === 0 ? -1 : 0;
+      const c = crowdCols[i % crowdCols.length];
+      g.fill(c[0], c[1], c[2], 210);
+      g.rect(cx, by + bh + 4 + hop, 5, 4, 1);
+      g.fill(107, 75, 91, 180);
+      g.rect(cx + 1, by + bh + 5 + hop, 1, 1);
+      g.rect(cx + 3, by + bh + 5 + hop, 1, 1);
+    }
     g.pop();
 
     // Petits îlots de terre douce

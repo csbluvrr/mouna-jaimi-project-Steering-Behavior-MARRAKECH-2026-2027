@@ -702,15 +702,59 @@ class PauseMenu {
       PixelUI.txt(g, font, 'Win tickets for the', rp.x + 8, rp.y + 134, roseInk, LEFT, 7.5, 102);
       PixelUI.txt(g, font, 'Prize Booth shop!', rp.x + 8, rp.y + 148, ink, LEFT, 7.5, 102);
     } else if (idx === 2) {
-      // PAGE 2 DROITE : Info Steering Behaviors
+      // PAGE 2 DROITE : Légende visuelle illustrée des Steering Behaviors (icônes & flèches)
       this.drawPageHeader(g, font, 'STEERING AI', rp);
-      PixelUI.txt(g, font, 'Craig Reynolds', rp.x + 8, rp.y + 34, roseInk, LEFT, 8.5, 102);
-      PixelUI.txt(g, font, 'Press [H] anytime', rp.x + 8, rp.y + 52, ink, LEFT, 8, 102);
-      PixelUI.txt(g, font, 'for debug vectors,', rp.x + 8, rp.y + 66, ink, LEFT, 8, 102);
-      PixelUI.txt(g, font, 'Snake sliders, &', rp.x + 8, rp.y + 80, ink, LEFT, 8, 102);
-      PixelUI.txt(g, font, 'Derby AI Trainer!', rp.x + 8, rp.y + 94, ink, LEFT, 8, 102);
-      PixelUI.txt(g, font, '100% Vehicle +', rp.x + 8, rp.y + 124, roseInk, LEFT, 8, 102);
-      PixelUI.txt(g, font, 'BehaviorManager', rp.x + 8, rp.y + 138, roseInk, LEFT, 8, 102);
+      const legend = [
+        { label: 'Seek / Arrive', col: [86, 166, 98],  icon: 'arrow_in' },
+        { label: 'Flee / Evade',  col: [216, 96, 108], icon: 'arrow_out' },
+        { label: 'Pursue',        col: [198, 128, 68], icon: 'pursue' },
+        { label: 'Wander',        col: [132, 114, 186], icon: 'wander' },
+        { label: 'Avoid',         col: [189, 117, 126], icon: 'avoid' },
+        { label: 'Separation',    col: [94, 154, 198], icon: 'sep' },
+        { label: 'Boundaries',    col: [144, 98, 93],  icon: 'bounds' }
+      ];
+      g.push();
+      for (let i = 0; i < legend.length; i++) {
+        const it = legend[i];
+        const y = rp.y + 30 + i * 16;
+        const ix = rp.x + 12;
+        const iy = y + 4;
+        g.stroke(it.col[0], it.col[1], it.col[2]);
+        g.strokeWeight(1.5);
+        g.noFill();
+        if (it.icon === 'arrow_in') {
+          g.line(ix - 4, iy, ix + 4, iy);
+          g.line(ix + 1, iy - 3, ix + 4, iy);
+          g.line(ix + 1, iy + 3, ix + 4, iy);
+        } else if (it.icon === 'arrow_out') {
+          g.line(ix + 4, iy, ix - 4, iy);
+          g.line(ix - 1, iy - 3, ix - 4, iy);
+          g.line(ix - 1, iy + 3, ix - 4, iy);
+        } else if (it.icon === 'pursue') {
+          g.line(ix - 4, iy + 2, ix + 3, iy - 2);
+          g.noStroke();
+          g.fill(it.col[0], it.col[1], it.col[2]);
+          g.circle(ix + 4, iy - 2, 3);
+        } else if (it.icon === 'wander') {
+          g.circle(ix, iy, 7);
+          g.noStroke();
+          g.fill(it.col[0], it.col[1], it.col[2]);
+          g.circle(ix + 2, iy - 2, 2.5);
+        } else if (it.icon === 'avoid') {
+          g.arc(ix, iy + 2, 8, 8, PI, TWO_PI);
+          g.noStroke();
+          g.fill(it.col[0], it.col[1], it.col[2]);
+          g.circle(ix, iy + 2, 3);
+        } else if (it.icon === 'sep') {
+          g.line(ix - 4, iy, ix - 1, iy);
+          g.line(ix + 1, iy, ix + 4, iy);
+        } else {
+          g.rect(ix - 4, iy - 3, 8, 6);
+        }
+        PixelUI.txt(g, font, it.label, rp.x + 24, y, ink, LEFT, 7.5, 86);
+      }
+      g.pop();
+      PixelUI.txt(g, font, 'Press [H] for vectors!', rp.x + 8, rp.y + 146, roseInk, LEFT, 7.5, 104);
     } else {
       // PAGE 3 DROITE : Boutons Exit / Hub / Resume
       this.drawPageHeader(g, font, 'EXIT MENU', rp);

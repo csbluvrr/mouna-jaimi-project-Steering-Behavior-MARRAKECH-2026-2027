@@ -181,8 +181,19 @@ class PrizeShop {
       }
     }
 
-    // === PANNEAU APERÇU MOO À GAUCHE (essayage en direct 2x en 4 directions) ===
-    PixelUI.panel(g, L.previewBox.x, L.previewBox.y, L.previewBox.w, L.previewBox.h, g.color(223, 240, 187));
+    // === PANNEAU APERÇU MOO À GAUCHE (cabine boutique pastel + essayage en direct 2x en 4 directions) ===
+    PixelUI.panel(g, L.previewBox.x, L.previewBox.y, L.previewBox.w, L.previewBox.h, g.color(228, 244, 198));
+    // Petits rideaux roses de cabine boutique + guirlande dorée dans l'encadré d'aperçu
+    g.noStroke();
+    g.fill(236, 152, 178, 170);
+    g.rect(L.previewBox.x + 2, L.previewBox.y + 2, 10, 44, 0, 0, 4, 0);
+    g.rect(L.previewBox.x + L.previewBox.w - 12, L.previewBox.y + 2, 10, 44, 0, 0, 0, 4);
+    // Petites étoiles scintillantes de boutique autour de Moo
+    const sparkA = Math.round(130 + Math.sin(frameCount * 0.1) * 80);
+    g.fill(255, 232, 128, sparkA);
+    g.rect(L.previewBox.x + 18, L.previewBox.y + 26, 2, 2);
+    g.rect(L.previewBox.x + L.previewBox.w - 22, L.previewBox.y + 34, 2, 2);
+
     const dirNames = ['Front', 'Left', 'Right', 'Back'];
     PixelUI.txt(
       g, font,
@@ -190,13 +201,17 @@ class PrizeShop {
       L.previewBox.x + Math.round(L.previewBox.w / 2),
       L.previewBox.y + 6,
       g.color(70, 101, 80),
-      CENTER
+      CENTER,
+      8,
+      L.previewBox.w - 12
     );
 
-    // Podium herbe douce sous Moo
+    // Podium herbe & tapis boutique sous Moo
     g.noStroke();
+    g.fill(189, 117, 126, 90);
+    g.ellipse(L.previewBox.x + 63, L.previewBox.y + 107, 64, 18);
     g.fill(168, 206, 124);
-    g.ellipse(L.previewBox.x + 63, L.previewBox.y + 106, 56, 16);
+    g.ellipse(L.previewBox.x + 63, L.previewBox.y + 106, 56, 15);
 
     // Tenue prévisualisée (tenue actuelle + objet survolé temporairement)
     const previewOutfit = { ...save.data.equippedOutfit };
