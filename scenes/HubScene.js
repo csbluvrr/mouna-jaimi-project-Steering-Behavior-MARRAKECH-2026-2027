@@ -1031,9 +1031,10 @@ class HubScene extends Scene {
       SkyBackdrop.drawHorizonBlend(g, skyMood, this.worldLeft, this.worldRight, groundTop);
     }
 
-    // Ondulations & nénuphars de la mare aux canetons + Ruisseau, Pont en bois & Mare aux nénuphars (Est)
+    // Ondulations & nénuphars de la mare aux canetons + Ruisseau/Pont Est + Esplanade pavée de la Fontaine !
     this.drawPondSurfaceDetails(g, this.pondCenter.x, this.pondCenter.y);
     this.drawEastCreekAndBridge(g);
+    this.drawFountainPlazaGround(g, this.fountainPos.x, this.fountainPos.y);
 
     // Fleurs animées par la brise au sol
     for (const fl of this.ambientFlowers) {
@@ -1207,8 +1208,12 @@ class HubScene extends Scene {
         g.pop();
       }},
 
-      // Fontaine à vœux (Est) + Faon paisible + Lampadaires de jardin
-      { sortY: this.fountainPos.y + 8, draw: () => this.drawHubFountain(g, this.fountainPos.x, this.fountainPos.y, nearId === 'fountain') },
+      // Fontaine à vœux (Est) + Bancs & Lampadaires de l'esplanade + Faon paisible + Lampadaires de jardin
+      { sortY: this.fountainPos.y - 6,  draw: () => this.drawGardenLamp(g, this.fountainPos.x - 44, this.fountainPos.y - 24, skyMood) },
+      { sortY: this.fountainPos.y - 6,  draw: () => this.drawGardenLamp(g, this.fountainPos.x + 40, this.fountainPos.y - 24, skyMood) },
+      { sortY: this.fountainPos.y + 8,  draw: () => this.drawWoodenBench(g, this.fountainPos.x - 58, this.fountainPos.y + 2) },
+      { sortY: this.fountainPos.y + 8,  draw: () => this.drawWoodenBench(g, this.fountainPos.x + 34, this.fountainPos.y + 2) },
+      { sortY: this.fountainPos.y + 10, draw: () => this.drawHubFountain(g, this.fountainPos.x, this.fountainPos.y, nearId === 'fountain') },
       { sortY: 208, draw: () => this.drawMeadowDeer(g, 878, 204) },
       { sortY: 132, draw: () => this.drawGardenLamp(g, -306, 114, skyMood) },
       { sortY: 132, draw: () => this.drawGardenLamp(g, -166, 114, skyMood) },
@@ -1917,38 +1922,170 @@ class HubScene extends Scene {
     if (img) g.image(img, x - 4, y - 9, 14, 14);
   }
 
-  drawHubFountain(g, cx, cy, isNear) {
-    const t = frameCount;
+  /** Esplanade pavée en mosaïque de pierre entourant la Fontaine à Vœux (100% marchable). */
+  drawFountainPlazaGround(g, cx, cy) {
     g.push();
     g.noStroke();
-    if (isNear) {
-      g.fill(210, 244, 255, Math.round(32 + Math.sin(t * 0.14) * 16));
-      g.ellipse(cx, cy + 2, 42, 20);
-    }
-    g.fill(107, 75, 91);
-    g.ellipse(cx, cy + 4, 34, 14);
-    g.fill(212, 202, 190);
-    g.ellipse(cx, cy + 2, 32, 12);
-    g.fill(138, 206, 230);
-    g.ellipse(cx, cy + 2, 26, 8);
-    const rip = (t % 38) / 38;
+
+    // Allée nord reliant le chemin principal à l'esplanade de la fontaine
+    g.fill(158, 134, 126);
+    g.rect(cx - 14, cy - 36, 28, 20);
+    g.fill(236, 222, 194);
+    g.rect(cx - 12, cy - 35, 24, 18);
+
+    // Grand parvis ovale pavé (contour pierre + pavés crème + anneau mosaïque rose-doré)
+    g.fill(134, 110, 114);
+    g.ellipse(cx, cy + 2, 118, 56);
+    g.fill(232, 218, 192);
+    g.ellipse(cx, cy + 1, 114, 52);
+    g.fill(244, 234, 210);
+    g.ellipse(cx, cy + 1, 96, 44);
+
+    // Anneau décoratif en briques pastel autour du bassin
     g.noFill();
-    g.stroke(232, 248, 255, Math.round((1 - rip) * 170));
+    g.stroke(214, 178, 152);
+    g.strokeWeight(1.5);
+    g.ellipse(cx, cy + 1, 78, 35);
+    g.stroke(189, 144, 142, 150);
     g.strokeWeight(1);
-    g.ellipse(cx, cy + 2, 6 + rip * 16, 2 + rip * 5);
+    for (let i = 0; i < 12; i++) {
+      const a = (TWO_PI * i) / 12;
+      g.line(
+        Math.round(cx + Math.cos(a) * 32),
+        Math.round(cy + 1 + Math.sin(a) * 14),
+        Math.round(cx + Math.cos(a) * 54),
+        Math.round(cy + 1 + Math.sin(a) * 24)
+      );
+    }
+
+    // 4 petits parterres fleuris aux 4 coins diagonaux de l'esplanade
     g.noStroke();
-    g.fill(186, 174, 164);
-    g.rect(cx - 3, cy - 9, 6, 11);
-    g.fill(226, 216, 206);
-    g.rect(cx - 5, cy - 10, 10, 3);
-    for (let i = 0; i < 4; i++) {
-      const p = (t * 0.06 + i * 0.25) % 1;
+    const beds = [
+      { x: cx - 44, y: cy - 12, col: [248, 156, 182] },
+      { x: cx + 44, y: cy - 12, col: [252, 222, 124] },
+      { x: cx - 42, y: cy + 18, col: [164, 214, 244] },
+      { x: cx + 42, y: cy + 18, col: [248, 156, 182] }
+    ];
+    for (const bd of beds) {
+      g.fill(107, 75, 91);
+      g.ellipse(bd.x, bd.y, 14, 8);
+      g.fill(118, 178, 102);
+      g.ellipse(bd.x, bd.y - 1, 12, 6);
+      g.fill(bd.col[0], bd.col[1], bd.col[2]);
+      g.rect(bd.x - 4, bd.y - 3, 2, 2);
+      g.rect(bd.x + 1, bd.y - 2, 2, 2);
+      g.fill(255, 246, 188);
+      g.rect(bd.x - 1, bd.y - 1, 2, 2);
+    }
+    g.pop();
+  }
+
+  /** Grande Fontaine à Vœux sculptée à 3 niveaux avec pièces dorées, cascades et jets scintillants. */
+  drawHubFountain(g, cx, cy, isNear) {
+    const t = frameCount;
+    const skyMood = this.game.save && this.game.save.data.skyMood === 'sunset' ? 'sunset' : 'day';
+    const sb = typeof SkyBackdrop !== 'undefined' ? SkyBackdrop.getBlend(skyMood) : 0;
+
+    g.push();
+    g.noStroke();
+
+    // Halo lumineux magique quand Moo s'approche (ou au coucher de soleil)
+    if (isNear || sb > 0.1) {
+      const a = isNear ? Math.round(36 + Math.sin(t * 0.14) * 16) : Math.round(24 * sb);
+      g.fill(210, 246, 255, a);
+      g.ellipse(cx, cy + 2, 66, 30);
+    }
+
+    // 1. Grand bassin inférieur en marbre crème sculpté
+    g.fill(78, 62, 74, 70);
+    g.ellipse(cx, cy + 7, 56, 22);
+    g.fill(107, 75, 91);
+    g.ellipse(cx, cy + 4, 52, 21);
+    g.fill(226, 216, 204);
+    g.ellipse(cx, cy + 1, 50, 19);
+    g.fill(248, 242, 232);
+    g.ellipse(cx, cy, 46, 16);
+
+    // Eau turquoise scintillante du grand bassin + reflet coucher de soleil
+    g.fill(98, 178, 212);
+    g.ellipse(cx, cy + 1, 42, 13);
+    g.fill(142, 214, 238);
+    g.ellipse(cx, cy, 38, 10);
+    if (sb > 0.1) {
+      g.fill(255, 198, 152, Math.round(95 * sb));
+      g.ellipse(cx, cy, 34, 8);
+    }
+
+    // Pièces porte-bonheur dorées scintillant au fond de l'eau !
+    for (let i = 0; i < 5; i++) {
+      const glint = Math.sin(t * 0.12 + i * 1.9) > 0.3;
+      g.fill(glint ? g.color(255, 248, 184) : g.color(238, 192, 78, 190));
+      const coinX = cx - 13 + i * 6.5;
+      const coinY = cy + 1 + ((i % 2) ? 2 : -1);
+      g.rect(Math.round(coinX), Math.round(coinY), 2, 1);
+    }
+
+    // 2 ondes concentriques animées sur le bassin
+    g.noFill();
+    g.strokeWeight(1);
+    for (let r = 0; r < 2; r++) {
+      const rip = ((t * 0.022) + r * 0.5) % 1;
+      g.stroke(236, 252, 255, Math.round((1 - rip) * 175));
+      g.ellipse(cx, cy + 1, 8 + rip * 30, 3 + rip * 9);
+    }
+
+    // 2. Pilier central + vasque intermédiaire avec cascades d'eau
+    g.noStroke();
+    g.fill(107, 75, 91);
+    g.rect(cx - 5, cy - 13, 10, 14, 1);
+    g.fill(214, 204, 194);
+    g.rect(cx - 4, cy - 13, 8, 13);
+    g.fill(244, 236, 226);
+    g.rect(cx - 2, cy - 13, 3, 13);
+
+    // Vasque du milieu (largeur 26)
+    g.fill(107, 75, 91);
+    g.ellipse(cx, cy - 12, 28, 10);
+    g.fill(236, 228, 218);
+    g.ellipse(cx, cy - 13, 26, 8);
+    g.fill(142, 214, 238);
+    g.ellipse(cx, cy - 13, 22, 6);
+
+    // Petites cascades d'eau qui coulent de la vasque vers le grand bassin
+    const dropOff = (t % 10) / 10;
+    g.fill(218, 246, 255, 200);
+    for (const dx of [-10, -4, 4, 10]) {
+      g.rect(cx + dx, cy - 10 + Math.round(dropOff * 8), 2, 4);
+    }
+
+    // 3. Sommet sculpté + étoile dorée porte-bonheur + 6 jets d'eau en arche !
+    g.fill(107, 75, 91);
+    g.rect(cx - 3, cy - 23, 6, 10);
+    g.fill(238, 230, 220);
+    g.rect(cx - 2, cy - 23, 4, 9);
+    g.fill(252, 214, 98);
+    g.circle(cx, cy - 24, 5);
+    g.fill(255, 250, 216);
+    g.rect(cx - 1, cy - 25, 2, 2);
+
+    // 6 gouttes d'eau en arcs gracieux (haut -> vasque -> bassin)
+    for (let i = 0; i < 6; i++) {
+      const p = (t * 0.055 + i / 6) % 1;
       const dir = i % 2 === 0 ? 1 : -1;
-      const wx = Math.round(cx + dir * p * 8);
-      const wy = Math.round(cy - 11 - Math.sin(p * Math.PI) * 7 + p * 11);
-      g.fill(224, 248, 255, 220);
+      const span = i < 4 ? 11 : 16;
+      const wx = Math.round(cx + dir * p * span);
+      const wy = Math.round(cy - 24 - Math.sin(p * Math.PI) * 9 + p * 23);
+      g.fill(228, 250, 255, Math.round(230 * (1 - p * 0.25)));
       g.rect(wx, wy, 2, 2);
     }
+
+    // Étincelles magiques flottant au-dessus de la fontaine
+    if (Math.floor(t / 12) % 2 === 0) {
+      g.fill(255, 248, 186, 210);
+      g.rect(cx - 14 + Math.round(Math.sin(t * 0.05) * 3), cy - 18, 2, 2);
+      g.rect(cx + 12 + Math.round(Math.cos(t * 0.06) * 3), cy - 22, 2, 2);
+    }
+
     g.pop();
   }
 
