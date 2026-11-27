@@ -48,11 +48,17 @@ class AssetManager {
       files.add('generated/ambient/butterfly_2frames_12x10.png');
       files.add('generated/hub/stamp_empty_full_16x16.png');
 
-      // Nouveaux assets NPC, Mr. Carrot, Nouveau Lapin & Nouveau Renard
+      // Nouveaux assets NPC, Mr. Carrot, Nouveau Lapin, Nouveau Renard & Tiny Neighbours Vol1
       files.add('FREE SAMPLE NPC Characters by antarcticbees/girl1_idle.png');
       files.add('mr.carrot by caoduy/carrot sprite sheet.png');
       files.add('Bunny/Bunny 1 16x16 animation.png');
       files.add('Fox Sprite Sheet.png');
+      for (let i = 1; i <= 15; i++) {
+        files.add('Tiny Neighbours Vol1/NPC_' + i + '.png');
+      }
+      ['Heart', 'Happy', 'Star', 'Exclamation', 'Surprised', 'Interrogation'].forEach((em) => {
+        files.add('Tiny Neighbours Vol1/Emotes/' + em + '_emote_16x16.png');
+      });
 
       // Nouveaux assets PokéMoo Feast!! (Onix, Scorbunny, Gengar)
       files.add('generated/pokemon/onix_head.png');

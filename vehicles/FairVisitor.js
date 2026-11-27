@@ -19,6 +19,10 @@ class FairVisitor extends Vehicle {
     this.stationary = stationary;
     this.r = 7;
     this.greeting = options.greeting || null;
+    this.npcId = options.npcId || 1;       // 1..15 pour 'neighbour' (Tiny Neighbours Vol1)
+    this.tone = options.tone || 0;         // 0..2 teinte dans la spritesheet Tiny Neighbours
+    this.emote = options.emote || null;    // 'Heart' | 'Happy' | 'Star' | 'Exclamation' | 'Surprised' | 'Interrogation'
+    this.emoteTimer = 0;
     this.bounds = options.bounds || [24, 128, 432, 112];
     this.phase = random(TWO_PI);
     this.facingLeft = Boolean(options.facingLeft);
@@ -64,13 +68,17 @@ class FairVisitor extends Vehicle {
       this.facingLeft = moo.pos.x < this.pos.x;
     }
 
-    // Bulle de dialogue chaleureuse quand Moo passe tout près !
-    if (moo && this.greeting) {
+    // Bulle de dialogue & émote pixel animée quand Moo passe tout près !
+    if (moo && (this.greeting || this.emote)) {
       const dx = moo.pos.x - this.pos.x;
       const dy = moo.pos.y - this.pos.y;
-      this.showBubble = dx * dx + dy * dy < 38 * 38;
+      const near = dx * dx + dy * dy < 40 * 40;
+      if (near && !this.showBubble) this.emoteTimer = 0;
+      this.showBubble = near;
+      if (near) this.emoteTimer++;
     } else {
       this.showBubble = false;
+      this.emoteTimer = 0;
     }
   }
 
@@ -89,7 +97,17 @@ class FairVisitor extends Vehicle {
     g.push();
     g.translate(px, py);
 
-    if (this.kind === 'carrot') {
+    if (this.kind === 'neighbour') {
+      // Tiny Neighbours Vol1 (128x208, cellules 16x16 ; row 0 = header ; 3 teintes x 4 directions)
+      // Ordre des lignes par teinte : 0=bas, 1=gauche, 2=haut, 3=droite
+      const dirMap = [0, 1, 3, 2]; // dirRow (0=bas,1=gauche,2=droite,3=haut) -> offset feuille
+      const row = 1 + (this.tone % 3) * 4 + (dirMap[this.dirRow] || 0);
+      const colBase = moving ? 4 : 0;
+      const col = colBase + (Math.floor(frameCount / (moving ? 8 : 14) + this.phase) % 4);
+      const sheet = 'Tiny Neighbours Vol1/NPC_' + this.npcId + '.png';
+      const img = this.assets.getSheetFrame(sheet, 16, 16, col, row);
+      if (img) g.image(img, -10, -21, 20, 20);
+    } else if (this.kind === 'carrot') {
       // Mr. Carrot (352x224 = 11x7 cellules 32x32 ; row 2 = marche 7f, row 1 = danse 6f)
       const row = moving ? 2 : 1;
       const col = Math.floor(frameCount / 7 + this.phase) % (moving ? 7 : 6);
@@ -125,10 +143,21 @@ class FairVisitor extends Vehicle {
 
     g.pop();
 
-    // Bulle de dialogue joyeuse quand Moo est à côté
-    if (this.showBubble && this.greeting) {
+    // Émote animée 16x16 (Tiny Neighbours Vol1) + bulle de dialogue joyeuse quand Moo est à côté
+    if (this.showBubble) {
       const bob = Math.sin(frameCount * 0.12) * 1.2;
-      PixelUI.drawTag(g, this.assets.font, this.greeting, px, py - 34 + bob, g.color(255, 250, 224));
+      if (this.emote) {
+        const emFrame = Math.min(3, Math.floor(this.emoteTimer / 4));
+        const emPath = 'Tiny Neighbours Vol1/Emotes/' + this.emote + '_emote_16x16.png';
+        const emImg = this.assets.getSheetFrame(emPath, 16, 16, emFrame, 0);
+        if (emImg) {
+          const ey = this.greeting ? py - 46 + Math.round(bob) : py - 36 + Math.round(bob);
+          g.image(emImg, px - 8, ey);
+        }
+      }
+      if (this.greeting) {
+        PixelUI.drawTag(g, this.assets.font, this.greeting, px, py - 32 + bob, g.color(255, 250, 224));
+      }
     }
 
     if (Vehicle.debug && !this.stationary) {

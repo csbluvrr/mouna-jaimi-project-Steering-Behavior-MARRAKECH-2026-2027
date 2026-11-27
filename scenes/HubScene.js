@@ -150,43 +150,88 @@ class HubScene extends Scene {
       // Aile Ouest (Promenade des Prix)
       new FairVisitor(-184, 138, 'girl', this.game.assets, {
         stationary: true,
+        emote: 'Heart',
         greeting: 'Welcome to the Prize Booth!'
       }),
       new FairVisitor(-295, 166, 'carrot', this.game.assets, {
         bounds: [-410, 140, 280, 76],
+        emote: 'Star',
         greeting: 'Spend tickets on cute hats!'
       }),
+      new FairVisitor(-362, 152, 'neighbour', this.game.assets, {
+        npcId: 4, tone: 0, emote: 'Happy',
+        bounds: [-430, 142, 145, 70],
+        greeting: 'I want cotton candy soon!'
+      }),
+      new FairVisitor(-136, 162, 'neighbour', this.game.assets, {
+        npcId: 2, tone: 1, emote: 'Heart',
+        bounds: [-190, 142, 130, 68],
+        greeting: 'Cute hoodie, Moo!'
+      }),
       new FairVisitor(-142, 186, 'new_bunny', this.game.assets, {
-        bounds: [-210, 152, 160, 68]
+        bounds: [-210, 152, 160, 68],
+        emote: 'Happy'
       }),
 
-      // Place Centrale (Hub principal vivant mais aéré)
+      // Place Centrale (Hub principal vivant et chaleureux)
       new FairVisitor(218, 162, 'carrot', this.game.assets, {
         bounds: [120, 140, 220, 78],
+        emote: 'Star',
         greeting: "Welcome to Moo's Funfair!"
       }),
+      new FairVisitor(92, 152, 'neighbour', this.game.assets, {
+        npcId: 7, tone: 0, emote: 'Exclamation',
+        bounds: [36, 138, 140, 62],
+        greeting: 'Bunny Derby is so exciting!'
+      }),
+      new FairVisitor(194, 148, 'neighbour', this.game.assets, {
+        npcId: 11, tone: 1, emote: 'Happy',
+        bounds: [130, 138, 150, 56],
+        greeting: 'Love the Ferris wheel!'
+      }),
+      new FairVisitor(326, 152, 'neighbour', this.game.assets, {
+        npcId: 6, tone: 2, emote: 'Heart',
+        bounds: [265, 138, 155, 58],
+        greeting: 'The Purins are adorable!'
+      }),
       new FairVisitor(116, 178, 'new_bunny', this.game.assets, {
-        bounds: [60, 148, 130, 62]
+        bounds: [60, 148, 130, 62],
+        emote: 'Happy'
       }),
       new FairVisitor(362, 160, 'kid', this.game.assets, {
         bounds: [280, 140, 140, 56],
+        emote: 'Star',
         greeting: 'Check the Map or Games board!'
       }),
 
       // Aile Est (Prairie du Carnaval)
       new FairVisitor(630, 144, 'fox_nap', this.game.assets, {
         stationary: true,
+        emote: 'Heart',
         greeting: 'New booths opening soon!'
       }),
       new FairVisitor(712, 166, 'girl', this.game.assets, {
         stationary: true,
+        emote: 'Happy',
         greeting: 'Such a cozy funfair meadow!'
       }),
+      new FairVisitor(582, 164, 'neighbour', this.game.assets, {
+        npcId: 9, tone: 0, emote: 'Surprised',
+        bounds: [510, 142, 165, 70],
+        greeting: 'Make a wish at the fountain!'
+      }),
+      new FairVisitor(786, 158, 'neighbour', this.game.assets, {
+        npcId: 13, tone: 2, emote: 'Interrogation',
+        bounds: [710, 142, 190, 72],
+        greeting: 'Ooh, a Tarot tent!'
+      }),
       new FairVisitor(540, 176, 'kid', this.game.assets, {
-        bounds: [500, 144, 190, 72]
+        bounds: [500, 144, 190, 72],
+        emote: 'Happy'
       }),
       new FairVisitor(812, 184, 'new_bunny', this.game.assets, {
-        bounds: [720, 150, 170, 70]
+        bounds: [720, 150, 170, 70],
+        emote: 'Heart'
       })
     ];
 
