@@ -503,13 +503,12 @@ class HubScene extends Scene {
             const isBooth = o.sprite && o.sprite.startsWith('booth_');
             const boothGameId = isBooth ? o.sprite.replace('booth_', '') : null;
             const isNear = boothGameId && nearId === boothGameId;
-            const bounceY = isNear ? Math.round(Math.sin(frameCount * 0.16) * 1.2) : 0;
 
             const sp = assets.getSprite(o.sprite);
-            if (sp) g.image(sp, ox, oyObj + bounceY);
+            if (sp) g.image(sp, ox, oyObj);
 
             if (isBooth) {
-              this.drawMainBoothProps(g, font, boothGameId, ox, oyObj + bounceY, isNear);
+              this.drawMainBoothProps(g, font, boothGameId, ox, oyObj, isNear);
             }
             // Petit oiseau bleu perché sur le panneau GAMES
             if (o.id === 'poster') {
@@ -546,10 +545,9 @@ class HubScene extends Scene {
       sortY: this.prizeBoothPos.sortY,
       draw: () => {
         const isNearPrize = nearId === 'prize';
-        const bounceY = isNearPrize ? Math.round(Math.sin(frameCount * 0.16) * 1.2) : 0;
         const sp = assets.getImage('generated/booths/booth_prize.png');
-        if (sp) g.image(sp, this.prizeBoothPos.x, this.prizeBoothPos.y + bounceY);
-        this.drawPrizeBoothDecor(g, this.prizeBoothPos.x, this.prizeBoothPos.y + bounceY, isNearPrize);
+        if (sp) g.image(sp, this.prizeBoothPos.x, this.prizeBoothPos.y);
+        this.drawPrizeBoothDecor(g, this.prizeBoothPos.x, this.prizeBoothPos.y, isNearPrize);
       }
     });
 
