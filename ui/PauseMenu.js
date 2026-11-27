@@ -23,6 +23,67 @@ class PauseMenu {
 
     // Action exécutée automatiquement dès que le livre finit de se refermer
     this.pendingAction = null;
+
+    // Cache des 5 frames du livre recolorisées dans la palette pastel Sprout Lands
+    this.recoloredFrames = null;
+  }
+
+  /**
+   * Recolorise une seule fois les 5 sprites du livre dans la palette Sprout Lands
+   * (parchemin crème #f7ecc2, contour prune #6b4b5b, bois #b68962, rose poudré #bd757e,
+   * onglets pastel) — zéro coût CPU dans draw() !
+   */
+  ensureRecoloredBookFrames() {
+    if (this.recoloredFrames) return this.recoloredFrames;
+    const assets = this.game.assets;
+    if (!assets || !assets.ready) return null;
+
+    // Table de correspondance exacte des couleurs du sprite -> palette Moo's Funfair
+    const paletteMap = [
+      [[224, 131, 32],  [247, 236, 194]], // Page principale -> parchemin beurre crème
+      [[245, 193, 61],  [255, 249, 224]], // Reflet page -> crème lumineux
+      [[161, 65, 21],   [214, 174, 134]], // Ombre / coins -> bois biscuit chaud
+      [[125, 38, 20],   [182, 132, 106]], // Reliure / tranche -> bois caramel Sprout Lands
+      [[0, 0, 0],       [107, 75, 91]],   // Contour noir -> prune-brun #6b4b5b
+      [[24, 25, 26],    [107, 75, 91]],   // Contour sombre -> prune-brun #6b4b5b
+      [[143, 11, 66],   [189, 117, 126]], // Onglet 1 -> rose poudré #bd757e
+      [[194, 17, 70],   [228, 160, 148]], // Onglet 2 -> pêche pastel
+      [[245, 61, 77],   [158, 196, 214]], // Onglet 3 -> bleu ciel pastel
+      [[47, 138, 33],   [152, 198, 126]], // Onglet 4 -> sauge prairie
+      [[10, 64, 35],    [104, 146, 98]],  // Ombre onglet 4 -> vert doux
+      [[160, 212, 63],  [223, 240, 187]], // Flèche onglet 4 -> menthe pastel #dff0bb
+      [[89, 117, 133],  [126, 104, 118]], // Engrenage -> prune doux
+      [[178, 205, 212], [243, 244, 231]]  // Reflet icône -> ivoire
+    ];
+
+    this.recoloredFrames = {};
+    for (let i = 1; i <= 5; i++) {
+      const src = assets.getImage('ui/Icon & Menu/Icon & Menu/Menu/menu swipe animation' + i + '.png');
+      if (!src) continue;
+      const copy = createImage(src.width, src.height);
+      copy.copy(src, 0, 0, src.width, src.height, 0, 0, src.width, src.height);
+      copy.loadPixels();
+      const px = copy.pixels;
+      for (let p = 0; p < px.length; p += 4) {
+        if (px[p + 3] === 0) continue;
+        const r = px[p];
+        const gr = px[p + 1];
+        const b = px[p + 2];
+        for (let k = 0; k < paletteMap.length; k++) {
+          const from = paletteMap[k][0];
+          if (Math.abs(r - from[0]) <= 12 && Math.abs(gr - from[1]) <= 12 && Math.abs(b - from[2]) <= 12) {
+            const to = paletteMap[k][1];
+            px[p] = to[0];
+            px[p + 1] = to[1];
+            px[p + 2] = to[2];
+            break;
+          }
+        }
+      }
+      copy.updatePixels();
+      this.recoloredFrames[i] = copy;
+    }
+    return this.recoloredFrames;
   }
 
   /** Vrai tant que le livre est visible (ouvert ou en cours d'animation). */
@@ -253,9 +314,9 @@ class PauseMenu {
       spriteNum = 1 + idx; // 1, 2, 3, 4, 5
     }
 
-    const bookImg = assets
-      ? assets.getImage('ui/Icon & Menu/Icon & Menu/Menu/menu swipe animation' + spriteNum + '.png')
-      : null;
+    const frames = this.ensureRecoloredBookFrames();
+    const bookImg = (frames && frames[spriteNum])
+      || (assets ? assets.getImage('ui/Icon & Menu/Icon & Menu/Menu/menu swipe animation' + spriteNum + '.png') : null);
 
     // Léger rebond vertical à l'ouverture
     const bounceY = this.state === 'OPENING'
@@ -266,6 +327,17 @@ class PauseMenu {
       g.image(bookImg, m.bx, m.by + bounceY, m.bw, m.bh);
     } else {
       PixelUI.panel(g, m.bx + 12, m.by + 32, m.bw - 24, m.bh - 64);
+    }
+
+    // Petit ruban marque-page rose poudré qui dépasse doucement en bas de la reliure
+    if (this.state === 'OPEN' || this.state === 'FLIPPING') {
+      g.noStroke();
+      g.fill(107, 75, 91);
+      g.rect(m.spineX - 4, m.by + 220, 8, 15);
+      g.fill(189, 117, 126);
+      g.rect(m.spineX - 3, m.by + 220, 6, 13);
+      g.fill(247, 236, 194);
+      g.triangle(m.spineX - 3, m.by + 234, m.spineX + 3, m.by + 234, m.spineX, m.by + 230);
     }
 
     // 3. Contenu des pages (uniquement quand le livre est ouvert ou en train de tourner une page)
@@ -306,16 +378,16 @@ class PauseMenu {
     const x1 = Math.round(m.spineX + signedX);
 
     g.push();
-    // Ombre douce portée sur la reliure pendant le mouvement
+    // Ombre douce prune-bois portée sur la reliure pendant le mouvement
     g.noStroke();
-    g.fill(92, 42, 16, Math.round(sinA * 95));
+    g.fill(107, 75, 91, Math.round(sinA * 85));
     const shadowW = Math.max(6, Math.round(sinA * 26));
     g.rect(m.spineX - Math.round(shadowW / 2), topY + 2, shadowW, pageH - 2);
 
-    // Feuille de parchemin qui pivote (polygone trapézoïdal donnant l'effet 3D de courbure)
+    // Feuille de parchemin crème Sprout Lands qui pivote (effet 3D de courbure)
     const isFront = (dir > 0 && cosA >= 0) || (dir < 0 && cosA <= 0);
-    g.fill(isFront ? g.color(246, 186, 84) : g.color(230, 154, 54));
-    g.stroke(96, 44, 18);
+    g.fill(isFront ? g.color(255, 248, 220) : g.color(238, 218, 174));
+    g.stroke(107, 75, 91);
     g.strokeWeight(1.5);
     g.beginShape();
     g.vertex(x0, topY);
@@ -326,7 +398,7 @@ class PauseMenu {
 
     // Lignes d'écriture esquissées sur la page qui tourne
     if (Math.abs(x1 - x0) > 22) {
-      g.stroke(148, 84, 34, 140);
+      g.stroke(182, 137, 98, 150);
       g.strokeWeight(1);
       const minX = Math.min(x0, x1) + 8;
       const maxX = Math.max(x0, x1) - 8;
@@ -345,12 +417,12 @@ class PauseMenu {
       if (isAct || isHov) {
         g.push();
         g.noFill();
-        g.stroke(isAct ? g.color(255, 245, 190) : g.color(255, 230, 160, 180));
+        g.stroke(isAct ? g.color(255, 249, 224) : g.color(247, 235, 170, 190));
         g.strokeWeight(isAct ? 2 : 1);
         g.rect(tab.x + 1, tab.y + 1, tab.w - 2, tab.h - 2);
         if (isAct) {
           g.noStroke();
-          g.fill(255, 245, 190);
+          g.fill(255, 249, 224);
           g.triangle(
             tab.x + tab.w + 2, tab.y + Math.round(tab.h / 2),
             tab.x + tab.w + 7, tab.y + Math.round(tab.h / 2) - 4,
@@ -368,40 +440,40 @@ class PauseMenu {
       font,
       'Click tabs or <- / -> to flip  |  Esc / M: Close',
       Math.round(m.vw / 2),
-      m.by + m.bh - 18,
+      m.by + m.bh - 14,
       g.color(247, 235, 170),
       CENTER
     );
   }
 
-  /** Dessine une bannière de titre style papier/bois sur une page du livre. */
+  /** Dessine une bannière de titre rose poudré Sprout Lands sur une page du livre. */
   drawPageHeader(g, font, title, pageRect) {
     g.push();
-    g.fill(138, 62, 26);
-    g.stroke(62, 26, 12);
+    g.fill(189, 117, 126);
+    g.stroke(107, 75, 91);
     g.strokeWeight(1.5);
-    g.rect(pageRect.x + 10, pageRect.y + 6, pageRect.w - 20, 18, 2);
+    g.rect(pageRect.x + 8, pageRect.y + 6, pageRect.w - 16, 18, 2);
     PixelUI.txt(
       g,
       font,
       title,
       pageRect.x + Math.round(pageRect.w / 2),
       pageRect.y + 9,
-      g.color(255, 244, 214),
+      g.color(255, 249, 235),
       CENTER
     );
     g.pop();
   }
 
-  /** Dessine un bouton parchemin assorti au livre. */
+  /** Dessine un bouton pastel bois/menthe assorti au reste de Moo's Funfair. */
   drawBookButton(g, font, b, active) {
     g.push();
-    g.fill(active ? g.color(255, 238, 176) : (b.accent ? g.color(224, 240, 184) : g.color(166, 86, 36)));
-    g.stroke(62, 26, 12);
+    g.fill(active ? g.color(223, 240, 187) : (b.accent ? g.color(236, 244, 210) : g.color(232, 207, 166)));
+    g.stroke(107, 75, 91);
     g.strokeWeight(1.5);
     g.rect(b.x, b.y, b.w, b.h, 2);
 
-    const fg = active || b.accent ? g.color(74, 34, 16) : g.color(255, 244, 214);
+    const fg = active ? g.color(70, 101, 80) : g.color(107, 75, 91);
     const prefix = active ? '> ' : '';
     PixelUI.txt(g, font, prefix + b.label, b.x + Math.round(b.w / 2), b.y + 5, fg, CENTER);
     g.pop();
@@ -416,16 +488,17 @@ class PauseMenu {
     const lp = m.leftPage;
     const assets = this.game.assets;
     const save = this.game.save ? this.game.save.data : { tickets: 0, stars: {} };
-    const ink = g.color(82, 36, 16);
+    const ink = g.color(107, 75, 91);
+    const roseInk = g.color(168, 92, 102);
 
     if (idx === 0) {
       // PAGE 0 GAUCHE : Profil de Moo + Tickets + Étoiles
       this.drawPageHeader(g, font, 'MOO PROFILE', lp);
 
-      // Cadre portrait de Moo (cligne des yeux !)
+      // Cadre portrait de Moo (cligne des yeux !) sur fond prairie pastel
       g.push();
-      g.fill(246, 214, 148);
-      g.stroke(96, 44, 18);
+      g.fill(223, 240, 187);
+      g.stroke(107, 75, 91);
       g.strokeWeight(1.5);
       g.rect(lp.x + 36, lp.y + 30, 46, 48, 2);
       g.pop();
@@ -446,7 +519,7 @@ class PauseMenu {
       PixelUI.txt(g, font, 'Stars: ' + totalStars + ' / 12', lp.x + 14, lp.y + 108, ink);
 
       // Mini carte de tampons (4 jeux)
-      PixelUI.txt(g, font, 'Fair Stamps:', lp.x + 14, lp.y + 128, ink);
+      PixelUI.txt(g, font, 'Fair Stamps:', lp.x + 14, lp.y + 128, roseInk);
       const ids = ['derby', 'snake', 'ducklings', 'fox'];
       ids.forEach((id, i) => {
         const won = (save.stars && save.stars[id] > 0);
@@ -456,7 +529,7 @@ class PauseMenu {
         if (stampImg) {
           g.image(stampImg, sx, sy);
         } else {
-          g.fill(won ? g.color(120, 190, 100) : g.color(190, 130, 70));
+          g.fill(won ? g.color(152, 198, 126) : g.color(232, 207, 166));
           g.rect(sx, sy, 14, 14);
         }
       });
@@ -483,18 +556,19 @@ class PauseMenu {
       this.drawPageHeader(g, font, 'FUNFAIR', lp);
       const sceneName = this.game.scenes ? this.game.scenes.currentName : 'hub';
       PixelUI.txt(g, font, 'Current:', lp.x + 12, lp.y + 40, ink);
-      PixelUI.txt(g, font, sceneName.toUpperCase(), lp.x + 12, lp.y + 56, g.color(138, 62, 26));
+      PixelUI.txt(g, font, sceneName.toUpperCase(), lp.x + 12, lp.y + 56, roseInk);
       PixelUI.txt(g, font, 'Progress is', lp.x + 12, lp.y + 88, ink);
       PixelUI.txt(g, font, 'auto-saved!', lp.x + 12, lp.y + 104, ink);
       PixelUI.txt(g, font, 'See you soon,', lp.x + 12, lp.y + 132, ink);
-      PixelUI.txt(g, font, 'Moo!', lp.x + 12, lp.y + 148, g.color(138, 62, 26));
+      PixelUI.txt(g, font, 'Moo!', lp.x + 12, lp.y + 148, roseInk);
     }
   }
 
   drawRightPageOnly(g, font, idx, m, mx, my) {
     const rp = m.rightPage;
     const save = this.game.save ? this.game.save.data : { stars: {} };
-    const ink = g.color(82, 36, 16);
+    const ink = g.color(107, 75, 91);
+    const roseInk = g.color(168, 92, 102);
 
     if (idx === 0) {
       // PAGE 0 DROITE : Actions rapides
@@ -519,19 +593,19 @@ class PauseMenu {
         const starsTxt = '*'.repeat(st) + '-'.repeat(3 - st);
         PixelUI.txt(g, font, gm.name + ': [' + starsTxt + ']', rp.x + 10, rp.y + 36 + i * 20, ink);
       });
-      PixelUI.txt(g, font, 'Controls:', rp.x + 10, rp.y + 122, g.color(138, 62, 26));
+      PixelUI.txt(g, font, 'Controls:', rp.x + 10, rp.y + 122, roseInk);
       PixelUI.txt(g, font, 'WASD / Arrows', rp.x + 10, rp.y + 138, ink);
       PixelUI.txt(g, font, 'F: Full  H: Debug', rp.x + 10, rp.y + 152, ink);
     } else if (idx === 2) {
       // PAGE 2 DROITE : Info Steering Behaviors
       this.drawPageHeader(g, font, 'STEERING AI', rp);
-      PixelUI.txt(g, font, 'Craig Reynolds', rp.x + 10, rp.y + 36, g.color(138, 62, 26));
+      PixelUI.txt(g, font, 'Craig Reynolds', rp.x + 10, rp.y + 36, roseInk);
       PixelUI.txt(g, font, 'Press [H] anytime', rp.x + 10, rp.y + 56, ink);
       PixelUI.txt(g, font, 'to inspect rays,', rp.x + 10, rp.y + 70, ink);
       PixelUI.txt(g, font, 'forces, obstacles', rp.x + 10, rp.y + 84, ink);
       PixelUI.txt(g, font, '& debug sliders!', rp.x + 10, rp.y + 98, ink);
-      PixelUI.txt(g, font, '100% Vehicle +', rp.x + 10, rp.y + 128, g.color(138, 62, 26));
-      PixelUI.txt(g, font, 'BehaviorManager', rp.x + 10, rp.y + 142, g.color(138, 62, 26));
+      PixelUI.txt(g, font, '100% Vehicle +', rp.x + 10, rp.y + 128, roseInk);
+      PixelUI.txt(g, font, 'BehaviorManager', rp.x + 10, rp.y + 142, roseInk);
     } else {
       // PAGE 3 DROITE : Boutons Exit / Hub / Resume
       this.drawPageHeader(g, font, 'EXIT MENU', rp);
