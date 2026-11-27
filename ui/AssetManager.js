@@ -86,6 +86,11 @@ class AssetManager {
         files.add('ui/Icon & Menu/Icon & Menu/Menu/menu swipe animation' + i + '.png');
       }
 
+      // Stand Prize Booth + 18 cosmétiques + 7 hoodies de Moo
+      if (typeof CosmeticCatalog !== 'undefined') {
+        CosmeticCatalog.getAllAssetPaths().forEach((p) => files.add(p));
+      }
+
       files.forEach((relPath) => this.loadImageKey(relPath));
       this.checkDone();
     });

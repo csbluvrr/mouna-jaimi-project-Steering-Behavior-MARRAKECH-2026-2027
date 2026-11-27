@@ -29,6 +29,8 @@ class HubScene extends Scene {
     this.walkBounds = [10, 88, 470, 240];
     this.promptTrigger = null;
     this.overlay = false;
+    this.prizeShop = new PrizeShop(game);
+    this.prizeBoothPos = { x: 16, y: 84, w: 50, h: 58, sortY: 140 };
     this.toast = '';
     this.toastUntil = 0;
   }
@@ -53,6 +55,13 @@ class HubScene extends Scene {
     });
     // Ajouter une boîte de collision solide sur le panier de pique-nique (36, 210, 16x16)
     this.solids.push([36, 214, 16, 12]);
+    // Ajouter le stand Prize Booth (collision solide + déclencheur)
+    this.solids.push([
+      this.prizeBoothPos.x + 4,
+      this.prizeBoothPos.y + 38,
+      this.prizeBoothPos.w - 8,
+      18
+    ]);
 
     // Construire les prairies latérales (gauche [-120..0] et droite [480..600])
     this.buildSideMeadows();
@@ -65,7 +74,7 @@ class HubScene extends Scene {
       layout.walk_bounds[3]
     ];
 
-    // Triggers ajustés (avec le panneau d'affiches décalé)
+    // Triggers ajustés (avec le panneau d'affiches décalé + Prize Booth)
     this.triggers = layout.triggers.map((t) => {
       if (t.id === 'poster') {
         return {
@@ -75,6 +84,12 @@ class HubScene extends Scene {
         };
       }
       return t;
+    });
+    this.triggers.push({
+      id: 'prize',
+      title: 'Prize Booth',
+      rect: [this.prizeBoothPos.x - 2, this.prizeBoothPos.y + 52, this.prizeBoothPos.w + 4, 24],
+      stand: [this.prizeBoothPos.x + 25, this.prizeBoothPos.y + 68]
     });
 
     // Convertir les zones solides du hub (+ prairies latérales) en Obstacles circulaires
@@ -266,7 +281,7 @@ class HubScene extends Scene {
   }
 
   update() {
-    if (this.overlay) return;
+    if (this.overlay || (this.prizeShop && this.prizeShop.open)) return;
 
     // Mise à jour de Moo (déplacement étendu aux prairies latérales)
     this.moo.step(this.solids, this.walkBounds);
@@ -381,8 +396,20 @@ class HubScene extends Scene {
       });
     }
 
-    // Moo (Vehicle)
-    items.push({ sortY: this.moo.pos.y, draw: () => this.moo.show(g) });
+    // Stand Prize Booth (boutique de cosmétiques & hoodies de Moo)
+    items.push({
+      sortY: this.prizeBoothPos.sortY,
+      draw: () => {
+        const sp = assets.getImage('generated/booths/booth_prize.png');
+        if (sp) g.image(sp, this.prizeBoothPos.x, this.prizeBoothPos.y);
+      }
+    });
+
+    // Moo (Vehicle avec sa tenue sauvegardée : behind -> Moo/hoodie -> over)
+    items.push({
+      sortY: this.moo.pos.y,
+      draw: () => this.moo.show(g, this.game.save.data.equippedOutfit)
+    });
 
     // Amis lapins du coin pique-nique
     layout.friends.forEach((f) => {
@@ -450,17 +477,19 @@ class HubScene extends Scene {
     }
 
     // 5. Bulle d'interaction au-dessus de Moo ou étiquette au survol d'un stand (espace monde)
-    if (this.promptTrigger && !this.overlay) {
+    if (this.promptTrigger && !this.overlay && !this.prizeShop.open) {
       const label =
         this.promptTrigger.id === 'poster'
           ? 'Pick a game! (P)'
-          : 'Play ' + this.promptTrigger.title + '? (Space)';
+          : (this.promptTrigger.id === 'prize'
+            ? 'Open Prize Booth! (Space)'
+            : 'Play ' + this.promptTrigger.title + '? (Space)');
       const bob = Math.sin(frameCount * 0.12) * 1.5;
       PixelUI.drawTag(g, font, label, this.moo.pos.x, this.moo.pos.y - 40 + bob);
     }
 
     const hov = this.hoveredTrigger();
-    if (hov && !this.overlay && hov !== this.promptTrigger) {
+    if (hov && !this.overlay && !this.prizeShop.open && hov !== this.promptTrigger) {
       PixelUI.drawTag(g, font, hov.title, hov.rect[0] + hov.rect[2] / 2, hov.rect[1] - 6);
     }
 
@@ -477,6 +506,11 @@ class HubScene extends Scene {
     // Panneau "TODAY'S GAMES" centré sur la fenêtre
     if (this.overlay) {
       this.drawPosterOverlay(g);
+    }
+
+    // Boutique des Prix & Garde-Robe de Moo
+    if (this.prizeShop && this.prizeShop.open) {
+      this.prizeShop.draw(g);
     }
 
     // Message toast temporaire centré en bas de l'écran
@@ -590,6 +624,11 @@ class HubScene extends Scene {
     const layout = this.game.assets.hubLayout;
     const { ox, oy } = this.getOverlayOffsets();
 
+    if (this.prizeShop && this.prizeShop.open) {
+      this.prizeShop.mousePressed(mx, my);
+      return;
+    }
+
     if (this.overlay) {
       const card = this.cardRects().find((c) => PixelUI.pointInRect(mx, my, c));
       if (card) {
@@ -603,6 +642,14 @@ class HubScene extends Scene {
     // Conversion coordonnées écran -> monde (en tenant compte de la caméra)
     const wx = mx + this.camX;
     const wy = my - oy;
+
+    // Clic sur le stand Prize Booth -> ouvre directement la boutique & garde-robe
+    const pbPos = this.prizeBoothPos;
+    if (wx >= pbPos.x && wx <= pbPos.x + pbPos.w && wy >= pbPos.y && wy <= pbPos.y + pbPos.h) {
+      this.moo.stop();
+      this.prizeShop.show();
+      return;
+    }
 
     // Clic sur le panneau d'affiches -> ouvre directement "Today's Games"
     const posterObj = layout.objects.find((o) => o.id === 'poster');
@@ -632,6 +679,11 @@ class HubScene extends Scene {
   keyPressed(k, kc) {
     const layout = this.game.assets.hubLayout;
 
+    if (this.prizeShop && this.prizeShop.open) {
+      this.prizeShop.keyPressed(k, kc);
+      return;
+    }
+
     if (k === 'p' || k === 'P') {
       this.game.sound.playSfx('ui_click');
       this.overlay = !this.overlay;
@@ -657,6 +709,9 @@ class HubScene extends Scene {
       if (this.promptTrigger.id === 'poster') {
         this.game.sound.playSfx('ui_click');
         this.overlay = true;
+      } else if (this.promptTrigger.id === 'prize') {
+        this.moo.stop();
+        this.prizeShop.show();
       } else {
         this.enterGame(this.promptTrigger.id);
       }

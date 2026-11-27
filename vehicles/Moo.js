@@ -121,7 +121,7 @@ class Moo extends Vehicle {
     return false;
   }
 
-  show(g) {
+  show(g, outfit = null) {
     // Cycle de marche adapté à better sprite.png (4x4 cellules 32x40) :
     // - Haut/Bas (lignes 0 et 3) : [2, 0, 3, 0]
     // - Gauche/Droite (lignes 1 et 2) : [1, 2, 3, 0]
@@ -131,9 +131,16 @@ class Moo extends Vehicle {
       ? walkCycle[Math.floor(frameCount / 7) % 4]
       : (this.dir === 0 && Math.floor(frameCount / 90) % 4 === 3 ? 1 : 0);
 
-    const img = this.assets.getSheetFrame('sprites/moo/better sprite.png', 32, 40, col, this.dir);
-    if (img) {
-      g.image(img, Math.round(this.pos.x) - 16, Math.round(this.pos.y) - 40);
+    const drawX = Math.round(this.pos.x) - 16;
+    const drawY = Math.round(this.pos.y) - 40;
+
+    // Dessin en 3 couches (behind -> Moo/hoodie -> over) exactement au même point
+    const activeOutfit = outfit || (typeof game !== 'undefined' && game.save ? game.save.data.equippedOutfit : null);
+    if (typeof CosmeticCatalog !== 'undefined') {
+      CosmeticCatalog.drawMooWithOutfit(g, this.assets, activeOutfit, drawX, drawY, col, this.dir, 1);
+    } else {
+      const img = this.assets.getSheetFrame('sprites/moo/better sprite.png', 32, 40, col, this.dir);
+      if (img) g.image(img, drawX, drawY);
     }
 
     // Petit repère discret au sol si on marche vers un clic

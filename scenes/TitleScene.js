@@ -47,12 +47,23 @@ class TitleScene extends Scene {
       PixelUI.txt(g, font, "MOO'S FUNFAIR", 240, 32, g.color(107, 75, 91), CENTER);
     }
 
-    // Portrait animé de Moo (clignement d'yeux calme avec le nouveau spritesheet)
+    // Portrait animé de Moo avec sa tenue sauvegardée
     const blinkCol = Math.floor(frameCount / 90) % 4 === 3 ? 1 : 0;
-    const mooImg = assets.getSheetFrame('sprites/moo/better sprite.png', 32, 40, blinkCol, 0);
-    if (mooImg) {
-      const bob = Math.round(Math.sin(frameCount * 0.06) * 2);
-      g.image(mooImg, 224, 114 + bob);
+    const bob = Math.round(Math.sin(frameCount * 0.06) * 2);
+    if (typeof CosmeticCatalog !== 'undefined') {
+      CosmeticCatalog.drawMooWithOutfit(
+        g,
+        assets,
+        this.game.save ? this.game.save.data.equippedOutfit : null,
+        224,
+        114 + bob,
+        blinkCol,
+        0,
+        1
+      );
+    } else {
+      const mooImg = assets.getSheetFrame('sprites/moo/better sprite.png', 32, 40, blinkCol, 0);
+      if (mooImg) g.image(mooImg, 224, 114 + bob);
     }
 
     const { mx, my } = this.game.getMouseBufferPos();

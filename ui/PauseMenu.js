@@ -193,6 +193,14 @@ class PauseMenu {
       ];
       if (sceneName === 'hub') {
         btns.push({
+          label: 'Prize Shop',
+          action: () => this.close(() => {
+            if (this.game.scenes.current && this.game.scenes.current.prizeShop) {
+              this.game.scenes.current.prizeShop.show();
+            }
+          })
+        });
+        btns.push({
           label: "Today's Games",
           action: () => this.close(() => {
             if (this.game.scenes.current) this.game.scenes.current.overlay = true;
@@ -205,7 +213,6 @@ class PauseMenu {
         });
       }
       btns.push({ label: 'Mini-Games >', action: () => this.switchPage(1) });
-      btns.push({ label: 'Settings >', action: () => this.switchPage(2) });
       return btns.map((b, i) => ({
         ...b,
         x: rp.x + 6,
@@ -504,9 +511,22 @@ class PauseMenu {
       g.pop();
 
       const blinkCol = Math.floor(frameCount / 80) % 4 === 3 ? 1 : 0;
-      const mooImg = assets.getSheetFrame('sprites/moo/better sprite.png', 32, 40, blinkCol, 0);
-      if (mooImg) {
-        g.image(mooImg, lp.x + 43, lp.y + 34);
+      if (typeof CosmeticCatalog !== 'undefined') {
+        CosmeticCatalog.drawMooWithOutfit(
+          g,
+          assets,
+          save.equippedOutfit,
+          lp.x + 43,
+          lp.y + 34,
+          blinkCol,
+          0,
+          1
+        );
+      } else {
+        const mooImg = assets.getSheetFrame('sprites/moo/better sprite.png', 32, 40, blinkCol, 0);
+        if (mooImg) {
+          g.image(mooImg, lp.x + 43, lp.y + 34);
+        }
       }
 
       // Tickets + Étoiles totales

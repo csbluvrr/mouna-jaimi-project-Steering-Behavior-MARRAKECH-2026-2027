@@ -191,6 +191,10 @@ function triggerMenuToggle() {
     cur.showCredits = false;
     return;
   }
+  if (cur && cur.prizeShop && cur.prizeShop.open) {
+    cur.prizeShop.close();
+    return;
+  }
   if (cur && cur.overlay) {
     cur.overlay = false;
     return;

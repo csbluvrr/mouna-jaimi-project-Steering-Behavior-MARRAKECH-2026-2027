@@ -26,8 +26,14 @@ class SaveManager {
         fox: false
       },
       visitedBooths: {},
-      unlockedCosmetics: [],
-      equippedCosmetic: null,
+      unlockedCosmetics: ['hoodie:default'],
+      equippedOutfit: {
+        hoodie: 'default',
+        head: null,
+        face: null,
+        neck: null,
+        back: null
+      },
       savedBrains: []
     };
   }
@@ -41,6 +47,15 @@ class SaveManager {
         this.data.stars = Object.assign(this.defaultState().stars, parsed.stars || {});
         this.data.stamps = Object.assign(this.defaultState().stamps, parsed.stamps || {});
         this.data.visitedBooths = parsed.visitedBooths || {};
+        this.data.equippedOutfit = Object.assign(
+          this.defaultState().equippedOutfit,
+          parsed.equippedOutfit || {}
+        );
+        if (!Array.isArray(this.data.unlockedCosmetics)) {
+          this.data.unlockedCosmetics = ['hoodie:default'];
+        } else if (!this.data.unlockedCosmetics.includes('hoodie:default')) {
+          this.data.unlockedCosmetics.push('hoodie:default');
+        }
       }
     } catch (err) {
       console.warn('Impossible de lire localStorage, utilisation des valeurs par défaut :', err);
@@ -81,5 +96,38 @@ class SaveManager {
       this.data.stamps[gameId] = true;
     }
     this.addTickets(ticketsEarned);
+  }
+
+  /** Vérifie si un cosmétique (clé "slot:id") est déjà débloqué. */
+  isCosmeticOwned(slot, id) {
+    if (slot === 'hoodie' && id === 'default') return true;
+    const key = slot + ':' + id;
+    return Array.isArray(this.data.unlockedCosmetics) && this.data.unlockedCosmetics.includes(key);
+  }
+
+  /** Achète un cosmétique avec les tickets gagnés dans la fête foraine. */
+  buyCosmetic(slot, id, price) {
+    if (this.isCosmeticOwned(slot, id)) return true;
+    if ((this.data.tickets || 0) < price) return false;
+    this.data.tickets -= price;
+    this.data.unlockedCosmetics.push(slot + ':' + id);
+    this.data.equippedOutfit[slot] = id;
+    this.save();
+    return true;
+  }
+
+  /**
+   * Équipe ou retire un cosmétique (1 seul objet par emplacement :
+   * cliquer sur l'objet déjà porté le retire, sauf pour le hoodie qui revient au jaune par défaut).
+   */
+  toggleEquipCosmetic(slot, id) {
+    if (!this.isCosmeticOwned(slot, id)) return false;
+    if (this.data.equippedOutfit[slot] === id) {
+      this.data.equippedOutfit[slot] = slot === 'hoodie' ? 'default' : null;
+    } else {
+      this.data.equippedOutfit[slot] = id;
+    }
+    this.save();
+    return true;
   }
 }
