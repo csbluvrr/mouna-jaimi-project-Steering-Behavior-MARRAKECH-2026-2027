@@ -59,6 +59,15 @@
   <script src="sketch.js"></script>
 </head>
 <body>
-  <button id="fullscreen-btn" type="button" title="Toggle Fullscreen (F)">[F] Fullscreen</button>
+  <div id="hud-controls">
+    <button id="fullscreen-btn" class="hud-pill" type="button" title="Toggle Fullscreen (F)">[F] Fullscreen</button>
+    <div id="hub-shortcuts">
+      <button id="btn-menu"  class="hud-pill hud-pill-sm" type="button" title="Open Book Menu (Esc)">[Esc] Menu</button>
+      <button id="btn-debug" class="hud-pill hud-pill-sm" type="button" title="Toggle Debug Mode (H)">[H] Debug</button>
+      <button id="btn-map"   class="hud-pill hud-pill-sm" type="button" title="Open Funfair Map (M)">[M] Map</button>
+      <button id="btn-games" class="hud-pill hud-pill-sm" type="button" title="Pick a Mini-Game (P)">[P] Games</button>
+      <span   id="btn-run"   class="hud-pill hud-pill-sm hud-pill-hint" title="Hold Shift to Run">[Shift] Run</span>
+    </div>
+  </div>
 </body>
 </html>

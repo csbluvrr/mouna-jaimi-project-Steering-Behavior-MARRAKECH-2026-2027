@@ -227,6 +227,38 @@ function setupFullscreenButton() {
     toggleFullscreen();
   });
 
+  // Raccourcis cliquables du Hub (même style Sprout Lands que Fullscreen)
+  const bindHubBtn = (id, fn) => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.addEventListener('click', (e) => {
+      e.stopPropagation();
+      if (!game.assets || !game.assets.ready) return;
+      fn();
+    });
+  };
+  bindHubBtn('btn-menu', () => triggerMenuToggle());
+  bindHubBtn('btn-debug', () => {
+    Vehicle.debug = !Vehicle.debug;
+    if (game.sound) game.sound.playSfx('ui_click', 0.6);
+  });
+  bindHubBtn('btn-map', () => {
+    const cur = game.scenes ? game.scenes.current : null;
+    if (cur && game.scenes.currentName === 'hub') {
+      cur.overlay = false;
+      cur.mapOverlay = !cur.mapOverlay;
+      if (game.sound) game.sound.playSfx('ui_click', 0.6);
+    }
+  });
+  bindHubBtn('btn-games', () => {
+    const cur = game.scenes ? game.scenes.current : null;
+    if (cur && game.scenes.currentName === 'hub') {
+      cur.mapOverlay = false;
+      cur.overlay = !cur.overlay;
+      if (game.sound) game.sound.playSfx('ui_click', 0.6);
+    }
+  });
+
   document.addEventListener('fullscreenchange', () => {
     if (document.fullscreenElement) {
       lockEscapeInFullscreen();
@@ -329,6 +361,11 @@ function draw() {
   }
 
   const cur = game.scenes.current;
+  const hubShortEl = document.getElementById('hub-shortcuts');
+  if (hubShortEl) {
+    const showHubShortcuts = game.scenes.currentName === 'hub' && (!game.pauseMenu || !game.pauseMenu.open);
+    hubShortEl.style.display = showHubShortcuts ? 'flex' : 'none';
+  }
   if (cur && cur.usesWideCamera) {
     // Scène à caméra large (Hub) : dessine directement sur toute la largeur viewW x viewH
     game.scenes.draw(g);
@@ -368,9 +405,10 @@ function windowResized() {
 
 function mousePressed(event) {
   if (!game.assets.ready) return;
-  // Ignorer les clics sur le bouton Fullscreen ou les panneaux latéraux (Derby / Debug)
+  // Ignorer les clics sur les boutons HUD haut-droite ou les panneaux latéraux (Derby / Debug)
   if (event && event.target && (
     event.target.id === 'fullscreen-btn' ||
+    event.target.closest('#hud-controls') ||
     event.target.closest('#derby-panel') ||
     event.target.closest('.debug-side-panel')
   )) {

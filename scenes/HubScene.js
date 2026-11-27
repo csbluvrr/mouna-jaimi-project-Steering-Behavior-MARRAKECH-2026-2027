@@ -1485,14 +1485,6 @@ class HubScene extends Scene {
       );
       PixelUI.txt(g, font, '+', this.ticketPlusBtn.x + 9, this.ticketPlusBtn.y + 3, g.color(62, 108, 70), CENTER, 10);
     }
-
-    // Encart des raccourcis clavier en haut à droite (juste sous le bouton [F] Fullscreen)
-    const cw = 128;
-    const cx = vw - cw - 6;
-    const cy = 22;
-    PixelUI.panel(g, cx, cy, cw, 30, g.color(247, 236, 200));
-    PixelUI.txt(g, font, 'Esc: Menu  |  H: Debug', cx + cw / 2, cy + 4, g.color(107, 75, 91), CENTER, 7, cw - 8);
-    PixelUI.txt(g, font, 'M: Map | P: Games | Shift: Run', cx + cw / 2, cy + 16, g.color(144, 98, 93), CENTER, 6.8, cw - 8);
   }
 
   getOverlayOffsets() {
