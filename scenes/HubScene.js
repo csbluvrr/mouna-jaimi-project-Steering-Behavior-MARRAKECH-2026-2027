@@ -53,6 +53,8 @@ class HubScene extends Scene {
       { id: 'fox',       title: 'The Legend of Moo', sprite: 'booth_fox',       x: 398, y: 76, w: 50, h: 58 }
     ];
     this.prizeBoothPos    = { x: -265, y: 76,  w: 50, h: 58 };
+    this.bouncyCastlePos  = { x: -198, y: 72,  w: 64, h: 62 };
+    this.bouncyJumpTimer  = 0;
     this.cottonCartPos    = { x: -408, y: 84,  w: 48, h: 50 };
     this.lemonadeCartPos  = { x: -336, y: 84,  w: 48, h: 50 };
     this.popcornCartPos   = { x: -120, y: 84,  w: 48, h: 50 };
@@ -99,6 +101,7 @@ class HubScene extends Scene {
       [this.cottonCartPos.x + 2,   this.cottonCartPos.y + 26,   44, 22],
       [this.lemonadeCartPos.x + 2, this.lemonadeCartPos.y + 26, 44, 22],
       [this.prizeBoothPos.x + 4,   this.prizeBoothPos.y + 36,   42, 22],
+      [this.bouncyCastlePos.x + 4, this.bouncyCastlePos.y + 36, 56, 24],
       [this.popcornCartPos.x + 2,  this.popcornCartPos.y + 26,  44, 22],
       [-404, 198, 22, 10], // Banc Ouest 1
       [-342, 202, 26, 14], // Food Court Table 1
@@ -157,6 +160,12 @@ class HubScene extends Scene {
         title: 'Prize Boutique',
         rect: [this.prizeBoothPos.x - 2, this.prizeBoothPos.y + 56, 54, 22],
         stand: [this.prizeBoothPos.x + 25, this.prizeBoothPos.y + 72]
+      },
+      {
+        id: 'bouncy',
+        title: 'Bouncy Castle',
+        rect: [this.bouncyCastlePos.x - 2, this.bouncyCastlePos.y + 58, this.bouncyCastlePos.w + 4, 22],
+        stand: [this.bouncyCastlePos.x + 32, this.bouncyCastlePos.y + 74]
       },
       {
         id: 'cotton_candy',
@@ -418,6 +427,7 @@ class HubScene extends Scene {
       { x: -384, y: 150, lookUp: true,  emote: 'Heart' },       // Cotton Candy
       { x: -312, y: 150, lookUp: true,  emote: 'Happy' },       // Lemonade
       { x: -240, y: 152, lookUp: true,  emote: 'Star' },        // Prize Boutique
+      { x: -166, y: 152, lookUp: true,  emote: 'Exclamation' }, // Bouncy Castle
       { x: -334, y: 184, lookUp: false, emote: 'Happy' },       // Picnic Table 1
       { x: -194, y: 184, lookUp: false, emote: 'Heart' },       // Picnic Table 2
       { x: -96,  y: 150, lookUp: true,  emote: 'Exclamation' }, // Popcorn Cart
@@ -556,10 +566,11 @@ class HubScene extends Scene {
         img.rect(0, 137 - pad, BUFFER_W, 36 + pad * 2);
 
         if (section === 'west') {
-          // Parvis devant Barbe à Papa (-408), Limonade (-336), Prize (-265) & Pop-Corn (-120)
+          // Parvis devant Barbe à Papa (-408), Limonade (-336), Prize (-265), Bouncy (-198) & Pop-Corn (-120)
           img.rect(64 - pad,  126 - pad, 64 + pad * 2, 20 + pad * 2, 6);
           img.rect(136 - pad, 126 - pad, 64 + pad * 2, 20 + pad * 2, 6);
           img.rect(206 - pad, 124 - pad, 68 + pad * 2, 24 + pad * 2, 6);
+          img.rect(278 - pad, 124 - pad, 70 + pad * 2, 24 + pad * 2, 6);
           img.rect(352 - pad, 126 - pad, 64 + pad * 2, 20 + pad * 2, 6);
         } else if (section === 'plaza') {
           // Place circulaire centrale + allée d'entrée descendant jusqu'au tout bas de l'écran (y=272) !
@@ -709,7 +720,7 @@ class HubScene extends Scene {
       // Arrière-plan Ouest
       { kind: 'cherry_big', x: -468, y: 52, sortY: 96 },
       { kind: 'tree_round', x: -344, y: 66, sortY: 96 },
-      { kind: 'cherry_med', x: -196, y: 64, sortY: 96 },
+      { kind: 'cherry_med', x: -222, y: 58, sortY: 96 },
       { kind: 'tree_tall',  x: -48,  y: 66, sortY: 96 },
       // Arrière-plan Place Centrale (encadre proprement les 4 stands & l'arche)
       { kind: 'tree_round', x: -2,   y: 66, sortY: 96 },
@@ -808,6 +819,8 @@ class HubScene extends Scene {
     for (const v of this.visitors) v.step(this.moo, this.visitors, this.obstacles);
     for (const d of this.ducklings) d.step(this.ducklings);
     for (const b of this.butterflies) b.step(this.moo);
+    if (this.bouncyJumpTimer > 0) this.bouncyJumpTimer--;
+
     for (let i = this.fx.length - 1; i >= 0; i--) {
       this.fx[i].update();
       if (this.fx[i].isDead) this.fx.splice(i, 1);
@@ -1043,6 +1056,14 @@ class HubScene extends Scene {
       }
       this.fx.push(new SparkleFX(this.lemonadeCartPos.x + 24, this.lemonadeCartPos.y + 2, 'text', 'ZESTY!', color(255, 240, 128)));
       this.showToast('Chilled sparkling funfair lemonade!', 2000);
+    } else if (id === 'bouncy') {
+      this.bouncyJumpTimer = 42;
+      this.game.sound.playSfx('squeak_double_1', 0.8);
+      for (let i = 0; i < 12; i++) {
+        this.fx.push(new SparkleFX(this.bouncyCastlePos.x + 32 + random(-22, 22), this.bouncyCastlePos.y + 18, 'confetti'));
+      }
+      this.fx.push(new SparkleFX(this.bouncyCastlePos.x + 32, this.bouncyCastlePos.y + 2, 'text', 'BOING!!', color(255, 220, 240)));
+      this.showToast('Boing!! The pastel bouncy castle is so squishy!', 2100);
     } else if (id === 'stage') {
       this.game.sound.playSfx('success_bell', 0.85);
       for (let k = 0; k < 3; k++) {
@@ -1271,6 +1292,7 @@ class HubScene extends Scene {
         if (sp) g.image(sp, this.prizeBoothPos.x, this.prizeBoothPos.y);
         this.drawPrizeBoothDecor(g, this.prizeBoothPos.x, this.prizeBoothPos.y, nearId === 'prize');
       }},
+      { sortY: this.bouncyCastlePos.y + this.bouncyCastlePos.h, draw: () => this.drawBouncyCastle(g, this.bouncyCastlePos, nearId === 'bouncy') },
       { sortY: this.popcornCartPos.y + this.popcornCartPos.h,  draw: () => this.drawPopcornCart(g, font, this.popcornCartPos, nearId === 'popcorn') }
     );
 
@@ -1376,7 +1398,7 @@ class HubScene extends Scene {
       { sortY: this.fountainPos.y + 10, draw: () => this.drawHubFountain(g, this.fountainPos.x, this.fountainPos.y, nearId === 'fountain') },
       { sortY: 208, draw: () => this.drawMeadowDeer(g, 878, 204) },
       { sortY: 132, draw: () => this.drawGardenLamp(g, -306, 114, skyMood) },
-      { sortY: 132, draw: () => this.drawGardenLamp(g, -166, 114, skyMood) },
+      { sortY: 132, draw: () => this.drawGardenLamp(g, -130, 114, skyMood) },
       { sortY: 132, draw: () => this.drawGardenLamp(g, 514,  114, skyMood) },
       { sortY: 132, draw: () => this.drawGardenLamp(g, 664,  114, skyMood) },
       { sortY: 132, draw: () => this.drawGardenLamp(g, 772,  114, skyMood) }
@@ -1456,6 +1478,7 @@ class HubScene extends Scene {
           poster:       'Pick a game! (P / Space)',
           map:          'Open Funfair Map! (Space)',
           prize:        'Open Prize Boutique! (Space)',
+          bouncy:       'Bounce in the Castle! (Space)',
           cotton_candy: 'Get Cotton Candy! (Space)',
           lemonade:     'Grab Fresh Lemonade! (Space)',
           popcorn:      'Grab Popcorn! (Space)',
@@ -2459,6 +2482,105 @@ class HubScene extends Scene {
     g.pop();
   }
 
+  /** Château Gonflable pastel animé avec 4 tourelles, lapin qui bondit dedans & effet rebond interactif ! */
+  drawBouncyCastle(g, c, isNear) {
+    const t = frameCount;
+    const extra = this.bouncyJumpTimer > 0 ? Math.sin(this.bouncyJumpTimer * 0.55) * 2.4 : 0;
+    const squish = Math.sin(t * 0.11) * 0.8 + extra;
+    const x = c.x;
+    const y = Math.round(c.y - squish * 0.5);
+    const w = c.w;
+    const h = c.h;
+
+    g.push();
+    g.noStroke();
+
+    if (isNear) {
+      g.fill(255, 226, 246, Math.round(34 + Math.sin(t * 0.14) * 16));
+      g.ellipse(x + w / 2, y + h - 18, w + 14, 48);
+    }
+
+    // Ombre douce au sol
+    g.fill(74, 58, 72, 68);
+    g.ellipse(x + w / 2, c.y + h - 2, w + 4, 14);
+
+    // 1. Base gonflable rebondie (rose bonbon & jaune beurre)
+    g.fill(107, 75, 91);
+    g.rect(x + 2, y + 20, w - 4, h - 22, 6);
+    g.fill(246, 152, 182);
+    g.rect(x + 4, y + 22, w - 8, h - 26, 5);
+    // Bande centrale ciel pastel + créneaux gonflables
+    g.fill(158, 214, 242);
+    g.rect(x + 12, y + 22, w - 24, h - 26, 3);
+    g.fill(252, 224, 128);
+    g.rect(x + 4, y + h - 13, w - 8, 9, 3);
+    g.fill(255, 246, 194);
+    g.rect(x + 6, y + h - 12, w - 12, 3, 1);
+
+    // 2. Grande fenêtre filet au centre avec un petit lapin qui saute de joie à l'intérieur !
+    g.fill(107, 75, 91);
+    g.rect(x + 16, y + 26, 32, 22, 4);
+    g.fill(252, 240, 248);
+    g.rect(x + 18, y + 28, 28, 18, 3);
+    // Petit lapin rose qui rebondit gaiement derrière le filet !
+    const bJump = Math.abs(Math.sin(t * (this.bouncyJumpTimer > 0 ? 0.32 : 0.14))) * 7;
+    const by = Math.round(y + 40 - bJump);
+    g.fill(248, 174, 206);
+    g.circle(x + 32, by, 7);
+    g.rect(x + 29, by - 6, 2, 4, 1);
+    g.rect(x + 33, by - 6, 2, 4, 1);
+    g.fill(82, 52, 66);
+    g.rect(x + 30, by - 1, 1, 1);
+    g.rect(x + 33, by - 1, 1, 1);
+    // Filet de sécurité translucide croisé
+    g.stroke(184, 146, 178, 130);
+    g.strokeWeight(1);
+    for (let fx = x + 22; fx < x + 44; fx += 5) g.line(fx, y + 28, fx, y + 46);
+    for (let fy = y + 32; fy < y + 45; fy += 5) g.line(x + 18, fy, x + 46, fy);
+    g.noStroke();
+
+    // Arche d'entrée gonflable en bas au centre
+    g.fill(107, 75, 91);
+    g.rect(x + 23, y + h - 15, 18, 13, 6, 6, 1, 1);
+    g.fill(218, 168, 238);
+    g.rect(x + 25, y + h - 13, 14, 11, 5, 5, 0, 0);
+    g.fill(142, 98, 148);
+    g.rect(x + 27, y + h - 11, 10, 9, 4, 4, 0, 0);
+
+    // 3. Deux grosses tourelles gonflables à gauche & droite + toits coniques + drapeaux !
+    const turrets = [
+      { tx: x + 2,      body: [252, 224, 128], roof: [158, 214, 242], flag: [246, 152, 182] },
+      { tx: x + w - 16, body: [212, 178, 242], roof: [246, 152, 182], flag: [252, 224, 128] }
+    ];
+    for (let i = 0; i < turrets.length; i++) {
+      const tr = turrets[i];
+      g.fill(107, 75, 91);
+      g.rect(tr.tx, y + 12, 14, h - 14, 4);
+      g.fill(tr.body[0], tr.body[1], tr.body[2]);
+      g.rect(tr.tx + 2, y + 14, 10, h - 18, 3);
+      // Reflet brillant de vinyle gonflable !
+      g.fill(255, 255, 255, 120);
+      g.rect(tr.tx + 4, y + 17, 2, h - 26, 1);
+      // Toit conique de la tourelle
+      const cx = tr.tx + 7;
+      g.fill(107, 75, 91);
+      g.triangle(cx - 9, y + 15, cx, y + 1, cx + 9, y + 15);
+      g.fill(tr.roof[0], tr.roof[1], tr.roof[2]);
+      g.triangle(cx - 7, y + 14, cx, y + 3, cx + 7, y + 14);
+      // Petit drapeau qui flotte au vent
+      const fw = Math.round(Math.sin(t * 0.14 + i * 2) * 1.5);
+      g.fill(107, 75, 91);
+      g.rect(cx, y - 5, 1, 7);
+      g.fill(tr.flag[0], tr.flag[1], tr.flag[2]);
+      g.triangle(cx + 1, y - 5, cx + 8, y - 3 + fw, cx + 1, y - 1);
+    }
+
+    // 4. Petit fronton "BOUNCE!" en haut au centre
+    PixelUI.panel(g, x + 16, y + 13, 32, 10, g.color(255, 248, 224));
+    this.drawWorldSign(g, 'BOUNCE!', x + 32, y + 18, g.color(184, 78, 124));
+    g.pop();
+  }
+
   /** Terrasse pavée chaleureuse du Food Court Ouest (Sweet Street Café — 100% marchable). */
   drawWestFoodCourtGround(g) {
     const x = -362;
@@ -2816,6 +2938,7 @@ class HubScene extends Scene {
       { id: 'cotton_candy', label: 'Cotton Candy Cart', wx: -384, wy: 108, targetX: -384, targetY: 146, kind: 'sweets' },
       { id: 'lemonade',     label: 'Lemonade Stand',    wx: -312, wy: 108, targetX: -312, targetY: 146, kind: 'sweets' },
       { id: 'prize',        label: 'Prize Boutique',    wx: -240, wy: 105, targetX: -240, targetY: 148, kind: 'prize' },
+      { id: 'bouncy',       label: 'Bouncy Castle',     wx: -166, wy: 105, targetX: -166, targetY: 148, kind: 'sweets' },
       { id: 'popcorn',      label: 'Popcorn Cart',      wx: -96,  wy: 108, targetX: -96,  targetY: 146, kind: 'popcorn' },
       { id: 'derby',        label: 'Bunny Derby',       wx: 57,   wy: 105, targetX: 57,   targetY: 148, kind: 'derby' },
       { id: 'snake',        label: 'PokeMoo Feast!!',   wx: 147,  wy: 105, targetX: 147,  targetY: 148, kind: 'snake' },
@@ -3213,6 +3336,7 @@ class HubScene extends Scene {
     if (hitBox(this.posterPos)) { this.game.sound.playSfx('ui_click'); this.overlay = true; return; }
     if (hitBox(this.cottonCartPos)) { this.interactWithProp('cotton_candy'); return; }
     if (hitBox(this.lemonadeCartPos)) { this.interactWithProp('lemonade'); return; }
+    if (hitBox(this.bouncyCastlePos)) { this.interactWithProp('bouncy'); return; }
     if (hitBox(this.popcornCartPos)) { this.interactWithProp('popcorn'); return; }
     if (hitBox(this.carouselPos)) { this.interactWithProp('carousel'); return; }
     if (hitBox(this.stagePos)) { this.interactWithProp('stage'); return; }
@@ -3345,7 +3469,7 @@ class HubScene extends Scene {
         if (id === 'poster') { this.game.sound.playSfx('ui_click'); this.overlay = true; }
         else if (id === 'map') { this.game.sound.playSfx('ui_click'); this.mapOverlay = true; }
         else if (id === 'prize') { this.moo.stop(); this.prizeShop.show(); }
-        else if (['cotton_candy', 'lemonade', 'popcorn', 'carousel', 'stage', 'fountain'].includes(id)) { this.interactWithProp(id); }
+        else if (['cotton_candy', 'lemonade', 'bouncy', 'popcorn', 'carousel', 'stage', 'fountain'].includes(id)) { this.interactWithProp(id); }
         else { this.enterGame(id); }
       } else if (this.nearbyVisitor) {
         this.startNpcDialogue(this.nearbyVisitor);
