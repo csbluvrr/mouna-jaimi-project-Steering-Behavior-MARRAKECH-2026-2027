@@ -1433,15 +1433,22 @@ class DerbyScene extends Scene {
 
   drawFinishCard(g) {
     const font = this.game.assets.font;
+    const { mx, my } = this.game.getMouseBufferPos();
+    this.finishAgainBtn = { x: 96,  y: 190, w: 136, h: 22 };
+    this.finishHubBtn   = { x: 248, y: 190, w: 136, h: 22 };
+    if (this.finishIdx === undefined) this.finishIdx = 0;
+    if (PixelUI.pointInRect(mx, my, this.finishAgainBtn)) this.finishIdx = 0;
+    else if (PixelUI.pointInRect(mx, my, this.finishHubBtn)) this.finishIdx = 1;
+
     g.noStroke();
     g.fill(0, 0, 0, 110);
     g.rect(0, 0, 480, 272);
 
-    PixelUI.panel(g, 76, 52, 328, 168);
+    PixelUI.panel(g, 76, 48, 328, 176);
     g.fill(189, 117, 126);
-    g.rect(78, 54, 324, 22);
+    g.rect(78, 50, 324, 22);
     const title = this.state === 'GRADUATED' ? 'THE BUNNIES GRADUATED!' : 'RACE DAY PODIUM!';
-    PixelUI.txt(g, font, title, 240, 59, g.color(243, 244, 231), CENTER, 10, 310);
+    PixelUI.txt(g, font, title, 240, 55, g.color(243, 244, 231), CENTER, 10, 310);
 
     if (this.state === 'RACE_FINISH' && this.raceStandings.length > 0) {
       const chosen = this.bunnies[this.betBunnyIdx];
@@ -1449,20 +1456,28 @@ class DerbyScene extends Scene {
         const b = this.raceStandings[i];
         const mark = b === chosen ? ' (YOUR BET!)' : '';
         PixelUI.txt(
-          g, font, '#' + (i + 1) + '  ' + b.name + mark, 240, 86 + i * 18,
+          g, font, '#' + (i + 1) + '  ' + b.name + mark, 240, 82 + i * 18,
           b === chosen ? g.color(62, 118, 70) : g.color(107, 75, 91),
           CENTER, 9.5, 300
         );
       }
       if (this.betResultMsg) {
-        PixelUI.drawTag(g, font, this.betResultMsg, 240, 166, g.color(223, 240, 187));
+        PixelUI.drawTag(g, font, this.betResultMsg, 240, 158, g.color(223, 240, 187));
       }
     } else {
-      PixelUI.txt(g, font, '60%+ bunnies completed a full lap!', 240, 102, g.color(107, 75, 91), CENTER, 9.5, 300);
-      PixelUI.txt(g, font, 'Click Save Brain or switch to Race Day!', 240, 126, g.color(144, 98, 93), CENTER, 9, 300);
+      PixelUI.txt(g, font, '60%+ bunnies completed a full lap!', 240, 98, g.color(107, 75, 91), CENTER, 9.5, 300);
+      PixelUI.txt(g, font, 'Save your brain or switch to Race Day!', 240, 122, g.color(144, 98, 93), CENTER, 9, 300);
     }
 
-    PixelUI.txt(g, font, 'Press Space to race again  |  M for Menu', 240, 194, g.color(144, 98, 93), CENTER, 8.5, 310);
+    const againLbl = this.mode === 'RACE' ? 'Race Again' : 'Train Again';
+    PixelUI.drawButton(
+      g, font, this.finishAgainBtn, (this.finishIdx === 0 ? '> ' : '') + againLbl,
+      this.finishIdx === 0, g.color(223, 240, 187)
+    );
+    PixelUI.drawButton(
+      g, font, this.finishHubBtn, (this.finishIdx === 1 ? '> ' : '') + 'Back to Fair',
+      this.finishIdx === 1
+    );
   }
 
   backToHub() {
@@ -1529,6 +1544,16 @@ class DerbyScene extends Scene {
         if (this.mode === 'RACE') this.startRaceDay(false);
         else this.startTraining(true);
       } else if (PixelUI.pointInRect(mx, my, this.exitBtn)) this.backToHub();
+      return;
+    }
+    if (this.state === 'GRADUATED' || this.state === 'RACE_FINISH') {
+      if (this.finishAgainBtn && PixelUI.pointInRect(mx, my, this.finishAgainBtn)) {
+        this.game.sound.playSfx('ui_click');
+        if (this.mode === 'RACE') this.startRaceDay(false);
+        else this.startTraining(false);
+      } else if (this.finishHubBtn && PixelUI.pointInRect(mx, my, this.finishHubBtn)) {
+        this.backToHub();
+      }
       return;
     }
     // En Race Day, cliquer sur la piste place une botte de foin (évitée par avoid()!)
@@ -1646,9 +1671,21 @@ class DerbyScene extends Scene {
       else this.backToHub();
       return;
     }
-    if ((this.state === 'GRADUATED' || this.state === 'RACE_FINISH') && (k === ' ' || kc === ENTER)) {
-      if (this.mode === 'RACE') this.startRaceDay(false);
-      else this.startTraining(false);
+    if (this.state === 'GRADUATED' || this.state === 'RACE_FINISH') {
+      if (this.finishIdx === undefined) this.finishIdx = 0;
+      if (kc === LEFT_ARROW || kc === RIGHT_ARROW || kc === UP_ARROW || kc === DOWN_ARROW ||
+          k === 'a' || k === 'A' || k === 'd' || k === 'D' || k === 'q' || k === 'Q') {
+        this.finishIdx = (this.finishIdx + 1) % 2;
+        this.game.sound.playSfx('ui_click', 0.5);
+      } else if (k === ' ' || kc === ENTER) {
+        if (this.finishIdx === 0) {
+          if (this.mode === 'RACE') this.startRaceDay(false);
+          else this.startTraining(false);
+        } else {
+          this.backToHub();
+        }
+        this.finishIdx = 0;
+      }
     }
   }
 }
