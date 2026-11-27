@@ -242,12 +242,22 @@ class PauseMenu {
 
     if (pageIdx === 2) {
       const skyMood = this.game.save && this.game.save.data.skyMood === 'sunset' ? 'sunset' : 'day';
+      const autoSprint = Boolean(this.game.save && this.game.save.data.autoSprint);
       const btns = [
         {
           label: skyMood === 'sunset' ? 'Sky: Sunset' : 'Sky: Sunny Day',
           action: () => {
             if (this.game.save) {
               this.game.save.data.skyMood = skyMood === 'sunset' ? 'day' : 'sunset';
+              this.game.save.save();
+            }
+          }
+        },
+        {
+          label: autoSprint ? 'Auto-Sprint: ON' : 'Auto-Sprint: OFF',
+          action: () => {
+            if (this.game.save) {
+              this.game.save.data.autoSprint = !autoSprint;
               this.game.save.save();
             }
           }
@@ -268,9 +278,9 @@ class PauseMenu {
       return btns.map((b, i) => ({
         ...b,
         x: lp.x + 6,
-        y: lp.y + 34 + i * 28,
+        y: lp.y + 28 + i * 26,
         w: lp.w - 12,
-        h: 22
+        h: 21
       }));
     }
 

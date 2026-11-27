@@ -48,8 +48,9 @@ class Moo extends Vehicle {
     if (keyIsDown(UP_ARROW) || keyIsDown(87) || keyIsDown(90)) ky -= 1;
     if (keyIsDown(DOWN_ARROW) || keyIsDown(83)) ky += 1;
 
-    // Maintenir SHIFT pour courir plus vite !
-    const wantRun = keyIsDown(SHIFT);
+    // Course par défaut si Auto-Sprint est activé dans le menu (Shift inverse alors pour marcher doucement !)
+    const autoSprint = Boolean(typeof game !== 'undefined' && game.save && game.save.data && game.save.data.autoSprint);
+    const wantRun = autoSprint ? !keyIsDown(SHIFT) : keyIsDown(SHIFT);
     this.maxSpeed = wantRun ? this.runSpeed : this.walkSpeed;
 
     if (kx !== 0 || ky !== 0) {
