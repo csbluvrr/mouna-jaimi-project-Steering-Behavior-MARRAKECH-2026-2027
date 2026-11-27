@@ -196,68 +196,107 @@ class GardenFruit extends Vehicle {
   show(g) {
     const px = Math.round(this.pos.x);
 
-    // Rendu spécial bien reconnaissable pour les fruits pourris immobiles
+    // 1. Toxic Orb immobile (ancien fruit pourri : -1 anneau d'Onix, 0 anneaux = Game Over)
     if (this.type === 'rotten') {
       const py = Math.round(this.pos.y);
-
-      // Halo toxique olive/violet au sol
+      g.push();
       g.noStroke();
-      g.fill(118, 128, 66, 95);
-      g.ellipse(px, py + 4, 16, 8);
-
-      // Sprite de baie teinté marron-olive pourri
-      const img = this.assets.getSheetFrame('items/plants_items.png', 16, 16, this.cell[0], this.cell[1]);
-      if (img) {
-        g.push();
-        g.tint(148, 138, 86);
-        g.image(img, px - 8, py - 8);
-        g.noTint();
-        g.pop();
-      }
-
-      // Petites lignes d'odeur ondulantes + 2 moucherons qui tournent autour
-      g.stroke(140, 165, 78, 190);
-      g.strokeWeight(1);
-      const sway = Math.sin(frameCount * 0.14 + this.phase) * 1.5;
-      g.line(px - 3, py - 7, Math.round(px - 3 + sway), py - 11);
-      g.line(px + 3, py - 8, Math.round(px + 3 - sway), py - 12);
-
+      g.fill(128, 72, 168, 95);
+      g.ellipse(px, py + 4, 15, 7);
+      // Orbe toxique violet/vert Pokémon
+      g.stroke(62, 28, 86);
+      g.strokeWeight(1.2);
+      g.fill(152, 82, 198);
+      g.circle(px, py, 10);
       g.noStroke();
-      g.fill(58, 42, 62);
+      g.fill(194, 242, 112);
+      g.circle(px - 2, py - 2, 3);
+      // Spores flottantes
       const a1 = frameCount * 0.12 + this.phase;
-      const a2 = -frameCount * 0.15 + this.phase + 2;
+      g.fill(190, 245, 115, 200);
       g.rect(Math.round(px + Math.cos(a1) * 7), Math.round(py - 4 + Math.sin(a1) * 4), 2, 2);
-      g.rect(Math.round(px + Math.cos(a2) * 6), Math.round(py - 5 + Math.sin(a2) * 3), 1, 1);
+      g.pop();
       return;
     }
 
-    const bob = Math.sin(frameCount * 0.12 + this.phase) * 1.2;
+    const bob = Math.sin(frameCount * 0.14 + this.phase) * 1.2;
     const py = Math.round(this.pos.y + bob);
 
+    // 2. Boost Pokémon : Quick Ball (vitesse) ou Rare Candy (2x nourriture)
+    if (this.type === 'blueberry' || this.type === 'double') {
+      g.push();
+      const isDouble = this.type === 'double';
+      g.noFill();
+      g.stroke(isDouble ? g.color(255, 210, 90, 200) : g.color(86, 198, 255, 200));
+      g.strokeWeight(1.5);
+      g.circle(px, py, 16 + Math.sin(frameCount * 0.2) * 2);
+
+      if (isDouble) {
+        // Rare Candy bleu ciel & doré (2x)
+        g.stroke(64, 42, 74);
+        g.strokeWeight(1);
+        g.fill(132, 208, 252);
+        g.rect(px - 4, py - 4, 8, 8, 2);
+        g.fill(255, 236, 130);
+        g.triangle(px - 7, py - 3, px - 7, py + 3, px - 4, py);
+        g.triangle(px + 7, py - 3, px + 7, py + 3, px + 4, py);
+        g.noStroke();
+        g.fill(255, 255, 255);
+        g.rect(px - 2, py - 2, 2, 2);
+      } else {
+        // Quick Ball (boost vitesse)
+        g.stroke(48, 36, 58);
+        g.strokeWeight(1);
+        g.fill(78, 166, 246);
+        g.arc(px, py, 11, 11, PI, TWO_PI, CHORD);
+        g.fill(252, 250, 245);
+        g.arc(px, py, 11, 11, 0, PI, CHORD);
+        g.noStroke();
+        g.fill(252, 222, 84);
+        g.rect(px - 2, py - 5, 4, 3);
+        g.fill(255);
+        g.stroke(48, 36, 58);
+        g.circle(px, py, 3.5);
+      }
+      g.pop();
+      return;
+    }
+
+    // 3. Scorbunny fuyant (scorbunny.png : 2x4 cellules 160x160 -> row 0=bas, 1=haut, 2=gauche, 3=droite)
     if (this.type === 'golden') {
       g.noFill();
-      g.stroke(255, 232, 110, 175);
-      g.strokeWeight(1);
-      g.circle(px, py, 16);
+      g.stroke(255, 232, 110, 190);
+      g.strokeWeight(1.5);
+      g.circle(px, py, 18);
     }
 
-    // Petit '!' quand le fruit détecte la chenille et s'évade !
     if (this.isEvading) {
       g.noStroke();
-      g.fill(255, 115, 135);
-      g.rect(px - 1, py - 12, 2, 4);
-      g.rect(px - 1, py - 7, 2, 1);
+      g.fill(255, 95, 110);
+      g.rect(px - 1, py - 14, 2, 4);
+      g.rect(px - 1, py - 9, 2, 1);
     }
 
-    const img = this.assets.getSheetFrame('items/plants_items.png', 16, 16, this.cell[0], this.cell[1]);
-    if (img) {
-      g.image(img, px - 8, py - 8);
+    let row = 0;
+    if (Math.abs(this.vel.x) > Math.abs(this.vel.y)) {
+      row = this.vel.x < 0 ? 2 : 3;
+    } else {
+      row = this.vel.y < 0 ? 1 : 0;
+    }
+    const col = Math.floor(frameCount / 8 + this.phase) % 2;
+    const scImg = this.assets.getSheetFrame('scorbunny.png', 160, 160, col, row);
+    if (scImg) {
+      g.image(scImg, px - 9, py - 11, 18, 18);
+    } else {
+      g.noStroke();
+      g.fill(255, 240, 225);
+      g.circle(px, py, 10);
     }
 
     if (Vehicle.debug) {
       g.push();
       g.noFill();
-      g.stroke(this.isEvading ? color(255, 140, 80, 170) : color(255, 230, 110, 90));
+      g.stroke(this.isEvading ? g.color(255, 140, 80, 170) : g.color(255, 230, 110, 90));
       g.strokeWeight(1);
       g.circle(this.pos.x, this.pos.y, this.champDeVision * 2);
       g.pop();

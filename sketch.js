@@ -310,6 +310,7 @@ function draw() {
   if (drawingContext && drawingContext.imageSmoothingEnabled) {
     drawingContext.imageSmoothingEnabled = false;
   }
+  PixelUI.beginFrame();
 
   if (!game.assets.ready) {
     g.background(140, 178, 128);
@@ -353,6 +354,9 @@ function draw() {
   }
 
   image(g, 0, 0, width, height);
+
+  // Rendu natif HD de tous les textes UI par-dessus le pixel-art (ultra net, zéro pixelisation !)
+  PixelUI.flushText(width / Math.max(1, game.viewW), height / Math.max(1, game.viewH));
 }
 
 function windowResized() {

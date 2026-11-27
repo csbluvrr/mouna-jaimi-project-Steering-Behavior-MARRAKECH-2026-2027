@@ -50,27 +50,46 @@ class Projectile extends Vehicle {
   }
 
   show(g) {
-    const file = this.owner === 'moo'
-      ? 'generated/fox/projectile_carrot.png'
-      : 'generated/fox/projectile_acorn.png';
-    const img = this.assets ? this.assets.getImage(file) : null;
+    const zBase = 'Legend_of_Zink_Asset_Pack/Legend_of_Zink_Asset_Pack/';
+    const img = this.assets
+      ? this.assets.getImage(
+          this.owner === 'moo'
+            ? zBase + 'Zink/PNG/sprWeaponBoomerang.png'
+            : zBase + 'Enemies/PNG/sprFireBall.png'
+        )
+      : null;
 
     g.push();
     g.translate(Math.round(this.pos.x), Math.round(this.pos.y));
     if (this.homing) {
-      // Halo discret violet sur les glands chercheurs
+      // Halo magique violet sur les boules de feu chercheuses
       g.noFill();
-      g.stroke(210, 140, 235, 170);
-      g.strokeWeight(1);
-      g.circle(0, 0, 11);
+      g.stroke(210, 140, 255, 190);
+      g.strokeWeight(1.2);
+      g.circle(0, 0, 14);
     }
-    g.rotate(this.vel.heading());
-    if (img) {
-      g.image(img, -Math.floor(img.width / 2), -Math.floor(img.height / 2));
+    if (this.owner === 'moo') {
+      // Boomerang Zelda qui tourne rapidement sur lui-même !
+      g.rotate(frameCount * 0.45);
+      if (img) {
+        const fw = Math.min(img.width, img.height);
+        g.image(img, -7, -7, 14, 14, 0, 0, fw, fw);
+      } else {
+        g.noStroke();
+        g.fill(252, 214, 92);
+        g.circle(0, 0, 7);
+      }
     } else {
-      g.noStroke();
-      g.fill(this.owner === 'moo' ? color(250, 145, 65) : color(165, 115, 75));
-      g.circle(0, 0, 6);
+      g.rotate(this.vel.heading());
+      if (img) {
+        const fw = Math.min(img.width, img.height);
+        const col = Math.floor(frameCount / 5) % Math.max(1, Math.floor(img.width / fw));
+        g.image(img, -7, -7, 14, 14, col * fw, 0, fw, fw);
+      } else {
+        g.noStroke();
+        g.fill(255, 120, 65);
+        g.circle(0, 0, 7);
+      }
     }
     g.pop();
   }

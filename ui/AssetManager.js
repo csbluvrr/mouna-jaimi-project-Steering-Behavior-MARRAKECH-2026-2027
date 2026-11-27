@@ -54,6 +54,29 @@ class AssetManager {
       files.add('Bunny/Bunny 1 16x16 animation.png');
       files.add('Fox Sprite Sheet.png');
 
+      // Nouveaux assets PokéMoo Feast!! (Onix, Scorbunny, Gengar)
+      files.add('generated/pokemon/onix_head.png');
+      files.add('generated/pokemon/onix_rock.png');
+      files.add('generated/pokemon/onix_tail.png');
+      files.add('scorbunny.png');
+      files.add('gengar.png');
+
+      // Nouveaux assets Catch the Purins! (Pompompurin transparent)
+      files.add('generated/purin/pompompurin_sheet.png');
+
+      // Nouveaux assets The Legend of Moo (Legend_of_Zink_Asset_Pack)
+      const zBase = 'Legend_of_Zink_Asset_Pack/Legend_of_Zink_Asset_Pack/';
+      files.add(zBase + 'Enemies/PNG/sprFireCultistE.png');
+      files.add(zBase + 'Enemies/PNG/sprFireCultistW.png');
+      files.add(zBase + 'Enemies/PNG/sprFireBall.png');
+      files.add(zBase + 'Zink/PNG/sprWeaponBoomerang.png');
+      files.add(zBase + 'Collectables/PNG/sprHealthPotion.png');
+      files.add(zBase + 'Collectables/PNG/sprMagicPotion.png');
+      files.add(zBase + 'Collectables/PNG/sprHeartContainer.png');
+      files.add(zBase + 'Collectables/PNG/sprRuby.png');
+      files.add(zBase + 'Props/PNG/sprBlueBlock.png');
+      files.add(zBase + 'Props/PNG/sprDarkPurpleBlock.png');
+
       // Ressources Caterpillar Crawl (Snake) + effets communs
       ['green', 'pink', 'blue', 'gold'].forEach((col) => {
         files.add('generated/snake/caterpillar_head_' + col + '.png');

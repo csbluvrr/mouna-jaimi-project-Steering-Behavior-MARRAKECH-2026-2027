@@ -191,7 +191,7 @@ class SnakeScene extends Scene {
       return obs;
     });
 
-    // Prédateurs affamés (GardenPredator extends Vehicle : pursue + avoid + boundaries) dès le niveau 3
+    // Gengars affamés qui poursuivent Onix dès le niveau 3 (pursue + avoid + boundaries)
     this.predators = [];
     const hunterSpawns = [
       [bx + bw - 34, by + 34],
@@ -199,8 +199,9 @@ class SnakeScene extends Scene {
     ];
     for (let i = 0; i < (cfg.nbHunters || 0); i++) {
       const sp = hunterSpawns[i % hunterSpawns.length];
-      this.predators.push(new GardenPredator(sp[0], sp[1], cfg.hunterSpeed || 0.8, this.bounds));
+      this.predators.push(new GardenPredator(sp[0], sp[1], cfg.hunterSpeed || 0.8, this.bounds, this.game.assets));
     }
+    this.doubleFrames = 0;
 
     // Touffes d'herbe et fleurs décoratives (animées par une douce brise)
     this.gardenDecor = [];
@@ -268,6 +269,11 @@ class SnakeScene extends Scene {
     for (let i = 0; i < (cfg.nbRotten || 0); i++) {
       const pos = this.findSafeFruitPos();
       this.fruits.push(new GardenFruit(pos.x, pos.y, 'rotten', this.game.assets, this.bounds));
+    }
+    // Bonus Rare Candy (2x croissance) dès le niveau 2
+    if (this.currentLevel >= 2) {
+      const pos = this.findSafeFruitPos();
+      this.fruits.push(new GardenFruit(pos.x, pos.y, 'double', this.game.assets, this.bounds));
     }
   }
 
@@ -367,11 +373,13 @@ class SnakeScene extends Scene {
       }
     }
 
-    // 1.6. Mise à jour des prédateurs qui poursuivent la chenille !
+    if (this.doubleFrames > 0) this.doubleFrames--;
+
+    // 1.6. Mise à jour des Gengars qui poursuivent Onix !
     for (const pred of this.predators) {
       pred.step(this.caterpillar, this.obstacles);
       if (pred.catches(this.caterpillar)) {
-        this.triggerCrash('Caught by a hungry garden bug!');
+        this.triggerCrash('Caught by a sneaky Gengar!');
         return;
       }
     }
@@ -419,10 +427,17 @@ class SnakeScene extends Scene {
           for (let k = 0; k < 5; k++) this.fx.push(new SparkleFX(f.pos.x, f.pos.y, 'sparkle'));
           this.fx.push(new SparkleFX(f.pos.x, f.pos.y - 6, 'text', 'ROTTEN! -1', color(180, 200, 105)));
           continue;
+        } else if (f.type === 'double') {
+          // Rare Candy : active 2x croissance pendant 8 secondes !
+          this.doubleFrames = 480;
+          this.game.sound.playSfx('success_bell', 0.65);
+          for (let k = 0; k < 6; k++) this.fx.push(new SparkleFX(f.pos.x, f.pos.y, 'sparkle'));
+          this.fx.push(new SparkleFX(f.pos.x, f.pos.y - 6, 'text', 'RARE CANDY 2x!', color(140, 224, 255)));
         } else {
-          const gain = f.type === 'golden' ? 2 : 1;
+          const baseGain = f.type === 'golden' ? 2 : 1;
+          const gain = this.doubleFrames > 0 ? baseGain * 2 : baseGain;
           this.caterpillar.grow(gain);
-          if (f.type === 'blueberry') this.caterpillar.activateBoost(180);
+          if (f.type === 'blueberry') this.caterpillar.activateBoost(210);
           this.fruitsEatenLevel++;
           this.totalEatenRun++;
           this.shakeFrames = 5;
@@ -430,7 +445,7 @@ class SnakeScene extends Scene {
           this.game.sound.playSfx('squeak_double_1', 0.65);
 
           for (let k = 0; k < 6; k++) this.fx.push(new SparkleFX(f.pos.x, f.pos.y, 'sparkle'));
-          const lbl = f.type === 'blueberry' ? 'BOOST!' : (gain > 1 ? '+' + gain + ' ★' : 'NOM!');
+          const lbl = f.type === 'blueberry' ? 'QUICK BALL!' : (gain > 1 ? '+' + gain + ' ROCKS!' : 'CHOMP!');
           this.fx.push(new SparkleFX(f.pos.x, f.pos.y - 6, 'text', lbl, color(255, 232, 110)));
         }
 
@@ -438,8 +453,8 @@ class SnakeScene extends Scene {
       }
     }
 
-    // 5. Niveau terminé quand tous les BONS fruits du niveau sont mangés (les pourris ne comptent pas)
-    const remainingGood = this.fruits.filter((f) => f.type !== 'rotten').length;
+    // 5. Niveau terminé quand tous les Scorbunnies du niveau sont attrapés (les Toxic Orbs & Rare Candies ne bloquent pas)
+    const remainingGood = this.fruits.filter((f) => f.type !== 'rotten' && f.type !== 'double').length;
     if (remainingGood === 0) {
       this.game.sound.playSfx('success_bell', 0.9);
       this.winButterfly = new HubButterfly(this.caterpillar.pos.x, this.caterpillar.pos.y, this.game.assets);
@@ -490,6 +505,23 @@ class SnakeScene extends Scene {
         if (((x - bx + y - by) / 16) % 2 === 0) g.rect(x, y, 16, 16);
       }
     }
+
+    // Ligne médiane & Pokéball géante du stade Pokémon !
+    g.push();
+    g.noFill();
+    g.stroke(255, 255, 245, 78);
+    g.strokeWeight(2);
+    const fcx = bx + bw / 2;
+    const fcy = by + bh / 2;
+    g.line(fcx, by + 4, fcx, by + bh - 4);
+    g.circle(fcx, fcy, 68);
+    g.circle(fcx, fcy, 20);
+    g.noStroke();
+    g.fill(232, 92, 96, 36);
+    g.arc(fcx, fcy, 66, 66, PI, TWO_PI);
+    g.fill(255, 255, 245, 36);
+    g.arc(fcx, fcy, 66, 66, 0, PI);
+    g.pop();
 
     // Petits îlots de terre douce
     g.fill(th.dirt[0], th.dirt[1], th.dirt[2], 125);
@@ -684,17 +716,18 @@ class SnakeScene extends Scene {
       PixelUI.drawTag(g, font, 'LEVEL ' + cfg.num + ' — ' + cfg.name.toUpperCase(), 240, 52, g.color(247, 235, 170));
     }
 
-    // 4. HUD supérieur
-    const goodLeft = this.fruits.filter((f) => f.type !== 'rotten').length;
+    // 4. HUD supérieur (PokéMoo Feast!!)
+    const goodLeft = this.fruits.filter((f) => f.type !== 'rotten' && f.type !== 'double').length;
     PixelUI.panel(g, 8, 5, 114, 16);
-    PixelUI.txt(g, font, 'LVL ' + cfg.num + '/5 ' + cfg.name.split(' ')[0], 13, 8, g.color(107, 75, 91));
+    PixelUI.txt(g, font, 'LVL ' + cfg.num + '/5 ' + cfg.name.split(' ')[0], 13, 8, g.color(107, 75, 91), LEFT, 8.5, 104);
 
-    PixelUI.panel(g, 130, 5, 86, 16);
-    PixelUI.txt(g, font, 'FRUIT ' + goodLeft + '/' + cfg.nbFruits, 136, 8, g.color(107, 75, 91));
+    PixelUI.panel(g, 130, 5, 88, 16);
+    PixelUI.txt(g, font, 'BUNS ' + goodLeft + '/' + cfg.nbFruits, 136, 8, g.color(107, 75, 91), LEFT, 8.5, 78);
 
-    PixelUI.panel(g, 224, 5, 76, 16);
+    PixelUI.panel(g, 224, 5, 78, 16);
     const rings = this.caterpillar ? this.caterpillar.getRingCount() : 1;
-    PixelUI.txt(g, font, 'RINGS: ' + rings, 230, 8, g.color(107, 75, 91));
+    const boostTag = this.doubleFrames > 0 ? ' 2x!' : '';
+    PixelUI.txt(g, font, 'ROCKS: ' + rings + boostTag, 229, 8, this.doubleFrames > 0 ? g.color(64, 138, 198) : g.color(107, 75, 91), LEFT, 8.5, 70);
 
     PixelUI.panel(g, 308, 5, 118, 16);
     const modeTxt = this.controlMode === 'KEYBOARD' ? '[C] Arrows' : '[C] Mouse';
@@ -712,15 +745,15 @@ class SnakeScene extends Scene {
     const { mx, my } = this.game.getMouseBufferPos();
     this.startBtn = { x: 180, y: 204, w: 120, h: 24 };
     PixelUI.drawRulesCard(g, font, {
-      title: 'CATERPILLAR CRAWL (5 LEVELS)',
-      headerCol: g.color(114, 172, 106),
+      title: 'POKEMOO FEAST!! (5 STADIUM LEVELS)',
+      headerCol: g.color(206, 78, 86),
       rules: [
-        'Eat all fresh fleeing fruits to clear each level & grow!',
-        'Avoid red spiky hazards, moving patrols & hungry bugs (Lvl 3+).',
-        'Rotten fruits shrink you by 1 ring (0 rings = Game Over!).',
-        'Fruits escape faster as levels climb!'
+        'Play as Onix! Catch all fleeing Scorbunnies to grow rock rings!',
+        'Grab Quick Balls (speed boost) & Rare Candies (2x growth)!',
+        'Avoid spiky hazards, moving patrols & chasing Gengars (Lvl 3+).',
+        'Purple Toxic Orbs shrink Onix by 1 rock (0 rocks = Game Over)!'
       ],
-      controls: 'Arrows / WASD to steer  |  [C] Mouse Mode  |  [H] Debug Sliders',
+      controls: 'Arrows / WASD: Steer Onix  |  [C] Mouse Mode  |  [H] Debug Sliders',
       btnRect: this.startBtn,
       btnLabel: 'PLAY! (Space)',
       mx,

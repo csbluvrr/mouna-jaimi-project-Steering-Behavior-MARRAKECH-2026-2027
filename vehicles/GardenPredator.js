@@ -4,8 +4,9 @@
  * wander() + avoid(obstacles) + boundaries() pour traquer activement la chenille !
  */
 class GardenPredator extends Vehicle {
-  constructor(x, y, maxSpeed = 0.78, bounds = [14, 30, 452, 228]) {
+  constructor(x, y, maxSpeed = 0.78, bounds = [14, 30, 452, 228], assets = null) {
     super(x, y, maxSpeed, 0.065);
+    this.assets = assets;
     this.bounds = bounds;
     this.r = 7;
     this.aheadScale = 14;
@@ -50,48 +51,35 @@ class GardenPredator extends Vehicle {
   show(g) {
     const px = Math.round(this.pos.x);
     const py = Math.round(this.pos.y);
-    const ang = this.vel.magSq() > 0.01 ? this.vel.heading() : 0;
-    const pulse = 0.5 + 0.5 * Math.sin(frameCount * 0.2 + this.phase);
+    const pulse = 0.5 + 0.5 * Math.sin(frameCount * 0.18 + this.phase);
 
     g.push();
-    g.translate(px, py);
-
-    // Halo rouge pulsant signalant le danger imminent
+    // Aura fantôme violette de Gengar + ombre
+    g.noStroke();
+    g.fill(92, 48, 138, 85);
+    g.ellipse(px, py + 7, 16, 6);
     g.noFill();
-    g.stroke(235, 58, 68, 120 + Math.round(pulse * 110));
+    g.stroke(176, 86, 232, 120 + Math.round(pulse * 110));
     g.strokeWeight(1.2);
-    g.circle(0, 0, 16 + pulse * 3);
+    g.circle(px, py, 18 + pulse * 3);
 
-    g.rotate(ang);
-    // Ailes battantes translucides
-    const wingY = Math.sin(frameCount * 0.55 + this.phase) * 2;
-    g.noStroke();
-    g.fill(255, 240, 210, 185);
-    g.ellipse(-2, -6 + wingY, 7, 4);
-    g.ellipse(-2, 6 - wingY, 7, 4);
-
-    // Carapace scarabée rouge-sombre + rayures dorées
-    g.stroke(62, 22, 34);
-    g.strokeWeight(1.2);
-    g.fill(198, 44, 62);
-    g.ellipse(0, 0, 13, 10);
-    g.noStroke();
-    g.fill(252, 206, 86);
-    g.rect(-3, -4, 2, 8);
-    g.rect(1, -3, 2, 6);
-
-    // Mandibules affamées à l'avant
-    const chomp = Math.sin(frameCount * 0.35 + this.phase) * 1.4;
-    g.stroke(62, 22, 34);
-    g.strokeWeight(1.4);
-    g.line(5, -2, 9, -4 + chomp);
-    g.line(5, 2, 9, 4 - chomp);
-
-    // Yeux jaunes perçants
-    g.noStroke();
-    g.fill(255, 245, 130);
-    g.rect(3, -3, 2, 2);
-    g.rect(3, 1, 2, 2);
+    // Gengar animé (gengar.png : 4x4 cellules 64x64 -> row 0=bas, 1=gauche, 2=droite, 3=haut)
+    let row = 0;
+    if (Math.abs(this.vel.x) > Math.abs(this.vel.y)) {
+      row = this.vel.x < 0 ? 1 : 2;
+    } else {
+      row = this.vel.y < 0 ? 3 : 0;
+    }
+    const col = Math.floor(frameCount / 7 + this.phase) % 4;
+    const gImg = this.assets ? this.assets.getSheetFrame('gengar.png', 64, 64, col, row) : null;
+    const floatY = Math.round(Math.sin(frameCount * 0.14 + this.phase) * 1.5);
+    if (gImg) {
+      g.image(gImg, px - 12, py - 13 + floatY, 24, 24);
+    } else {
+      g.noStroke();
+      g.fill(128, 72, 178);
+      g.circle(px, py, 14);
+    }
     g.pop();
 
     if (Vehicle.debug) {

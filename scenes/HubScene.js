@@ -87,16 +87,24 @@ class HubScene extends Scene {
     // 3. Décorations cohérentes et ordonnées des ailes Ouest et Est
     this.buildWingDecor();
 
-    // 4. Triggers (4 stands originaux + Poster + MAP + Prize Booth)
+    // 4. Triggers (4 stands originaux renommés + Poster + MAP + Prize Booth)
+    const renamedTitles = {
+      derby: 'Bunny Derby',
+      snake: 'PokeMoo Feast!!',
+      ducklings: 'Catch the Purins!',
+      fox: 'The Legend of Moo'
+    };
     this.triggers = layout.triggers.map((t) => {
+      const title = renamedTitles[t.id] || t.title;
       if (t.id === 'poster') {
         return {
           ...t,
+          title,
           rect: [t.rect[0] + this.posterOffsetX, t.rect[1], t.rect[2], t.rect[3]],
           stand: [t.stand[0] + this.posterOffsetX, t.stand[1]]
         };
       }
-      return t;
+      return { ...t, title };
     });
     this.triggers.push(
       {
@@ -917,11 +925,17 @@ class HubScene extends Scene {
     g.rect(ox + 70, oy + 34, 340, 22);
     PixelUI.txt(g, font, "TODAY'S GAMES", ox + 240, oy + 40, g.color(243, 244, 231), CENTER, 10);
 
+    const titleMap = {
+      derby: 'Bunny Derby',
+      snake: 'PokeMoo Feast!!',
+      ducklings: 'Catch the Purins!',
+      fox: 'The Legend of Moo'
+    };
     this.cardRects().forEach((c, i) => {
       const hov = PixelUI.pointInRect(mx, my, c);
       const yy = Math.round(c.y + (hov ? -2 + Math.sin(frameCount * 0.3) : 0));
       PixelUI.panel(g, c.x, yy, c.w, c.h, g.color(232, 207, 166));
-      PixelUI.txt(g, font, c.gm.title, c.x + 8, yy + 5, g.color(107, 75, 91), LEFT, 9, c.w - 14);
+      PixelUI.txt(g, font, titleMap[c.gm.id] || c.gm.title, c.x + 8, yy + 5, g.color(107, 75, 91), LEFT, 9, c.w - 14);
 
       const bSp = assets.getSprite('booth_' + c.gm.id);
       if (bSp) g.image(bSp, c.x + 8, yy + 26, 28, 24, 18, 1, 14, 12);

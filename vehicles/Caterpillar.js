@@ -192,31 +192,41 @@ class Caterpillar extends Vehicle {
   show(g) {
     const colName = this.getActiveColor();
 
-    // Ombres douces au sol sous chaque anneau et la tête pour donner du relief
+    // Ombres douces au sol sous chaque rocher d'Onix et sa tête
     g.noStroke();
-    g.fill(68, 96, 62, 85);
+    g.fill(58, 86, 56, 90);
     for (let i = this.segments.length - 1; i >= 0; i--) {
       const seg = this.segments[i];
-      g.ellipse(Math.round(seg.pos.x), Math.round(seg.pos.y) + 5, seg.r * 1.9, seg.r * 0.9);
+      g.ellipse(Math.round(seg.pos.x), Math.round(seg.pos.y) + 5, seg.r * 2.1, seg.r * 1.0);
     }
-    g.ellipse(Math.round(this.pos.x), Math.round(this.pos.y) + 6, 13, 6);
+    g.ellipse(Math.round(this.pos.x), Math.round(this.pos.y) + 7, 16, 7);
 
-    // Dessin de la queue vers la tête
+    // Dessin de la queue vers la tête (rochers d'Onix)
     for (let i = this.segments.length - 1; i >= 0; i--) {
       this.segments[i].show(g, colName);
     }
 
-    const headImg = this.assets.getImage('generated/snake/caterpillar_head_' + colName + '.png');
+    // Halo Pokémon si boost actif (vitesse Quick Ball ou Rare Candy 2x)
+    const px = Math.round(this.pos.x);
+    const py = Math.round(this.pos.y);
+    if (this.boostFrames > 0) {
+      g.noFill();
+      g.stroke(96, 198, 255, 190);
+      g.strokeWeight(1.5);
+      g.circle(px, py, 22 + Math.sin(frameCount * 0.3) * 2);
+    }
+
+    const headImg = this.assets.getImage('generated/pokemon/onix_head.png');
     g.push();
-    g.translate(Math.round(this.pos.x), Math.round(this.pos.y));
+    g.translate(px, py);
     if (this.vel.x < -0.1) {
       g.scale(-1, 1);
     }
     if (headImg) {
-      g.image(headImg, -Math.floor(headImg.width / 2), -Math.floor(headImg.height / 2));
+      g.image(headImg, -11, -12, 22, 22);
     } else {
       g.noStroke();
-      g.fill(100, 190, 90);
+      g.fill(158, 158, 166);
       g.circle(0, 0, this.r * 2);
     }
     g.pop();

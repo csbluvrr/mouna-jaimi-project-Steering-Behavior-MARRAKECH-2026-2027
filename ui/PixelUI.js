@@ -5,55 +5,100 @@
  * - Cartes de règles claires et boutons tactiles.
  */
 class PixelUI {
+  static _textQueue = [];
+
+  /** Vide la file de rendu texte HD au début de chaque frame. */
+  static beginFrame() {
+    PixelUI._textQueue.length = 0;
+  }
+
   /**
-   * Dessine un texte parfaitement lisible, sans jamais déborder de maxW.
-   * @param {p5.Graphics} g
-   * @param {p5.Font|null} font (conservé pour compatibilité)
-   * @param {string} textStr
-   * @param {number} x
-   * @param {number} y
-   * @param {p5.Color} col
-   * @param {string} align LEFT | CENTER | RIGHT
-   * @param {number} size taille en px buffer (défaut 9.5)
-   * @param {number|null} maxW largeur max autorisée (réduit la taille si besoin)
+   * Enregistre un texte pour un rendu natif Haute Définition (zéro pixelisation !)
+   * en capturant exactement la transformation courante du buffer pixel-art `g`.
    */
   static txt(g, font, textStr, x, y, col, align = LEFT, size = 9.5, maxW = null) {
     const str = String(textStr == null ? '' : textStr);
-    g.push();
-    g.textFont('Verdana, Trebuchet MS, sans-serif');
-    g.textStyle(BOLD);
-    let sz = size;
-    g.textSize(sz);
+    let gx = x;
+    let gy = y;
+    if (g && g.drawingContext && typeof g.drawingContext.getTransform === 'function') {
+      const m = g.drawingContext.getTransform();
+      gx = m.a * x + m.c * y + m.e;
+      gy = m.b * x + m.d * y + m.f;
+    }
 
-    // Auto-ajustement anti-débordement si maxW est précisé
-    if (maxW && maxW > 12) {
-      let tw = g.textWidth(str);
-      while (tw > maxW && sz > 6.5) {
-        sz -= 0.5;
-        g.textSize(sz);
-        tw = g.textWidth(str);
+    const c = col || (g ? g.color(107, 75, 91) : null);
+    const r = c ? red(c) : 107;
+    const gr = c ? green(c) : 75;
+    const b = c ? blue(c) : 91;
+    const a = c ? alpha(c) : 255;
+
+    PixelUI._textQueue.push({
+      str,
+      gx,
+      gy,
+      r,
+      gr,
+      b,
+      a,
+      align,
+      size,
+      maxW
+    });
+  }
+
+  /**
+   * Dessine tous les textes accumulés directement sur le canvas principal natif (HD, lisse, ultra-lisible)
+   * après l'affichage du buffer pixel-art `g`.
+   */
+  static flushText(scaleX, scaleY) {
+    const q = PixelUI._textQueue;
+    if (q.length === 0) return;
+
+    const ctx = drawingContext;
+    if (!ctx) return;
+
+    ctx.save();
+    ctx.textBaseline = 'top';
+
+    for (let i = 0; i < q.length; i++) {
+      const it = q[i];
+      let pxSize = Math.max(10, Math.round(it.size * scaleY * 1.05));
+      ctx.font = '700 ' + pxSize + 'px "Trebuchet MS", "Segoe UI", Verdana, sans-serif';
+
+      if (it.maxW && it.maxW > 10) {
+        const limitPx = it.maxW * scaleX;
+        let tw = ctx.measureText(it.str).width;
+        while (tw > limitPx && pxSize > 9) {
+          pxSize -= 1;
+          ctx.font = '700 ' + pxSize + 'px "Trebuchet MS", "Segoe UI", Verdana, sans-serif';
+          tw = ctx.measureText(it.str).width;
+        }
       }
+
+      if (it.align === CENTER) ctx.textAlign = 'center';
+      else if (it.align === RIGHT) ctx.textAlign = 'right';
+      else ctx.textAlign = 'left';
+
+      const sx = Math.round(it.gx * scaleX);
+      const sy = Math.round(it.gy * scaleY);
+      const lum = (it.r + it.gr + it.b) / 3;
+      const alphaNorm = it.a / 255;
+
+      // Ombre douce anti-aliased pour un contraste net sur tous les fonds
+      if (lum > 185) {
+        ctx.fillStyle = 'rgba(62, 38, 52, ' + (0.65 * alphaNorm).toFixed(2) + ')';
+        ctx.fillText(it.str, sx, sy + Math.max(1, Math.round(scaleY * 0.45)));
+      } else {
+        ctx.fillStyle = 'rgba(255, 250, 232, ' + (0.65 * alphaNorm).toFixed(2) + ')';
+        ctx.fillText(it.str, sx, sy + Math.max(1, Math.round(scaleY * 0.35)));
+      }
+
+      ctx.fillStyle = 'rgba(' + Math.round(it.r) + ',' + Math.round(it.gr) + ',' + Math.round(it.b) + ',' + alphaNorm.toFixed(2) + ')';
+      ctx.fillText(it.str, sx, sy);
     }
 
-    g.textAlign(align, TOP);
-    g.noStroke();
-    const rx = Math.round(x);
-    const ry = Math.round(y);
-
-    // Ombre légère pour un contraste net sur fonds clairs et foncés
-    const c = col || g.color(107, 75, 91);
-    const lum = (red(c) + green(c) + blue(c)) / 3;
-    if (lum > 185) {
-      g.fill(78, 50, 66, 150);
-      g.text(str, rx, ry + 1);
-    } else {
-      g.fill(255, 250, 232, 120);
-      g.text(str, rx, ry + 1);
-    }
-
-    g.fill(c);
-    g.text(str, rx, ry);
-    g.pop();
+    ctx.restore();
+    PixelUI._textQueue.length = 0;
   }
 
   /** Mesure proprement la largeur d'un texte avec la police UI courante. */

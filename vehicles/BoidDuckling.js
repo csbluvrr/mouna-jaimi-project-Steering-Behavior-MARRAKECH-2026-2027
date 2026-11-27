@@ -182,8 +182,22 @@ class BoidDuckling extends Vehicle {
 
   show(g) {
     const moving = this.vel.magSq() > 0.02;
-    const col = moving ? 1 + (Math.floor(frameCount / 7) % 3) : 0;
-    const img = this.assets.getSheetFrame('sprites/ducklings/duckling_sheet.png', 16, 16, col, 1);
+    const col = moving ? Math.floor(frameCount / 7 + this.hopPhase) % 4 : 0;
+
+    // Pompompurin (generated/purin/pompompurin_sheet.png : 4x6 cellules 32x32)
+    // row 0 = face, row 1 = droite, row 2 = dos, row 3 = gauche, row 5 = joyeux dans la ferme
+    let row = 0;
+    if (this.mode === 'IN_PEN') {
+      row = 5;
+    } else if (moving) {
+      if (Math.abs(this.vel.x) > Math.abs(this.vel.y)) {
+        row = this.vel.x < 0 ? 3 : 1;
+      } else {
+        row = this.vel.y < 0 ? 2 : 0;
+      }
+    }
+
+    const img = this.assets.getSheetFrame('generated/purin/pompompurin_sheet.png', 32, 32, col, row);
 
     const hop = this.mode === 'IN_PEN'
       ? Math.abs(Math.sin(frameCount * 0.16 + this.hopPhase)) * -3.5
@@ -191,22 +205,19 @@ class BoidDuckling extends Vehicle {
 
     g.push();
     g.translate(Math.round(this.pos.x), Math.round(this.pos.y + hop) - 10);
-    if (this.vel.x < -0.05) {
-      g.scale(-1, 1);
-    }
     if (img) {
-      g.image(img, -8, -6);
+      g.image(img, -10, -9, 20, 20);
     } else {
       g.noStroke();
-      g.fill(255, 224, 90);
-      g.circle(0, 0, 8);
+      g.fill(255, 232, 130);
+      g.circle(0, 0, 10);
     }
 
-    // Petit signe rebelle discret au-dessus des canetons rebelles
+    // Petit béret/signe rebelle discret au-dessus des Purins rebelles
     if (this.isRebel && this.mode === 'FLOCK') {
       g.noStroke();
       g.fill(235, 110, 130);
-      g.rect(-1, -10, 2, 2);
+      g.rect(-1, -12, 2, 2);
     }
     g.pop();
 

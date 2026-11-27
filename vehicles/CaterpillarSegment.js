@@ -38,11 +38,11 @@ class CaterpillarSegment extends Vehicle {
 
   show(g, colorName = 'green') {
     const file = this.isTail
-      ? 'generated/snake/caterpillar_tail_' + colorName + '.png'
-      : 'generated/snake/caterpillar_body_' + colorName + '.png';
+      ? 'generated/pokemon/onix_tail.png'
+      : 'generated/pokemon/onix_rock.png';
     const img = this.assets.getImage(file);
 
-    const wiggle = Math.sin(frameCount * 0.2 - this.index * 0.65) * 0.7;
+    const wiggle = Math.sin(frameCount * 0.2 - this.index * 0.65) * 0.6;
     const ox = Math.round(this.pos.x);
     const oy = Math.round(this.pos.y + wiggle);
 
@@ -50,7 +50,7 @@ class CaterpillarSegment extends Vehicle {
       g.image(img, ox - Math.floor(img.width / 2), oy - Math.floor(img.height / 2));
     } else {
       g.noStroke();
-      g.fill(130, 210, 110);
+      g.fill(152, 152, 160);
       g.circle(ox, oy, this.r * 2);
     }
   }

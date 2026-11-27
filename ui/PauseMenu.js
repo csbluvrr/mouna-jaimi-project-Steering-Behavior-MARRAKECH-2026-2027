@@ -225,9 +225,9 @@ class PauseMenu {
     if (pageIdx === 1) {
       const games = [
         { id: 'derby',     label: 'Bunny Derby' },
-        { id: 'snake',     label: 'Caterpillar' },
-        { id: 'ducklings', label: 'Ducklings' },
-        { id: 'fox',       label: 'Fox Showdown' }
+        { id: 'snake',     label: 'PokeMoo Feast!!' },
+        { id: 'ducklings', label: 'Catch the Purins!' },
+        { id: 'fox',       label: 'Legend of Moo' }
       ];
       return games.map((gm, i) => ({
         label: gm.label,
@@ -681,11 +681,11 @@ class PauseMenu {
       this.drawPageHeader(g, font, 'GAME RULES', rp);
       const rulesList = [
         { id: 'derby',     t: 'Derby: Bet & race!' },
-        { id: 'snake',     t: 'Snake: Eat fruit,' },
-        { id: null,        t: 'dodge hazards & bugs!' },
-        { id: 'ducklings', t: 'Ducks: Herd into' },
-        { id: null,        t: 'the pen via the gate!' },
-        { id: 'fox',       t: 'Fox: Throw carrots!' }
+        { id: 'snake',     t: 'PokeMoo: Onix eats' },
+        { id: null,        t: 'Scorbunnies, dodge Gengar!' },
+        { id: 'ducklings', t: 'Purins: Shoo cloud to' },
+        { id: null,        t: "Moo's Purin Farm gate!" },
+        { id: 'fox',       t: 'Zelda: Jump & boomerang!' }
       ];
       let yy = rp.y + 30;
       for (const r of rulesList) {

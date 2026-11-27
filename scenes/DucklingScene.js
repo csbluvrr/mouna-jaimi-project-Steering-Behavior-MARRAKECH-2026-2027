@@ -240,18 +240,10 @@ class DucklingScene extends Scene {
       d.show(g);
     }
 
-    // 4. Bulle amicale "shoo" autour de la souris pendant le jeu
+    // 4. Nuage mignon "SHOO!" autour de la souris pendant le jeu
     if (this.state === 'PLAYING') {
       const { mx, my } = this.game.getMouseBufferPos();
-      g.push();
-      g.noFill();
-      g.stroke(255, 245, 190, 140);
-      g.strokeWeight(1);
-      g.circle(Math.round(mx), Math.round(my), 56 * 2);
-      g.fill(255, 245, 190, 40);
-      g.noStroke();
-      g.circle(Math.round(mx), Math.round(my), 18);
-      g.pop();
+      this.drawShooCloud(g, Math.round(mx), Math.round(my));
     }
 
     // 5. Effets visuels
@@ -276,7 +268,7 @@ class DucklingScene extends Scene {
     // 8. HUD + Overlays
     this.drawHud(g);
     if (this.state === 'COUNTDOWN') {
-      PixelUI.drawTag(g, font, 'Get ready! Herd ducklings into the pen ->', 240, 256, g.color(247, 235, 170));
+      PixelUI.drawTag(g, font, "Get ready! Herd Purins into Moo's Purin Farm ->", 240, 256, g.color(247, 235, 170));
     } else if (this.state === 'INTRO_CARD') {
       this.drawIntroCard(g);
     } else if (this.state === 'PAUSED') {
@@ -286,36 +278,92 @@ class DucklingScene extends Scene {
     }
   }
 
-  drawPasture(g) {
-    g.noStroke();
-    g.fill(154, 196, 126);
-    g.rect(0, 0, 480, 272);
+  /** Dessine le nuage doux et animé "SHOO!" qui suit la souris pour guider les Pompompurins. */
+  drawShooCloud(g, cx, cy) {
+    const bob = Math.round(Math.sin(frameCount * 0.14) * 1.5);
+    g.push();
+    // Rayon d'influence doux en pointillés
+    g.noFill();
+    g.stroke(255, 248, 210, 130);
+    g.strokeWeight(1);
+    g.circle(cx, cy, 112);
 
-    // Mare centrale à éviter
-    g.fill(122, 186, 210);
+    // Nuage moelleux crème-blanc + contour chocolat caramel
+    g.translate(cx, cy + bob);
+    g.noStroke();
+    g.fill(118, 72, 52, 160);
+    g.circle(-7, 2, 13);
+    g.circle(7, 2, 13);
+    g.circle(0, -3, 15);
+    g.rect(-7, 0, 14, 8);
+
+    g.fill(255, 252, 242);
+    g.circle(-6, 1, 11);
+    g.circle(6, 1, 11);
+    g.circle(0, -3, 13);
+    g.rect(-6, 0, 12, 7);
+
+    // Petit visage kawaii sur le nuage
+    g.fill(107, 68, 52);
+    g.rect(-3, -1, 1.5, 2);
+    g.rect(2, -1, 1.5, 2);
+    g.fill(252, 166, 184);
+    g.rect(-5, 1, 2, 1.5);
+    g.rect(3.5, 1, 2, 1.5);
+    g.pop();
+
+    PixelUI.txt(g, this.game.assets.font, 'SHOO!', cx, cy - 19 + bob, g.color(118, 72, 52), CENTER, 7.5);
+  }
+
+  drawPasture(g) {
+    // Prairie pastel thème Pompompurin (crème vanille + menthe douce + motifs pudding)
+    g.noStroke();
+    g.fill(178, 214, 146);
+    g.rect(0, 0, 480, 272);
+    g.fill(190, 224, 156);
+    for (let y = 28; y < 260; y += 24) {
+      for (let x = 12; x < 468; x += 24) {
+        if (((x + y) / 24) % 2 === 0) g.rect(x, y, 24, 24);
+      }
+    }
+
+    // Petites fleurs crème & caramel dans l'herbe
+    for (let i = 0; i < 14; i++) {
+      const fx = 28 + (i * 73) % 315;
+      const fy = 40 + (i * 47) % 205;
+      g.fill(255, 244, 182);
+      g.circle(fx, fy, 4);
+      g.fill(158, 96, 56);
+      g.circle(fx, fy, 1.5);
+    }
+
+    // Mare caramel-lait / bleue douce à contourner
+    g.fill(134, 198, 218);
     g.ellipse(this.pond.x, this.pond.y, this.pond.rx * 2, this.pond.ry * 2);
-    g.fill(158, 214, 232);
+    g.fill(174, 224, 240);
     g.ellipse(this.pond.x - 6, this.pond.y - 3, this.pond.rx * 1.1, this.pond.ry * 0.9);
 
-    // Clôture du pré
+    // Clôture caramel Pompompurin
     g.noFill();
-    g.stroke(107, 75, 91);
+    g.stroke(118, 72, 52);
     g.strokeWeight(3);
     g.rect(10, 26, 460, 236);
-    g.stroke(182, 137, 98);
+    g.stroke(236, 194, 126);
     g.strokeWeight(1);
     g.rect(10, 26, 460, 236);
   }
 
   drawPen(g) {
     const p = this.penRect;
-    // Sol paillé accueillant dans l'enclos
+    // Sol crème-caramel chaleureux dans Moo's Purin Farm
     g.noStroke();
-    g.fill(232, 212, 152);
+    g.fill(252, 234, 168);
     g.rect(p.x, p.y, p.w, p.h);
+    g.fill(244, 220, 146);
+    g.rect(p.x + 4, p.y + 4, p.w - 8, p.h - 8);
 
-    // Clôtures solides de l'enclos (porte UNIQUEMENT sur le côté gauche de y+30 à y+78)
-    g.stroke(107, 75, 91);
+    // Clôtures solides chocolat-caramel (porte UNIQUEMENT à gauche de y+30 à y+78)
+    g.stroke(118, 72, 52);
     g.strokeWeight(4);
     g.line(p.x, p.y, p.x + p.w, p.y);
     g.line(p.x + p.w, p.y, p.x + p.w, p.y + p.h);
@@ -323,39 +371,32 @@ class DucklingScene extends Scene {
     g.line(p.x, p.y, p.x, p.y + 30);
     g.line(p.x, p.y + 78, p.x, p.y + p.h);
 
-    // Poteaux dorés + chevrons animés signalant clairement l'ouverture de la porte !
+    // Poteaux dorés + chevrons animés signalant l'ouverture
     g.noStroke();
-    g.fill(248, 212, 108);
+    g.fill(252, 212, 102);
     g.rect(p.x - 3, p.y + 27, 6, 6);
     g.rect(p.x - 3, p.y + 75, 6, 6);
     const arrowX = p.x - 12 + Math.round(Math.sin(frameCount * 0.14) * 3);
-    PixelUI.txt(g, this.game.assets.font, '>>', arrowX, p.y + 49, g.color(255, 248, 196), CENTER, 9);
+    PixelUI.txt(g, this.game.assets.font, '>>', arrowX, p.y + 49, g.color(118, 72, 52), CENTER, 9);
 
-    // Panneau d'enclos
-    const sign = this.game.assets.getImage('generated/ducklings/pen_sign.png');
-    if (sign) {
-      g.image(sign, p.x + 32, p.y - 18);
-    } else {
-      PixelUI.drawTag(g, this.game.assets.font, 'PEN', p.x + 48, p.y - 2);
-    }
+    // Panneau "MOO'S PURIN FARM"
+    PixelUI.drawTag(g, this.game.assets.font, "MOO'S PURIN FARM", p.x + 48, p.y - 4, g.color(252, 232, 162));
   }
 
   drawHud(g) {
     const font = this.game.assets.font;
 
-    // Compteur canetons dans l'enclos
-    PixelUI.panel(g, 8, 5, 140, 16);
-    PixelUI.txt(g, font, 'PEN: ' + this.inPenCount + '/' + this.totalDucklings + ' (goal ' + this.goalCount + ')', 13, 8, g.color(107, 75, 91), LEFT, 8.5, 130);
+    PixelUI.panel(g, 8, 5, 142, 16);
+    PixelUI.txt(g, font, 'FARM: ' + this.inPenCount + '/' + this.totalDucklings + ' (goal ' + this.goalCount + ')', 13, 8, g.color(118, 72, 52), LEFT, 8.5, 132);
 
-    // Barre de coucher de soleil
-    PixelUI.panel(g, 154, 5, 178, 16);
+    PixelUI.panel(g, 156, 5, 176, 16);
     const ratio = constrain(this.timeLeft / this.totalTime, 0, 1);
     g.noStroke();
-    g.fill(107, 75, 91);
-    g.rect(158, 9, 110, 8);
-    g.fill(220 + 30 * ratio, 110 + 105 * ratio, 140 - 30 * ratio);
-    g.rect(158, 9, Math.round(110 * ratio), 8);
-    PixelUI.txt(g, font, Math.ceil(this.timeLeft) + 's', 274, 8, g.color(107, 75, 91), LEFT, 8.5);
+    g.fill(118, 72, 52);
+    g.rect(160, 9, 108, 8);
+    g.fill(236 + 18 * ratio, 136 + 88 * ratio, 112 + 12 * ratio);
+    g.rect(160, 9, Math.round(108 * ratio), 8);
+    PixelUI.txt(g, font, Math.ceil(this.timeLeft) + 's', 274, 8, g.color(118, 72, 52), LEFT, 8.5);
 
     PixelUI.panel(g, 338, 5, 80, 16);
     PixelUI.txt(g, font, 'M: Menu', 344, 8, g.color(144, 98, 93), LEFT, 8.5, 70);
@@ -366,15 +407,15 @@ class DucklingScene extends Scene {
     const { mx, my } = this.game.getMouseBufferPos();
     this.startBtn = { x: 180, y: 204, w: 120, h: 24 };
     PixelUI.drawRulesCard(g, font, {
-      title: 'DUCKLING HERDER (BOIDS)',
-      headerCol: g.color(112, 162, 198),
+      title: 'CATCH THE PURINS! (BOIDS)',
+      headerCol: g.color(198, 134, 72),
       rules: [
-        'Move your mouse bubble behind ducklings to gently shoo them!',
-        'Guide at least ' + this.goalCount + '/' + this.totalDucklings + ' ducklings into the pen before sunset.',
-        'Ducklings can ONLY enter through the open left gate (>>)!',
-        'Watch out for the grumpy goose & rebel ducklings!'
+        'Use your fluffy SHOO! cloud cursor to herd the Pompompurins!',
+        "Guide at least " + this.goalCount + '/' + this.totalDucklings + " Purins into Moo's Purin Farm before sunset.",
+        'Purins can ONLY enter through the open left gate (>>)!',
+        'Watch out for the grumpy goose & cheeky rebel Purins!'
       ],
-      controls: 'Mouse: Shoo Bubble  |  [H] Debug Boid Forces  |  [M] Menu',
+      controls: 'Mouse: Fluffy SHOO! Cloud  |  [H] Debug Boids  |  [M] Menu',
       btnRect: this.startBtn,
       btnLabel: 'START! (Space)',
       mx,
