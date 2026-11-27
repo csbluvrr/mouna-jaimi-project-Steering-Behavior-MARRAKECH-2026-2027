@@ -66,7 +66,7 @@ class HubScene extends Scene {
 
     this.mapBoardPos    = { x: 254,  y: 184, w: 24, h: 36 };
     this.posterPos      = { x: 286,  y: 148, w: 66, h: 82 };
-    this.pondCenter     = { x: 404,  y: 214, rx: 38, ry: 19 };
+    this.pondCenter     = { x: 152,  y: 212, rx: 38, ry: 19 };
     this.fountainPos    = { x: 578,  y: 204 };
 
     // Code secret Debug [H] : *** montre [+], n* cache [+]
@@ -109,10 +109,10 @@ class HubScene extends Scene {
       ...this.booths.map((b) => [b.x + 4, b.y + 36, 42, 22]),
       [212, 118, 56, 18],  // Socle Grande Roue
       [34,  212, 18, 12],  // Panier pique-nique
-      [146, 198, 20, 14],  // Chat aux ballons (kid_front)
+      [116, 194, 72, 36],  // Mare aux canetons (à gauche de l'entrée)
       [this.mapBoardPos.x + 2, this.mapBoardPos.y + 24, 20, 10],
       [this.posterPos.x + 6,   this.posterPos.y + 66,   54, 14],
-      [368, 196, 72, 36],  // Mare aux canetons
+      [394, 198, 20, 14],  // Chat aux ballons (kid_front, à droite de l'entrée)
       [444, 188, 22, 14],  // Vache
 
       // Aile Est (Carrousel + Scène & Feux d'artifice + Ruisseau/Mare + Anneaux + Fontaine + Banc)
@@ -224,12 +224,12 @@ class HubScene extends Scene {
     this.moo = new Moo(spawnX, spawnY, this.game.assets);
     this.camX = this.computeTargetCamX();
 
-    // 6. Canetons nageant dans la mare animée (cx=404, cy=214)
+    // 6. Canetons nageant dans la mare animée (cx=152, cy=212, à gauche de l'entrée)
     this.ducklings = [
-      new HubDuckling(392, 210, this.game.assets),
-      new HubDuckling(412, 216, this.game.assets),
-      new HubDuckling(402, 206, this.game.assets),
-      new HubDuckling(416, 208, this.game.assets)
+      new HubDuckling(140, 208, this.game.assets),
+      new HubDuckling(160, 214, this.game.assets),
+      new HubDuckling(150, 204, this.game.assets),
+      new HubDuckling(164, 206, this.game.assets)
     ];
     for (const d of this.ducklings) {
       d.pondCenter = createVector(this.pondCenter.x, this.pondCenter.y);
@@ -429,7 +429,8 @@ class HubScene extends Scene {
       { x: 318,  y: 178, lookUp: false, emote: 'Interrogation' }, // Games Board
       { x: 333,  y: 152, lookUp: true,  emote: 'Happy' },       // Catch the Purins
       { x: 423,  y: 152, lookUp: true,  emote: 'Star' },        // Legend of Moo
-      { x: 374,  y: 184, lookUp: false, emote: 'Heart' }        // Duck Pond
+      { x: 152,  y: 184, lookUp: false, emote: 'Heart' },       // Duck Pond (gauche)
+      { x: 396,  y: 186, lookUp: false, emote: 'Star' }         // Balloon Boy (droite)
     ];
     const eastSpots = [
       { x: 522,  y: 172, lookUp: false, emote: 'Happy' },       // Entrée Aile Est
@@ -541,13 +542,13 @@ class HubScene extends Scene {
         for (const bx of [24, 114, 300, 390]) {
           img.rect(bx, 126, 66, 18, 6);
         }
-        // Bassin de la mare aux canetons (cx=404, cy=214)
+        // Bassin de la mare aux canetons (cx=152, cy=212, à gauche de l'entrée)
         img.fill(107, 75, 91, 140);
-        img.ellipse(404, 215, 80, 42);
+        img.ellipse(152, 213, 80, 42);
         img.fill(128, 194, 218);
-        img.ellipse(404, 214, 76, 38);
+        img.ellipse(152, 212, 76, 38);
         img.fill(164, 218, 236);
-        img.ellipse(396, 210, 44, 20);
+        img.ellipse(144, 208, 44, 20);
       } else {
         // Aile Est : parvis devant Carrousel, Tarot, Anneaux + placette de la fontaine
         img.fill(232, 210, 166);
@@ -695,8 +696,8 @@ class HubScene extends Scene {
       { sprite: 'flower_blue',   x: -178, y: 212, phase: 2.0 },
       { sprite: 'flower_pink',   x: -64,  y: 206, phase: 2.9 },
       { sprite: 'flower_yellow', x: 108,  y: 218, phase: 0.6 },
-      { sprite: 'flower_pink',   x: 184,  y: 218, phase: 1.8 },
-      { sprite: 'flower_blue',   x: 206,  y: 224, phase: 2.5 },
+      { sprite: 'flower_pink',   x: 368,  y: 218, phase: 1.8 },
+      { sprite: 'flower_blue',   x: 200,  y: 224, phase: 2.5 },
       { sprite: 'flower_yellow', x: 516,  y: 214, phase: 0.9 },
       { sprite: 'flower_pink',   x: 646,  y: 216, phase: 1.7 },
       { sprite: 'flower_blue',   x: 766,  y: 216, phase: 3.1 },
@@ -1234,23 +1235,23 @@ class HubScene extends Scene {
       { sortY: 220, draw: () => { const img = assets.getSheetFrame('characters/animals/bunnies/bunny_mint.png', 32, 32, 1, 0); if (img) g.image(img, 58, 192); } },
       { sortY: 222, draw: () => this.drawSleepingCat(g, 86, 214) },
 
-      // Chat aux ballons (vrai sprite 'kid_front' 48x48) + ficelles attachées à sa main !
+      // Chat aux ballons (à droite de l'entrée : x=380) + ficelles attachées à sa main !
       { sortY: 212, draw: () => {
         const catBalloons = [
-          { sp: 'balloon_red',    x: 138, y: 158, ph: 0.2 },
-          { sp: 'balloon_yellow', x: 150, y: 152, ph: 1.4 },
-          { sp: 'balloon_blue',   x: 162, y: 158, ph: 2.6 }
+          { sp: 'balloon_red',    x: 386, y: 158, ph: 0.2 },
+          { sp: 'balloon_yellow', x: 398, y: 152, ph: 1.4 },
+          { sp: 'balloon_blue',   x: 410, y: 158, ph: 2.6 }
         ];
         g.push();
         g.stroke(107, 75, 91, 185);
         g.strokeWeight(1);
         for (const bl of catBalloons) {
           const by = bl.y + Math.sin(frameCount * 0.05 + bl.ph) * 2;
-          g.line(bl.x + 6, Math.round(by + 13), 156, 198);
+          g.line(bl.x + 6, Math.round(by + 13), 404, 198);
         }
         g.pop();
         const catSp = assets.getSprite('kid_front');
-        if (catSp) g.image(catSp, 132, 168);
+        if (catSp) g.image(catSp, 380, 168);
         for (const bl of catBalloons) {
           const sp = assets.getSprite(bl.sp);
           if (sp) g.image(sp, bl.x, Math.round(bl.y + Math.sin(frameCount * 0.05 + bl.ph) * 2));
@@ -1273,12 +1274,12 @@ class HubScene extends Scene {
         this.drawPerchedBird(g, this.posterPos.x + 44, this.posterPos.y - 2);
       }},
 
-      // Grenouille près de la mare + Canard de bain (Tiny Swords) + Vache paisible
-      { sortY: 224, draw: () => this.drawPondFrog(g, 356, 218) },
+      // Grenouille près de la mare (gauche) + Canard de bain (Tiny Swords) + Vache paisible
+      { sortY: 224, draw: () => this.drawPondFrog(g, 108, 214) },
       { sortY: 215, draw: () => {
         const rdCol = Math.floor(frameCount / 14) % 3;
         const rd = assets.getSheetFrame('packs/tiny_swords/terrain/Decorations/Rubber Duck/Rubber duck.png', 32, 32, rdCol, 0);
-        if (rd) g.image(rd, 394, 212 + Math.round(Math.sin(frameCount * 0.08) * 1.2), 14, 14);
+        if (rd) g.image(rd, 144, 210 + Math.round(Math.sin(frameCount * 0.08) * 1.2), 14, 14);
       }},
       { sortY: 202, draw: () => {
         const cowCol = Math.floor(frameCount / 22) % 3;
