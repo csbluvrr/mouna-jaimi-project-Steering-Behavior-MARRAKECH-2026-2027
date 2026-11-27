@@ -33,6 +33,10 @@ class HubScene extends Scene {
     // Stand Prize Booth placé sur la place sud-gauche (entre le pique-nique et le chat aux ballons, zéro chevauchement !)
     this.prizeBoothPos = { x: 88, y: 162, w: 50, h: 58, sortY: 220 };
     this.balloonShiftX = 18; // Décale le chat aux ballons légèrement vers l'allée centrale pour aérer autour du Prize Booth
+    this.secretStarCount = 0;
+    this.secretLastWasN = false;
+    this.showTicketCheat = false;
+    this.ticketPlusBtn = { x: 66, y: 6, w: 18, h: 16 };
     this.toast = '';
     this.toastUntil = 0;
   }
@@ -596,7 +600,31 @@ class HubScene extends Scene {
     PixelUI.panel(g, 6, 6, 56, 16);
     const ticketSp = assets.getSprite('ticket');
     if (ticketSp) g.image(ticketSp, 10, 8);
-    PixelUI.txt(g, font, 'x ' + tickets, 28, 9, g.color(107, 75, 91));
+    PixelUI.txt(g, font, 'x ' + tickets, 28, 9, g.color(107, 75, 91), LEFT, 9, 32);
+
+    // Bouton secret [+] en mode Debug [H] après avoir tapé *** (caché par n*)
+    if (Vehicle.debug && this.showTicketCheat) {
+      const { mx, my } = this.game.getMouseBufferPos();
+      const hov = PixelUI.pointInRect(mx, my, this.ticketPlusBtn);
+      PixelUI.panel(
+        g,
+        this.ticketPlusBtn.x,
+        this.ticketPlusBtn.y,
+        this.ticketPlusBtn.w,
+        this.ticketPlusBtn.h,
+        hov ? g.color(202, 236, 162) : g.color(223, 240, 187)
+      );
+      PixelUI.txt(
+        g,
+        font,
+        '+',
+        this.ticketPlusBtn.x + Math.round(this.ticketPlusBtn.w / 2),
+        this.ticketPlusBtn.y + 3,
+        g.color(62, 108, 70),
+        CENTER,
+        10
+      );
+    }
   }
 
   getOverlayOffsets() {
@@ -696,6 +724,13 @@ class HubScene extends Scene {
       return;
     }
 
+    // Clic sur le bouton secret [+] en mode Debug [H] -> ajoute des tickets !
+    if (Vehicle.debug && this.showTicketCheat && !this.overlay && PixelUI.pointInRect(mx, my, this.ticketPlusBtn)) {
+      this.game.save.addTickets(50);
+      this.game.sound.playSfx('success_bell', 0.65);
+      return;
+    }
+
     if (this.overlay) {
       const card = this.cardRects().find((c) => PixelUI.pointInRect(mx, my, c));
       if (card) {
@@ -749,6 +784,35 @@ class HubScene extends Scene {
     if (this.prizeShop && this.prizeShop.open) {
       this.prizeShop.keyPressed(k, kc);
       return;
+    }
+
+    // Code secret en mode Debug [H] :
+    // - Taper '*' 3 fois affiche le bouton [+] à côté du compteur de tickets
+    // - Taper 'n' puis '*' le recache proprement
+    if (Vehicle.debug) {
+      if (k === 'n' || k === 'N') {
+        this.secretLastWasN = true;
+        this.secretStarCount = 0;
+        return;
+      }
+      if (k === '*') {
+        if (this.secretLastWasN) {
+          this.showTicketCheat = false;
+          this.secretLastWasN = false;
+          this.secretStarCount = 0;
+          this.game.sound.playSfx('ui_click', 0.5);
+          return;
+        }
+        this.secretStarCount++;
+        if (this.secretStarCount >= 3) {
+          this.showTicketCheat = true;
+          this.secretStarCount = 0;
+          this.game.sound.playSfx('success_bell', 0.7);
+        }
+        return;
+      }
+      this.secretLastWasN = false;
+      this.secretStarCount = 0;
     }
 
     // Touche T : basculer le ciel entre Jour ensoleillé et Coucher de soleil !
