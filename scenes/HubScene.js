@@ -95,14 +95,15 @@ class HubScene extends Scene {
 
     // 2. Collisions strictement alignées sur chaque structure (0 zone fantôme, 0 chevauchement)
     this.solids = [
-      // Aile Ouest (Barbe à Papa, Limonade, Prize Boutique, Pop-Corn, Tables & Bancs)
+      // Aile Ouest (Barbe à Papa, Limonade, Prize Boutique, Pop-Corn, Food Court & Bancs)
       [this.cottonCartPos.x + 2,   this.cottonCartPos.y + 26,   44, 22],
       [this.lemonadeCartPos.x + 2, this.lemonadeCartPos.y + 26, 44, 22],
       [this.prizeBoothPos.x + 4,   this.prizeBoothPos.y + 36,   42, 22],
       [this.popcornCartPos.x + 2,  this.popcornCartPos.y + 26,  44, 22],
-      [-386, 198, 22, 10], // Banc Ouest 1
-      [-334, 204, 28, 14], // Table pique-nique 1
-      [-194, 204, 28, 14], // Table pique-nique 2
+      [-404, 198, 22, 10], // Banc Ouest 1
+      [-342, 202, 26, 14], // Food Court Table 1
+      [-280, 202, 26, 14], // Food Court Table 2
+      [-218, 202, 26, 14], // Food Court Table 3
       [-104, 198, 22, 10], // Banc Ouest 2
 
       // Place Centrale (4 stands + Grande Roue + Pique-nique + Chat + MAP + GAMES + Mare + Vache)
@@ -1187,10 +1188,11 @@ class HubScene extends Scene {
       SkyBackdrop.drawHorizonBlend(g, skyMood, this.worldLeft, this.worldRight, groundTop);
     }
 
-    // Ondulations & nénuphars de la mare aux canetons + Ruisseau/Pont Est + Esplanade pavée de la Fontaine !
+    // Ondulations & nénuphars de la mare + Ruisseau/Pont Est + Esplanade Fontaine + Terrasse Food Court Ouest !
     this.drawPondSurfaceDetails(g, this.pondCenter.x, this.pondCenter.y);
     this.drawEastCreekAndBridge(g);
     this.drawFountainPlazaGround(g, this.fountainPos.x, this.fountainPos.y);
+    this.drawWestFoodCourtGround(g);
 
     // Fleurs animées par la brise au sol
     for (const fl of this.ambientFlowers) {
@@ -1281,10 +1283,12 @@ class HubScene extends Scene {
 
     // Mobilier, scènes narratives, panneaux & animaux
     items.push(
-      // Bancs en bois + Tables de pique-nique Ouest
-      { sortY: 206, draw: () => this.drawWoodenBench(g, -386, 196) },
-      { sortY: 214, draw: () => this.drawPicnicTable(g, -334, 200) },
-      { sortY: 214, draw: () => this.drawPicnicTable(g, -194, 200) },
+      // Bancs en bois + Food Court Ouest (3 tables avec parasols pastel, encas & guirlandes !)
+      { sortY: 206, draw: () => this.drawWoodenBench(g, -404, 196) },
+      { sortY: 214, draw: () => this.drawFoodCourtTable(g, -342, 198, [246, 152, 178], 'sweets') },
+      { sortY: 214, draw: () => this.drawFoodCourtTable(g, -280, 198, [144, 206, 238], 'lunch') },
+      { sortY: 214, draw: () => this.drawFoodCourtTable(g, -218, 198, [252, 218, 114], 'popcorn') },
+      { sortY: 228, draw: () => this.drawFoodCourtLights(g, skyMood) },
       { sortY: 206, draw: () => this.drawWoodenBench(g, -104, 196) },
       { sortY: 206, draw: () => this.drawWoodenBench(g, 690, 196) },
       { sortY: 214, draw: () => this.drawCherryBlossom(g, -412, 198, 'bush') },
@@ -2452,6 +2456,174 @@ class HubScene extends Scene {
     g.rect(x + 32, y + 23, 2, 3);
     PixelUI.panel(g, x + 3, y + 34, 42, 10, g.color(252, 244, 218));
     this.drawWorldSign(g, 'LEMONADE', x + 24, y + 39, g.color(154, 114, 34));
+    g.pop();
+  }
+
+  /** Terrasse pavée chaleureuse du Food Court Ouest (Sweet Street Café — 100% marchable). */
+  drawWestFoodCourtGround(g) {
+    const x = -362;
+    const y = 184;
+    const w = 186;
+    const h = 44;
+    g.push();
+    g.noStroke();
+
+    // 2 petites allées reliant la terrasse à la promenade principale
+    g.fill(174, 144, 122);
+    g.rect(x + 28, y - 12, 24, 14);
+    g.rect(x + w - 52, y - 12, 24, 14);
+    g.fill(236, 218, 186);
+    g.rect(x + 30, y - 12, 20, 15);
+    g.rect(x + w - 50, y - 12, 20, 15);
+
+    // Cadre bois/brique + dallage damier pastel crème & terre cuite douce
+    g.fill(107, 75, 91);
+    g.rect(x - 1, y - 1, w + 2, h + 2, 5);
+    g.fill(214, 178, 138);
+    g.rect(x, y, w, h, 4);
+    for (let ty = y + 3; ty < y + h - 4; ty += 8) {
+      for (let tx = x + 3; tx < x + w - 4; tx += 10) {
+        const alt = (((tx - x) / 10 + (ty - y) / 8) | 0) % 2 === 0;
+        g.fill(alt ? g.color(246, 234, 204) : g.color(234, 212, 176));
+        g.rect(tx, ty, 9, 7, 1);
+      }
+    }
+
+    // 4 jardinières fleuries aux coins de la terrasse
+    const pots = [
+      [x + 4, y + 3], [x + w - 16, y + 3],
+      [x + 4, y + h - 10], [x + w - 16, y + h - 10]
+    ];
+    for (const [px, py] of pots) {
+      g.fill(107, 75, 91);
+      g.rect(px, py, 12, 7, 1);
+      g.fill(174, 122, 88);
+      g.rect(px + 1, py + 2, 10, 4);
+      g.fill(116, 176, 98);
+      g.rect(px + 1, py, 10, 3);
+      g.fill(248, 166, 194);
+      g.rect(px + 2, py - 1, 2, 2);
+      g.fill(255, 236, 134);
+      g.rect(px + 7, py - 1, 2, 2);
+    }
+
+    // Panneau bois "FOOD COURT" au centre-nord de la terrasse
+    PixelUI.panel(g, x + Math.round(w / 2) - 28, y - 4, 56, 10, g.color(250, 242, 212));
+    this.drawWorldSign(g, 'FOOD COURT', x + Math.round(w / 2), y + 1, g.color(168, 78, 104));
+    g.pop();
+  }
+
+  /** Table de café/pique-nique du Food Court avec parasol rayé pastel, encas pixel-art et bancs ! */
+  drawFoodCourtTable(g, x, y, pCol, snackKind) {
+    const assets = this.game.assets;
+    g.push();
+    g.noStroke();
+
+    // Ombre du parasol sur la terrasse
+    g.fill(92, 74, 82, 58);
+    g.ellipse(x + 14, y + 15, 36, 12);
+
+    // Bancs avant & arrière
+    g.fill(107, 75, 91);
+    g.rect(x, y + 12, 28, 4, 1);
+    g.fill(198, 152, 108);
+    g.rect(x + 1, y + 13, 26, 2);
+
+    // Pieds + plateau bois chaud + petite nappe crème
+    g.fill(107, 75, 91);
+    g.rect(x + 5, y + 8, 3, 7);
+    g.rect(x + 20, y + 8, 3, 7);
+    g.rect(x + 2, y + 2, 24, 9, 1);
+    g.fill(222, 180, 132);
+    g.rect(x + 3, y + 3, 22, 7);
+    g.fill(252, 246, 226);
+    g.rect(x + 6, y + 3, 16, 6);
+
+    // Vrais encas pixel-art posés sur la table !
+    if (snackKind === 'sweets') {
+      const pie = assets.getSheetFrame('world/decor/candy_and_pie.png', 16, 16, 0, 0);
+      const candy = assets.getSheetFrame('world/decor/candy_and_pie.png', 16, 16, 1, 0);
+      if (pie) g.image(pie, x + 5, y - 1, 9, 9);
+      if (candy) g.image(candy, x + 15, y - 1, 9, 9);
+    } else if (snackKind === 'lunch') {
+      const sand = assets.getSheetFrame('world/decor/picnic_foods.png', 16, 16, 6, 0);
+      if (sand) g.image(sand, x + 6, y - 1, 9, 9);
+      // Petit verre de limonade fraîche
+      g.fill(255, 232, 92);
+      g.rect(x + 17, y + 2, 4, 5);
+      g.fill(255, 252, 232);
+      g.rect(x + 18, y + 1, 1, 2);
+    } else {
+      const onigiri = assets.getSheetFrame('world/decor/picnic_foods.png', 16, 16, 0, 1);
+      if (onigiri) g.image(onigiri, x + 15, y, 8, 8);
+      // Petite boîte de pop-corn rayée
+      g.fill(224, 92, 98);
+      g.rect(x + 7, y + 2, 5, 5);
+      g.fill(255, 240, 156);
+      g.rect(x + 7, y + 1, 5, 2);
+    }
+
+    // Mât + Grand parasol rayé pastel flottant au-dessus de la table !
+    const sway = Math.round(Math.sin(frameCount * 0.04 + x * 0.05) * 0.6);
+    g.fill(107, 75, 91);
+    g.rect(x + 13, y - 16, 2, 18);
+    g.fill(238, 210, 166);
+    g.rect(x + 13, y - 16, 1, 18);
+
+    const cx = x + 14 + sway;
+    const ty = y - 14;
+    g.fill(107, 75, 91);
+    g.triangle(cx - 18, ty + 2, cx, ty - 11, cx + 18, ty + 2);
+    g.fill(pCol[0], pCol[1], pCol[2]);
+    g.triangle(cx - 16, ty + 1, cx, ty - 9, cx + 16, ty + 1);
+    g.fill(255, 248, 224);
+    g.triangle(cx - 9, ty + 1, cx, ty - 9, cx + 9, ty + 1);
+    g.fill(pCol[0], pCol[1], pCol[2]);
+    g.triangle(cx - 3, ty + 1, cx, ty - 9, cx + 3, ty + 1);
+    // Petite boule dorée au sommet du parasol
+    g.fill(252, 218, 102);
+    g.rect(cx - 1, ty - 11, 2, 2);
+    g.pop();
+  }
+
+  /** Guirlande de petites ampoules chaudes tendue au-dessus du Food Court Ouest. */
+  drawFoodCourtLights(g, skyMood) {
+    const sb = typeof SkyBackdrop !== 'undefined' ? SkyBackdrop.getBlend(skyMood) : 0;
+    const t = frameCount;
+    g.push();
+    // 2 poteaux bois fins aux extrémités du Food Court
+    g.noStroke();
+    for (const px of [-360, -178]) {
+      g.fill(107, 75, 91);
+      g.rect(px, 174, 3, 22);
+      g.fill(198, 152, 108);
+      g.rect(px + 1, 175, 1, 20);
+    }
+    // Fil fin + ampoules chaudes qui scintillent doucement
+    g.stroke(107, 75, 91, 150);
+    g.strokeWeight(1);
+    g.noFill();
+    g.beginShape();
+    for (let i = 0; i <= 12; i++) {
+      const f = i / 12;
+      const lx = -359 + f * 181;
+      const ly = 175 + Math.sin(f * Math.PI) * 5;
+      g.vertex(lx, ly);
+    }
+    g.endShape();
+    g.noStroke();
+    for (let i = 1; i < 12; i++) {
+      const f = i / 12;
+      const lx = Math.round(-359 + f * 181);
+      const ly = Math.round(176 + Math.sin(f * Math.PI) * 5);
+      const lit = (Math.floor(t / 14) + i) % 2 === 0;
+      if (lit && sb > 0.1) {
+        g.fill(255, 236, 152, Math.round(75 * sb));
+        g.circle(lx, ly + 1, 10);
+      }
+      g.fill(lit ? g.color(255, 248, 176) : g.color(255, 204, 188));
+      g.rect(lx - 1, ly, 2, 2);
+    }
     g.pop();
   }
 
