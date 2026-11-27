@@ -433,7 +433,7 @@ class HubScene extends Scene {
     for (const d of this.ducklings) d.step(this.ducklings);
     for (const b of this.butterflies) b.step(this.moo);
     for (let i = this.fx.length - 1; i >= 0; i--) {
-      this.fx[i].step();
+      this.fx[i].update();
       if (this.fx[i].isDead) this.fx.splice(i, 1);
     }
 
