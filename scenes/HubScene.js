@@ -409,6 +409,49 @@ class HubScene extends Scene {
       })
     ];
 
+    // Attribuer de vrais points d'intérêt du parc à chaque visiteur mobile (finit les cercles sur place !)
+    const westSpots = [
+      { x: -384, y: 150, lookUp: true,  emote: 'Heart' },       // Cotton Candy
+      { x: -312, y: 150, lookUp: true,  emote: 'Happy' },       // Lemonade
+      { x: -240, y: 152, lookUp: true,  emote: 'Star' },        // Prize Boutique
+      { x: -334, y: 184, lookUp: false, emote: 'Happy' },       // Picnic Table 1
+      { x: -194, y: 184, lookUp: false, emote: 'Heart' },       // Picnic Table 2
+      { x: -96,  y: 150, lookUp: true,  emote: 'Exclamation' }  // Popcorn Cart
+    ];
+    const plazaSpots = [
+      { x: 57,   y: 152, lookUp: true,  emote: 'Exclamation' }, // Bunny Derby
+      { x: 147,  y: 152, lookUp: true,  emote: 'Star' },        // PokeMoo Feast
+      { x: 240,  y: 160, lookUp: true,  emote: 'Heart' },       // Ferris Wheel
+      { x: 318,  y: 178, lookUp: false, emote: 'Interrogation' }, // Games Board
+      { x: 333,  y: 152, lookUp: true,  emote: 'Happy' },       // Catch the Purins
+      { x: 423,  y: 152, lookUp: true,  emote: 'Star' },        // Legend of Moo
+      { x: 374,  y: 184, lookUp: false, emote: 'Heart' }        // Duck Pond
+    ];
+    const eastSpots = [
+      { x: 578,  y: 154, lookUp: true,  emote: 'Star' },        // Mini Carousel
+      { x: 578,  y: 182, lookUp: false, emote: 'Heart' },       // Wishing Fountain
+      { x: 718,  y: 154, lookUp: true,  emote: 'Exclamation' }, // Stage + Fireworks
+      { x: 800,  y: 158, lookUp: false, emote: 'Happy' },       // Wooden Bridge
+      { x: 874,  y: 154, lookUp: true,  emote: 'Interrogation' } // Ring Toss
+    ];
+    const allSpots = westSpots.concat(plazaSpots, eastSpots);
+
+    for (const v of this.visitors) {
+      if (v.stationary || v.trioMode || v.kind === 'new_bunny') continue;
+      if (v.name === 'Zoro') v.parkSpots = allSpots; // Zoro se perd dans TOUT le parc !
+      else if (v.name === 'Chopper') v.parkSpots = westSpots;
+      else if (v.name === 'Luffy') v.parkSpots = westSpots.concat(plazaSpots);
+      else if (v.pos.x < 0) v.parkSpots = westSpots.concat(plazaSpots.slice(0, 2));
+      else if (v.pos.x > 480) v.parkSpots = eastSpots.concat(plazaSpots.slice(4));
+      else v.parkSpots = plazaSpots.concat(westSpots.slice(4), eastSpots.slice(0, 2));
+      v.pickNextParkSpot();
+      // Décaler le départ de chacun (certains admirent déjà un stand, d'autres marchent)
+      if (Math.random() < 0.45) {
+        v.routineState = 'PAUSE';
+        v.routineTimer = Math.floor(random(60, 220));
+      }
+    }
+
     // Initialiser la tournée synchronisée du Trio Fun Gang (Kris, Ralsei, Susie)
     this.funGang = {
       kris:   this.visitors.find((v) => v.name === 'Kris'),

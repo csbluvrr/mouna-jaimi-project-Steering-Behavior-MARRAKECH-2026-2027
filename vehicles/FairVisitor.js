@@ -37,11 +37,14 @@ class FairVisitor extends Vehicle {
     this.dirRow = 0; // 0=bas, 1=gauche, 2=droite, 3=haut
     this.showBubble = false;
 
-    // Routine quotidienne (STROLL -> PAUSE -> CHAT) + interactions NPC-à-NPC
+    // Routine quotidienne vivante : WALK_TO_SPOT (arrive vers un stand) -> ADMIRE -> CHAT
+    this.parkSpots = options.parkSpots || null;
+    this.destSpot = null;
+    this.destVec = null;
     this.routineState = stationary ? 'PAUSE' : 'STROLL';
-    this.routineTimer = Math.floor(random(140, 320));
+    this.routineTimer = Math.floor(random(80, 220));
     this.chatPartner = null;
-    this.chatCooldown = Math.floor(random(60, 180));
+    this.chatCooldown = Math.floor(random(90, 220));
     this.chatEmote = this.emote;
 
     this.othersRef = [];
@@ -56,7 +59,22 @@ class FairVisitor extends Vehicle {
         const [bx, by, bw, bh] = v.bounds;
         return v.boundaries(bx, by, bw, bh, 14);
       }, 2.3, true);
+      if (this.parkSpots && this.parkSpots.length > 0 && !this.trioMode && this.kind !== 'new_bunny') {
+        this.pickNextParkSpot();
+      }
     }
+  }
+
+  /** Choisit un nouveau stand / attraction différent à visiter dans le parc. */
+  pickNextParkSpot() {
+    if (!this.parkSpots || this.parkSpots.length === 0) return;
+    const candidates = this.parkSpots.filter((s) => s !== this.destSpot);
+    const list = candidates.length > 0 ? candidates : this.parkSpots;
+    const chosen = list[Math.floor(random(list.length))];
+    this.destSpot = chosen;
+    this.destVec = createVector(chosen.x + random(-14, 14), chosen.y + random(-6, 8));
+    this.routineState = 'STROLL';
+    this.routineTimer = Math.floor(random(420, 720)); // garde-fou anti-blocage
   }
 
   /** Démarre une petite conversation animée entre deux visiteurs qui se croisent. */
@@ -116,20 +134,52 @@ class FairVisitor extends Vehicle {
           this.vel = p5.Vector.random2D().mult(this.maxSpeed * 0.65);
         }
       } else if (this.routineState === 'PAUSE') {
-        this.vel.mult(0.82);
+        this.vel.mult(0.8);
+        this.acc.mult(0);
+        this.emoteTimer++;
         if (this.routineTimer <= 0) {
-          this.routineState = 'STROLL';
-          this.routineTimer = Math.floor(random(180, 360));
-          this.vel = p5.Vector.random2D().mult(this.maxSpeed * 0.7);
+          if (this.parkSpots && this.parkSpots.length > 0 && this.kind !== 'new_bunny') {
+            this.pickNextParkSpot();
+          } else {
+            this.routineState = 'STROLL';
+            this.routineTimer = Math.floor(random(180, 360));
+            this.vel = p5.Vector.random2D().mult(this.maxSpeed * 0.7);
+          }
         }
       } else {
-        // STROLL : déplacement Steering Behaviors + détection de rencontre NPC-à-NPC
-        this.applyManagedBehaviors();
-        this.update();
+        // STROLL : déplacement vers un vrai stand/attraction (arrive + avoid + separation) au lieu de tourner en rond !
+        if (this.destVec && this.kind !== 'new_bunny') {
+          const arr = this.arrive(this.destVec, 18);
+          const av = this.avoid(this.obstaclesRef);
+          const sep = this.separation(this.othersRef, 20);
+          this.applyForce(arr.mult(1.25));
+          this.applyForce(av.mult(2.0));
+          this.applyForce(sep.mult(1.0));
+          this.update();
 
-        const [bx, by, bw, bh] = this.bounds;
-        this.pos.x = constrain(this.pos.x, bx, bx + bw);
-        this.pos.y = constrain(this.pos.y, by, by + bh);
+          const dxT = this.destVec.x - this.pos.x;
+          const dyT = this.destVec.y - this.pos.y;
+          if (dxT * dxT + dyT * dyT < 16 * 16 || this.routineTimer <= 0) {
+            // Arrivé devant l'attraction : s'arrête pour l'admirer 3 à 6 secondes avec une émote !
+            this.routineState = 'PAUSE';
+            this.routineTimer = Math.floor(random(180, 360));
+            this.dirRow = (this.destSpot && this.destSpot.lookUp) ? 3 : 0;
+            this.chatEmote = (this.destSpot && this.destSpot.emote) ? this.destSpot.emote : this.emote;
+            this.emoteTimer = 0;
+            this.vel.mult(0);
+          }
+        } else {
+          this.applyManagedBehaviors();
+          this.update();
+          const [bx, by, bw, bh] = this.bounds;
+          this.pos.x = constrain(this.pos.x, bx, bx + bw);
+          this.pos.y = constrain(this.pos.y, by, by + bh);
+          if (this.routineTimer <= 0) {
+            this.routineState = 'PAUSE';
+            this.routineTimer = Math.floor(random(90, 170));
+            this.dirRow = 0;
+          }
+        }
 
         if (Math.abs(this.vel.x) > 0.06) this.facingLeft = this.vel.x < 0;
         if (Math.abs(this.vel.x) > Math.abs(this.vel.y)) {
@@ -141,7 +191,7 @@ class FairVisitor extends Vehicle {
         // Interaction NPC-à-NPC : deux visiteurs proches s'arrêtent pour échanger une émote !
         if (this.chatCooldown <= 0 && this.kind !== 'new_bunny' && others) {
           for (const other of others) {
-            if (other === this || other.stationary || other.kind === 'new_bunny') continue;
+            if (other === this || other.stationary || other.trioMode || other.kind === 'new_bunny') continue;
             if (other.routineState !== 'STROLL' || other.chatCooldown > 0) continue;
             const dx = other.pos.x - this.pos.x;
             const dy = other.pos.y - this.pos.y;
@@ -154,12 +204,6 @@ class FairVisitor extends Vehicle {
               break;
             }
           }
-        }
-
-        if (this.routineTimer <= 0) {
-          this.routineState = 'PAUSE';
-          this.routineTimer = Math.floor(random(70, 150));
-          this.dirRow = 0; // regarde devant pendant la pause
         }
       }
     } else if (moo) {
@@ -254,9 +298,10 @@ class FairVisitor extends Vehicle {
 
     // Émotes animées uniquement (les dialogues texte ne s'ouvrent que quand le joueur appuie sur Space !)
     const bob = Math.sin(frameCount * 0.12) * 1.2;
+    const pauseEmote = (this.routineState === 'PAUSE' && this.destSpot && this.emoteTimer < 95) ? this.chatEmote : null;
     const activeEmote = this.showBubble
       ? this.emote
-      : (this.trioAction && this.trioAction.emote ? this.trioAction.emote : (this.routineState === 'CHAT' ? this.chatEmote : null));
+      : (this.trioAction && this.trioAction.emote ? this.trioAction.emote : (this.routineState === 'CHAT' ? this.chatEmote : pauseEmote));
     if (activeEmote) {
       const emFrame = Math.min(3, Math.floor(this.emoteTimer / 4));
       const emPath = 'characters/npcs/tiny_neighbours/emotes/' + activeEmote + '_emote_16x16.png';
