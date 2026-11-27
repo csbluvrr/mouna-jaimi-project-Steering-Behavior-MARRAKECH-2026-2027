@@ -200,6 +200,10 @@ function triggerMenuToggle() {
     cur.prizeShop.close();
     return;
   }
+  if (cur && cur.mapOverlay) {
+    cur.mapOverlay = false;
+    return;
+  }
   if (cur && cur.overlay) {
     cur.overlay = false;
     return;
