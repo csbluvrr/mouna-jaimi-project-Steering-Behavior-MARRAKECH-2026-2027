@@ -314,18 +314,13 @@ class HubScene extends Scene {
     }
   }
 
-  /** Caméra horizontale fluide : suit Moo sans jamais couper ni sauter entre les 3 ailes ! */
+  /** Caméra horizontale 100% continue : suit Moo sans aucun saut ni zone morte sur tout [-480 .. 960]. */
   computeTargetCamX() {
     const vw = this.game.viewW || BUFFER_W;
     const minCam = this.worldLeft;
     const maxCam = Math.max(minCam, this.worldRight - vw);
-    const centerRest = constrain((BUFFER_W - vw) / 2, minCam, maxCam);
-
-    if (!this.moo) return centerRest;
-    const mx = this.moo.pos.x;
-    // Dans le cœur de la place centrale, garder le cadrage classique bien posé
-    if (mx >= 140 && mx <= 340) return centerRest;
-    return constrain(mx - vw / 2, minCam, maxCam);
+    if (!this.moo) return constrain((BUFFER_W - vw) / 2, minCam, maxCam);
+    return constrain(this.moo.pos.x - vw / 2, minCam, maxCam);
   }
 
   showToast(msg, durationMs = 2400) {
@@ -338,10 +333,12 @@ class HubScene extends Scene {
 
     this.moo.step(this.solids, this.walkBounds);
 
-    // Glissement doux continu de la caméra sur toute la promenade [-480 .. 960]
+    // Glissement exponentiel ultra-fluide indépendant du framerate
+    const dt = Math.min(0.05, (typeof deltaTime === 'number' ? deltaTime : 16.6) / 1000);
+    const smooth = 1 - Math.exp(-7.5 * dt);
     const targetCamX = this.computeTargetCamX();
-    this.camX += (targetCamX - this.camX) * 0.12;
-    if (Math.abs(targetCamX - this.camX) < 0.2) this.camX = targetCamX;
+    this.camX += (targetCamX - this.camX) * smooth;
+    if (Math.abs(targetCamX - this.camX) < 0.08) this.camX = targetCamX;
 
     // Mise à jour de la faune et des visiteurs (100% Steering Behaviors)
     for (const v of this.visitors) v.step(this.moo, this.visitors, this.obstacles);

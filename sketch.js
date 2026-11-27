@@ -342,6 +342,11 @@ function draw() {
     g.pop();
   }
 
+  // Voile de transition fluide entre scènes
+  if (game.scenes && typeof game.scenes.drawTransitionOverlay === 'function') {
+    game.scenes.drawTransitionOverlay(g, game.viewW, game.viewH);
+  }
+
   // Menu pause global dessiné par-dessus la scène
   if (game.pauseMenu && game.pauseMenu.open) {
     game.pauseMenu.draw(g);
