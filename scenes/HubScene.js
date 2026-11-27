@@ -55,6 +55,7 @@ class HubScene extends Scene {
     this.prizeBoothPos    = { x: -265, y: 76,  w: 50, h: 58 };
     this.bouncyCastlePos  = { x: -132, y: 174, w: 64, h: 60 };
     this.bouncyJumpTimer  = 0;
+    this.mooBounceAnim    = null; // Animation de Moo qui saute dans le château gonflable !
     this.cottonCartPos    = { x: -408, y: 84,  w: 48, h: 50 };
     this.lemonadeCartPos  = { x: -336, y: 84,  w: 48, h: 50 };
     this.popcornCartPos   = { x: -120, y: 84,  w: 48, h: 50 };
@@ -802,7 +803,42 @@ class HubScene extends Scene {
   update() {
     if (this.overlay || this.mapOverlay || this.activeDialogue || this.wishModalOpen || (this.prizeShop && this.prizeShop.open)) return;
 
-    this.moo.step(this.solids, this.walkBounds);
+    if (this.mooBounceAnim) {
+      // Animation complète de Moo qui saute dans le château gonflable, rebondit 4 fois puis retombe au sol !
+      const ba = this.mooBounceAnim;
+      ba.timer++;
+      const cx = this.bouncyCastlePos.x + 32;
+      const baseCy = this.bouncyCastlePos.y + 42;
+      if (ba.timer <= 16) {
+        const p = ba.timer / 16;
+        this.moo.pos.x = lerp(ba.startX, cx, p);
+        this.moo.pos.y = lerp(ba.startY, baseCy, p) - Math.sin(p * Math.PI) * 18;
+      } else if (ba.timer <= 92) {
+        const p = (ba.timer - 16) / 76; // 4 rebonds complets
+        const bounceH = Math.abs(Math.sin(p * Math.PI * 4)) * 22;
+        this.moo.pos.x = cx + Math.sin(p * Math.PI * 4) * 5;
+        this.moo.pos.y = baseCy - bounceH;
+        // À chaque contact avec le matelas : petit rebond sonore + squish + confettis !
+        if ((ba.timer - 16) % 19 === 0) {
+          this.bouncyJumpTimer = 16;
+          this.game.sound.playSfx('squeak_1', 0.65);
+          for (let k = 0; k < 5; k++) {
+            this.fx.push(new SparkleFX(cx + random(-14, 14), baseCy - 12, 'confetti'));
+          }
+        }
+      } else if (ba.timer <= 112) {
+        const p = (ba.timer - 92) / 20;
+        this.moo.pos.x = lerp(cx, ba.landX, p);
+        this.moo.pos.y = lerp(baseCy, ba.landY, p) - Math.sin(p * Math.PI) * 18;
+      } else {
+        this.moo.pos.set(ba.landX, ba.landY);
+        this.moo.stop();
+        this.mooBounceAnim = null;
+        this.game.sound.playSfx('ui_click', 0.5);
+      }
+    } else {
+      this.moo.step(this.solids, this.walkBounds);
+    }
 
     // Glissement de caméra continu ultra-fluide
     const dt = Math.min(0.05, (typeof deltaTime === 'number' ? deltaTime : 16.6) / 1000);
@@ -1056,13 +1092,22 @@ class HubScene extends Scene {
       this.fx.push(new SparkleFX(this.lemonadeCartPos.x + 24, this.lemonadeCartPos.y + 2, 'text', 'ZESTY!', color(255, 240, 128)));
       this.showToast('Chilled sparkling funfair lemonade!', 2000);
     } else if (id === 'bouncy') {
-      this.bouncyJumpTimer = 42;
+      if (this.mooBounceAnim) return;
+      this.moo.stop();
+      this.bouncyJumpTimer = 24;
+      this.mooBounceAnim = {
+        timer: 0,
+        startX: this.moo.pos.x,
+        startY: this.moo.pos.y,
+        landX: this.bouncyCastlePos.x + 32,
+        landY: this.bouncyCastlePos.y + 12
+      };
       this.game.sound.playSfx('squeak_double_1', 0.8);
-      for (let i = 0; i < 12; i++) {
+      for (let i = 0; i < 10; i++) {
         this.fx.push(new SparkleFX(this.bouncyCastlePos.x + 32 + random(-22, 22), this.bouncyCastlePos.y + 18, 'confetti'));
       }
       this.fx.push(new SparkleFX(this.bouncyCastlePos.x + 32, this.bouncyCastlePos.y + 2, 'text', 'BOING!!', color(255, 220, 240)));
-      this.showToast('Boing!! The pastel bouncy castle is so squishy!', 2100);
+      this.showToast('Boing!! Wheee!!', 2100);
     } else if (id === 'stage') {
       this.game.sound.playSfx('success_bell', 0.85);
       for (let k = 0; k < 3; k++) {
@@ -1413,7 +1458,8 @@ class HubScene extends Scene {
       });
     }
     for (const d of this.ducklings) items.push({ sortY: d.pos.y, draw: () => d.show(g) });
-    items.push({ sortY: this.moo.pos.y, draw: () => this.moo.show(g, this.game.save.data.equippedOutfit) });
+    const mooSortY = this.mooBounceAnim ? this.bouncyCastlePos.y + this.bouncyCastlePos.h + 4 : this.moo.pos.y;
+    items.push({ sortY: mooSortY, draw: () => this.moo.show(g, this.game.save.data.equippedOutfit) });
 
     items.sort((a, b) => a.sortY - b.sortY).forEach((it) => it.draw());
 
