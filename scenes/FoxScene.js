@@ -320,20 +320,22 @@ class FoxScene extends Scene {
   drawIntroCard(g) {
     const font = this.game.assets.font;
     const { mx, my } = this.game.getMouseBufferPos();
-    g.noStroke();
-    g.fill(0, 0, 0, 115);
-    g.rect(0, 0, 480, 272);
-
-    PixelUI.panel(g, 74, 54, 332, 160);
-    g.fill(158, 114, 192);
-    g.rect(74, 54, 332, 22);
-    PixelUI.txt(g, font, 'FOX SHOWDOWN', 240, 60, g.color(243, 244, 231), CENTER);
-
-    PixelUI.txt(g, font, 'WASD/Arrows to move Moo, click to throw carrots!', 240, 92, g.color(107, 75, 91), CENTER);
-    PixelUI.txt(g, font, 'Hide behind hay bales & dodge homing acorns.', 240, 112, g.color(107, 75, 91), CENTER);
-    PixelUI.txt(g, font, 'Race the fox to grab Shields, Triple & Heals!', 240, 132, g.color(144, 98, 93), CENTER);
-
-    PixelUI.drawButton(g, font, this.startBtn, 'START (Space)', PixelUI.pointInRect(mx, my, this.startBtn), g.color(223, 240, 187));
+    this.startBtn = { x: 180, y: 204, w: 120, h: 24 };
+    PixelUI.drawRulesCard(g, font, {
+      title: 'FOX SHOWDOWN (BOSS DUEL)',
+      headerCol: g.color(158, 114, 192),
+      rules: [
+        'Move Moo around the arena & throw carrots at the clever fox!',
+        'Hide behind hay bales to block the fox\'s homing acorns.',
+        'Race the fox to grab Shields, Triple Carrot & Heal pickups!',
+        'Beat the fox without getting hit for a 3-star No-Hit Bonus!'
+      ],
+      controls: 'WASD / Arrows: Move  |  Click: Throw Carrot  |  [H] Debug  |  [M] Menu',
+      btnRect: this.startBtn,
+      btnLabel: 'FIGHT! (Space)',
+      mx,
+      my
+    });
   }
 
   drawPauseMenu(g) {
@@ -368,10 +370,10 @@ class FoxScene extends Scene {
     PixelUI.txt(g, font, won ? 'FOX IS DIZZY! YOU WIN!' : 'SO CLOSE! FREE RETRY?', 240, 64, g.color(243, 244, 231), CENTER);
 
     if (won) {
-      const starStr = '★'.repeat(this.earnedStars) + '☆'.repeat(3 - this.earnedStars);
-      PixelUI.txt(g, font, 'Stars: ' + starStr + (!this.wasHit ? '  (NO-HIT BONUS!)' : ''), 240, 102, g.color(107, 75, 91), CENTER);
+      const starStr = '*'.repeat(this.earnedStars) + '-'.repeat(3 - this.earnedStars);
+      PixelUI.txt(g, font, 'Stars: [' + starStr + ']' + (!this.wasHit ? '  (NO-HIT BONUS!)' : ''), 240, 102, g.color(107, 75, 91), CENTER, 9.5, 280);
     } else {
-      PixelUI.txt(g, font, 'The fox got lucky! Hide behind hay bales!', 240, 104, g.color(107, 75, 91), CENTER);
+      PixelUI.txt(g, font, 'The fox got lucky! Hide behind hay bales!', 240, 104, g.color(107, 75, 91), CENTER, 9.5, 280);
     }
 
     PixelUI.drawTag(g, font, '+' + this.earnedTickets + ' Tickets earned!', 240, 166, g.color(223, 240, 187));

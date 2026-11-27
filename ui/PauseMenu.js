@@ -359,10 +359,12 @@ class PauseMenu {
 
     // 3. Contenu des pages (uniquement quand le livre est ouvert ou en train de tourner une page)
     if (this.state === 'OPEN') {
+      this.drawBunnyTabIcon(g, m.tabs[0]);
       this.drawTabHighlight(g, m, this.pageIdx, mx, my);
       this.drawPageSpread(g, font, this.pageIdx, m, mx, my);
       this.drawFooterHint(g, font, m);
     } else if (this.state === 'FLIPPING') {
+      this.drawBunnyTabIcon(g, m.tabs[0]);
       this.drawTabHighlight(g, m, this.flipTo, mx, my);
       // Pages visibles sous la feuille qui tourne
       const leftIdx = this.flipDir > 0 ? this.flipFrom : this.flipTo;
@@ -373,6 +375,45 @@ class PauseMenu {
       this.drawFooterHint(g, font, m);
     }
 
+    g.pop();
+  }
+
+  /** Dessine une petite icône lapin rose mignonne sur l'onglet 0 (Profil de Moo). */
+  drawBunnyTabIcon(g, tab) {
+    if (!tab) return;
+    const cx = tab.x + Math.round(tab.w / 2) + 1;
+    const cy = tab.y + Math.round(tab.h / 2) + 2;
+    g.push();
+    g.noStroke();
+    // Fond rose poudré propre pour couvrir l'ancienne icône
+    g.fill(189, 117, 126);
+    g.rect(tab.x + 4, tab.y + 3, tab.w - 7, tab.h - 6);
+
+    // Oreilles du lapin rose
+    g.fill(107, 75, 91);
+    g.rect(cx - 6, cy - 11, 5, 8, 1);
+    g.rect(cx + 1, cy - 11, 5, 8, 1);
+    g.fill(252, 186, 206);
+    g.rect(cx - 5, cy - 10, 3, 6);
+    g.rect(cx + 2, cy - 10, 3, 6);
+    g.fill(244, 140, 168);
+    g.rect(cx - 4, cy - 9, 1, 4);
+    g.rect(cx + 3, cy - 9, 1, 4);
+
+    // Tête ronde du lapin rose
+    g.fill(107, 75, 91);
+    g.rect(cx - 7, cy - 4, 14, 11, 3);
+    g.fill(254, 204, 220);
+    g.rect(cx - 6, cy - 3, 12, 9, 2);
+
+    // Yeux + joues + petit nez
+    g.fill(107, 75, 91);
+    g.rect(cx - 4, cy, 2, 2);
+    g.rect(cx + 2, cy, 2, 2);
+    g.fill(244, 132, 158);
+    g.rect(cx - 5, cy + 2, 2, 1);
+    g.rect(cx + 3, cy + 2, 2, 1);
+    g.rect(cx - 1, cy + 2, 2, 1);
     g.pop();
   }
 
@@ -475,9 +516,11 @@ class PauseMenu {
       font,
       title,
       pageRect.x + Math.round(pageRect.w / 2),
-      pageRect.y + 9,
+      pageRect.y + 10,
       g.color(255, 249, 235),
-      CENTER
+      CENTER,
+      9,
+      pageRect.w - 22
     );
     g.pop();
   }
@@ -492,13 +535,50 @@ class PauseMenu {
 
     const fg = active ? g.color(70, 101, 80) : g.color(107, 75, 91);
     const prefix = active ? '> ' : '';
-    PixelUI.txt(g, font, prefix + b.label, b.x + Math.round(b.w / 2), b.y + 5, fg, CENTER);
+    PixelUI.txt(g, font, prefix + b.label, b.x + Math.round(b.w / 2), b.y + Math.floor((b.h - 9) / 2), fg, CENTER, 8.5, b.w - 8);
     g.pop();
   }
 
   drawPageSpread(g, font, idx, m, mx, my) {
     this.drawLeftPageOnly(g, font, idx, m, mx, my);
     this.drawRightPageOnly(g, font, idx, m, mx, my);
+  }
+
+  /** Dessine un gros plan zoomé (2x) sur le visage et les oreilles de Moo avec sa tenue ! */
+  drawZoomedMooFace(g, assets, outfit, x, y, boxW, boxH) {
+    const blinkCol = Math.floor(frameCount / 80) % 4 === 3 ? 1 : 0;
+    const eq = outfit || { hoodie: 'default', head: null, face: null, neck: null, back: null };
+
+    // Zone recadrée sur le visage + oreilles de Moo (x=2..30, y=2..28 sur 32x40) -> 28x26 zoomé 2x = 56x52
+    const sx = 2;
+    const sy = 2;
+    const sw = 28;
+    const sh = 26;
+    const dw = boxW - 2;
+    const dh = boxH - 2;
+
+    const drawCropped = (sheetPath) => {
+      if (!sheetPath) return;
+      const frame = assets.getSheetFrame(sheetPath, 32, 40, blinkCol, 0);
+      if (frame) {
+        g.image(frame, x + 1, y + 1, dw, dh, sx, sy, sw, sh);
+      }
+    };
+
+    const backItem = eq.back ? CosmeticCatalog.find('back', eq.back) : null;
+    if (backItem && backItem.behindSheet) drawCropped(backItem.behindSheet);
+
+    const hoodieItem = CosmeticCatalog.find('hoodie', eq.hoodie || 'default');
+    drawCropped(hoodieItem ? hoodieItem.sheet : 'sprites/moo/better sprite.png');
+
+    const neckItem = eq.neck ? CosmeticCatalog.find('neck', eq.neck) : null;
+    if (neckItem) drawCropped(neckItem.sheet);
+
+    const faceItem = eq.face ? CosmeticCatalog.find('face', eq.face) : null;
+    if (faceItem) drawCropped(faceItem.sheet);
+
+    const headItem = eq.head ? CosmeticCatalog.find('head', eq.head) : null;
+    if (headItem) drawCropped(headItem.sheet);
   }
 
   drawLeftPageOnly(g, font, idx, m, mx, my) {
@@ -509,52 +589,39 @@ class PauseMenu {
     const roseInk = g.color(168, 92, 102);
 
     if (idx === 0) {
-      // PAGE 0 GAUCHE : Profil de Moo + Tickets + Étoiles
+      // PAGE 0 GAUCHE : Profil de Moo (portrait zoomé visage) + Tickets + Étoiles
       this.drawPageHeader(g, font, 'MOO PROFILE', lp);
 
-      // Cadre portrait de Moo (cligne des yeux !) sur fond prairie pastel
+      // Cadre portrait zoomé sur le visage de Moo (56x52)
+      const pbx = lp.x + 31;
+      const pby = lp.y + 28;
+      const pbw = 56;
+      const pbh = 52;
       g.push();
       g.fill(223, 240, 187);
       g.stroke(107, 75, 91);
       g.strokeWeight(1.5);
-      g.rect(lp.x + 36, lp.y + 30, 46, 48, 2);
+      g.rect(pbx, pby, pbw, pbh, 3);
       g.pop();
 
-      const blinkCol = Math.floor(frameCount / 80) % 4 === 3 ? 1 : 0;
-      if (typeof CosmeticCatalog !== 'undefined') {
-        CosmeticCatalog.drawMooWithOutfit(
-          g,
-          assets,
-          save.equippedOutfit,
-          lp.x + 43,
-          lp.y + 34,
-          blinkCol,
-          0,
-          1
-        );
-      } else {
-        const mooImg = assets.getSheetFrame('sprites/moo/better sprite.png', 32, 40, blinkCol, 0);
-        if (mooImg) {
-          g.image(mooImg, lp.x + 43, lp.y + 34);
-        }
-      }
+      this.drawZoomedMooFace(g, assets, save.equippedOutfit, pbx, pby, pbw, pbh);
 
       // Tickets + Étoiles totales
       const ticketSp = assets.getSprite('ticket');
-      if (ticketSp) g.image(ticketSp, lp.x + 14, lp.y + 88);
-      PixelUI.txt(g, font, 'Tickets: ' + (save.tickets || 0), lp.x + 32, lp.y + 89, ink);
+      if (ticketSp) g.image(ticketSp, lp.x + 12, lp.y + 88);
+      PixelUI.txt(g, font, 'Tickets: ' + (save.tickets || 0), lp.x + 30, lp.y + 89, ink, LEFT, 8.5, 84);
 
       const totalStars = ['derby', 'snake', 'ducklings', 'fox']
         .reduce((acc, k) => acc + ((save.stars && save.stars[k]) || 0), 0);
-      PixelUI.txt(g, font, 'Stars: ' + totalStars + ' / 12', lp.x + 14, lp.y + 108, ink);
+      PixelUI.txt(g, font, 'Stars: ' + totalStars + ' / 12', lp.x + 12, lp.y + 106, ink, LEFT, 8.5, 96);
 
       // Mini carte de tampons (4 jeux)
-      PixelUI.txt(g, font, 'Fair Stamps:', lp.x + 14, lp.y + 128, roseInk);
+      PixelUI.txt(g, font, 'Fair Stamps:', lp.x + 12, lp.y + 124, roseInk, LEFT, 8.5);
       const ids = ['derby', 'snake', 'ducklings', 'fox'];
       ids.forEach((id, i) => {
         const won = (save.stars && save.stars[id] > 0);
-        const sx = lp.x + 14 + i * 24;
-        const sy = lp.y + 144;
+        const sx = lp.x + 12 + i * 24;
+        const sy = lp.y + 140;
         const stampImg = assets.getSheetFrame('generated/hub/stamp_empty_full_16x16.png', 16, 16, won ? 1 : 0, 0);
         if (stampImg) {
           g.image(stampImg, sx, sy);
@@ -573,7 +640,7 @@ class PauseMenu {
         this.drawBookButton(g, font, b, i === this.selectedIdx);
       });
     } else if (idx === 2) {
-      // PAGE 2 GAUCHE : Réglages (Fullscreen, Son, Debug)
+      // PAGE 2 GAUCHE : Réglages (Sky, Fullscreen, Son, Debug)
       this.drawPageHeader(g, font, 'SETTINGS', lp);
       const buttons = this.getPageButtons(2, m);
       buttons.forEach((b, i) => {
@@ -585,12 +652,12 @@ class PauseMenu {
       // PAGE 3 GAUCHE : Récapitulatif & Fermeture
       this.drawPageHeader(g, font, 'FUNFAIR', lp);
       const sceneName = this.game.scenes ? this.game.scenes.currentName : 'hub';
-      PixelUI.txt(g, font, 'Current:', lp.x + 12, lp.y + 40, ink);
-      PixelUI.txt(g, font, sceneName.toUpperCase(), lp.x + 12, lp.y + 56, roseInk);
-      PixelUI.txt(g, font, 'Progress is', lp.x + 12, lp.y + 88, ink);
-      PixelUI.txt(g, font, 'auto-saved!', lp.x + 12, lp.y + 104, ink);
-      PixelUI.txt(g, font, 'See you soon,', lp.x + 12, lp.y + 132, ink);
-      PixelUI.txt(g, font, 'Moo!', lp.x + 12, lp.y + 148, roseInk);
+      PixelUI.txt(g, font, 'Current:', lp.x + 12, lp.y + 38, ink, LEFT, 8.5);
+      PixelUI.txt(g, font, sceneName.toUpperCase(), lp.x + 12, lp.y + 52, roseInk, LEFT, 9, 96);
+      PixelUI.txt(g, font, 'Progress & outfit', lp.x + 12, lp.y + 82, ink, LEFT, 8, 98);
+      PixelUI.txt(g, font, 'are auto-saved!', lp.x + 12, lp.y + 96, ink, LEFT, 8, 98);
+      PixelUI.txt(g, font, 'Keys: F Fullscreen', lp.x + 12, lp.y + 124, roseInk, LEFT, 7.5, 98);
+      PixelUI.txt(g, font, 'T Sky  |  H Debug', lp.x + 12, lp.y + 138, roseInk, LEFT, 7.5, 98);
     }
   }
 
@@ -610,32 +677,40 @@ class PauseMenu {
         this.drawBookButton(g, font, b, i === this.selectedIdx);
       });
     } else if (idx === 1) {
-      // PAGE 1 DROITE : Étoiles par jeu + Raccourcis
-      this.drawPageHeader(g, font, 'PROGRESS', rp);
-      const games = [
-        { id: 'derby',     name: 'Derby' },
-        { id: 'snake',     name: 'Snake' },
-        { id: 'ducklings', name: 'Ducks' },
-        { id: 'fox',       name: 'Fox' }
+      // PAGE 1 DROITE : Section RÈGLES DES JEUX + Étoiles
+      this.drawPageHeader(g, font, 'GAME RULES', rp);
+      const rulesList = [
+        { id: 'derby',     t: 'Derby: Bet & race!' },
+        { id: 'snake',     t: 'Snake: Eat fruit,' },
+        { id: null,        t: 'dodge hazards & bugs!' },
+        { id: 'ducklings', t: 'Ducks: Herd into' },
+        { id: null,        t: 'the pen via the gate!' },
+        { id: 'fox',       t: 'Fox: Throw carrots!' }
       ];
-      games.forEach((gm, i) => {
-        const st = (save.stars && save.stars[gm.id]) || 0;
-        const starsTxt = '*'.repeat(st) + '-'.repeat(3 - st);
-        PixelUI.txt(g, font, gm.name + ': [' + starsTxt + ']', rp.x + 10, rp.y + 36 + i * 20, ink);
-      });
-      PixelUI.txt(g, font, 'Controls:', rp.x + 10, rp.y + 122, roseInk);
-      PixelUI.txt(g, font, 'WASD / Arrows', rp.x + 10, rp.y + 138, ink);
-      PixelUI.txt(g, font, 'F: Full  H: Debug', rp.x + 10, rp.y + 152, ink);
+      let yy = rp.y + 30;
+      for (const r of rulesList) {
+        if (r.id) {
+          const st = (save.stars && save.stars[r.id]) || 0;
+          const starStr = '*'.repeat(st) + '-'.repeat(3 - st);
+          PixelUI.txt(g, font, r.t, rp.x + 8, yy, roseInk, LEFT, 7.5, 102);
+          PixelUI.txt(g, font, '[' + starStr + ']', rp.x + 110, yy, ink, RIGHT, 7);
+        } else {
+          PixelUI.txt(g, font, '  ' + r.t, rp.x + 8, yy, ink, LEFT, 7.5, 102);
+        }
+        yy += 16;
+      }
+      PixelUI.txt(g, font, 'Win tickets for the', rp.x + 8, rp.y + 134, roseInk, LEFT, 7.5, 102);
+      PixelUI.txt(g, font, 'Prize Booth shop!', rp.x + 8, rp.y + 148, ink, LEFT, 7.5, 102);
     } else if (idx === 2) {
       // PAGE 2 DROITE : Info Steering Behaviors
       this.drawPageHeader(g, font, 'STEERING AI', rp);
-      PixelUI.txt(g, font, 'Craig Reynolds', rp.x + 10, rp.y + 36, roseInk);
-      PixelUI.txt(g, font, 'Press [H] anytime', rp.x + 10, rp.y + 56, ink);
-      PixelUI.txt(g, font, 'to inspect rays,', rp.x + 10, rp.y + 70, ink);
-      PixelUI.txt(g, font, 'forces, obstacles', rp.x + 10, rp.y + 84, ink);
-      PixelUI.txt(g, font, '& debug sliders!', rp.x + 10, rp.y + 98, ink);
-      PixelUI.txt(g, font, '100% Vehicle +', rp.x + 10, rp.y + 128, roseInk);
-      PixelUI.txt(g, font, 'BehaviorManager', rp.x + 10, rp.y + 142, roseInk);
+      PixelUI.txt(g, font, 'Craig Reynolds', rp.x + 8, rp.y + 34, roseInk, LEFT, 8.5, 102);
+      PixelUI.txt(g, font, 'Press [H] anytime', rp.x + 8, rp.y + 52, ink, LEFT, 8, 102);
+      PixelUI.txt(g, font, 'for debug vectors,', rp.x + 8, rp.y + 66, ink, LEFT, 8, 102);
+      PixelUI.txt(g, font, 'Snake sliders, &', rp.x + 8, rp.y + 80, ink, LEFT, 8, 102);
+      PixelUI.txt(g, font, 'Derby AI Trainer!', rp.x + 8, rp.y + 94, ink, LEFT, 8, 102);
+      PixelUI.txt(g, font, '100% Vehicle +', rp.x + 8, rp.y + 124, roseInk, LEFT, 8, 102);
+      PixelUI.txt(g, font, 'BehaviorManager', rp.x + 8, rp.y + 138, roseInk, LEFT, 8, 102);
     } else {
       // PAGE 3 DROITE : Boutons Exit / Hub / Resume
       this.drawPageHeader(g, font, 'EXIT MENU', rp);

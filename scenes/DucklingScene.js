@@ -12,8 +12,8 @@ class DucklingScene extends Scene {
     this.state = 'INTRO_CARD'; // 'INTRO_CARD' | 'COUNTDOWN' | 'PLAYING' | 'PAUSED' | 'WIN' | 'TIMEUP'
     this.seenIntro = false;
 
-    this.totalDucklings = 20;
-    this.goalCount = 15;
+    this.totalDucklings = 32;
+    this.goalCount = 24;
     this.totalTime = 75;
     this.timeLeft = this.totalTime;
     this.inPenCount = 0;
@@ -23,8 +23,8 @@ class DucklingScene extends Scene {
     this.obstacles = [];
     this.fx = [];
 
-    // Compte à rebours textToPoints ("3", "2", "1", "START!")
-    this.countdownSteps = ['3', '2', '1', 'START!'];
+    // Compte à rebours textToPoints ("3", "2", "1", "GO!") — ultra lisible avec 32 canetons !
+    this.countdownSteps = ['3', '2', '1', 'GO!'];
     this.countdownIdx = 0;
     this.countdownTimer = 0;
 
@@ -65,11 +65,11 @@ class DucklingScene extends Scene {
       new Obstacle(this.penRect.x + 48, this.penRect.y + this.penRect.h, 12, 'fence')
     ];
 
-    // Créer les 20 canetons (dont 3 rebelles avec wander plus élevé)
+    // Créer les 32 canetons sur la moitié gauche du pré (loin de l'enclos) dont 4 rebelles
     this.ducklings = [];
     for (let i = 0; i < this.totalDucklings; i++) {
-      const isRebel = i >= this.totalDucklings - 3;
-      const d = new BoidDuckling(random(30, 320), random(40, 235), this.game.assets, isRebel);
+      const isRebel = i >= this.totalDucklings - 4;
+      const d = new BoidDuckling(random(30, 260), random(42, 232), this.game.assets, isRebel);
       this.ducklings.push(d);
     }
 
@@ -81,24 +81,23 @@ class DucklingScene extends Scene {
 
   /**
    * Utilise textToPoints() sur la police pixel (cf. cours slide 24) pour
-   * répartir les 20 canetons sur les lettres de "3", "2", "1", "START!".
+   * répartir les 32 canetons bien espacés sur "3", "2", "1", "GO!".
    */
   assignTextTargets(word) {
     const font = this.game.assets.font;
     let pts = [];
     if (font && typeof font.textToPoints === 'function') {
-      const sz = word.length > 1 ? 56 : 86;
+      const sz = word.length > 1 ? 74 : 102;
       const bounds = font.textBounds(word, 0, 0, sz);
-      const tx = 200 - bounds.w / 2;
+      const tx = 192 - bounds.w / 2;
       const ty = 148 + bounds.h / 2;
-      pts = font.textToPoints(word, tx, ty, sz, { sampleFactor: 0.25 });
+      pts = font.textToPoints(word, tx, ty, sz, { sampleFactor: 0.35 });
     }
 
     if (pts.length === 0) {
-      // Repli géométrique propre si la police ne renvoie pas de points
       for (let i = 0; i < this.ducklings.length; i++) {
         const a = (TWO_PI * i) / this.ducklings.length;
-        pts.push({ x: 200 + Math.cos(a) * 44, y: 140 + Math.sin(a) * 36 });
+        pts.push({ x: 192 + Math.cos(a) * 44, y: 140 + Math.sin(a) * 36 });
       }
     }
 
@@ -185,10 +184,10 @@ class DucklingScene extends Scene {
   finishRound(won) {
     if (won) {
       this.state = 'WIN';
-      if (this.inPenCount >= 19 || this.timeLeft >= 20) {
+      if (this.inPenCount >= this.totalDucklings - 2 || this.timeLeft >= 20) {
         this.earnedStars = 3;
         this.earnedTickets = 16;
-      } else if (this.inPenCount >= 17 || this.timeLeft >= 10) {
+      } else if (this.inPenCount >= this.goalCount + 3 || this.timeLeft >= 10) {
         this.earnedStars = 2;
         this.earnedTickets = 11;
       } else {
@@ -218,6 +217,20 @@ class DucklingScene extends Scene {
 
     // 2. Enclos des canetons (à droite, porte ouverte à gauche)
     this.drawPen(g);
+
+    // Silhouette douce du chiffre/mot pendant le compte à rebours textToPoints pour une lisibilité parfaite
+    if (this.state === 'COUNTDOWN') {
+      const word = this.countdownSteps[this.countdownIdx] || '';
+      g.push();
+      g.textFont('Verdana, Trebuchet MS, sans-serif');
+      g.textStyle(BOLD);
+      g.textAlign(CENTER, CENTER);
+      g.textSize(word.length > 1 ? 66 : 92);
+      g.noStroke();
+      g.fill(255, 250, 215, 72);
+      g.text(word, 192, 146);
+      g.pop();
+    }
 
     // 3. Oie grognon + canetons
     if (this.state !== 'COUNTDOWN') {
@@ -301,14 +314,22 @@ class DucklingScene extends Scene {
     g.fill(232, 212, 152);
     g.rect(p.x, p.y, p.w, p.h);
 
-    // Clôtures de l'enclos (porte grande ouverte sur le côté gauche de y+28 à y+80)
+    // Clôtures solides de l'enclos (porte UNIQUEMENT sur le côté gauche de y+30 à y+78)
     g.stroke(107, 75, 91);
     g.strokeWeight(4);
     g.line(p.x, p.y, p.x + p.w, p.y);
     g.line(p.x + p.w, p.y, p.x + p.w, p.y + p.h);
     g.line(p.x, p.y + p.h, p.x + p.w, p.y + p.h);
-    g.line(p.x, p.y, p.x, p.y + 28);
-    g.line(p.x, p.y + 80, p.x, p.y + p.h);
+    g.line(p.x, p.y, p.x, p.y + 30);
+    g.line(p.x, p.y + 78, p.x, p.y + p.h);
+
+    // Poteaux dorés + chevrons animés signalant clairement l'ouverture de la porte !
+    g.noStroke();
+    g.fill(248, 212, 108);
+    g.rect(p.x - 3, p.y + 27, 6, 6);
+    g.rect(p.x - 3, p.y + 75, 6, 6);
+    const arrowX = p.x - 12 + Math.round(Math.sin(frameCount * 0.14) * 3);
+    PixelUI.txt(g, this.game.assets.font, '>>', arrowX, p.y + 49, g.color(255, 248, 196), CENTER, 9);
 
     // Panneau d'enclos
     const sign = this.game.assets.getImage('generated/ducklings/pen_sign.png');
@@ -323,40 +344,42 @@ class DucklingScene extends Scene {
     const font = this.game.assets.font;
 
     // Compteur canetons dans l'enclos
-    PixelUI.panel(g, 8, 5, 130, 16);
-    PixelUI.txt(g, font, 'PEN: ' + this.inPenCount + '/' + this.totalDucklings + ' (goal ' + this.goalCount + ')', 13, 8, g.color(107, 75, 91));
+    PixelUI.panel(g, 8, 5, 140, 16);
+    PixelUI.txt(g, font, 'PEN: ' + this.inPenCount + '/' + this.totalDucklings + ' (goal ' + this.goalCount + ')', 13, 8, g.color(107, 75, 91), LEFT, 8.5, 130);
 
     // Barre de coucher de soleil
-    PixelUI.panel(g, 148, 5, 184, 16);
+    PixelUI.panel(g, 154, 5, 178, 16);
     const ratio = constrain(this.timeLeft / this.totalTime, 0, 1);
     g.noStroke();
     g.fill(107, 75, 91);
-    g.rect(152, 9, 114, 8);
-    g.fill(lerpColor(g.color(220, 110, 140), g.color(250, 215, 110), ratio));
-    g.rect(152, 9, Math.round(114 * ratio), 8);
-    PixelUI.txt(g, font, Math.ceil(this.timeLeft) + 's', 274, 8, g.color(107, 75, 91));
+    g.rect(158, 9, 110, 8);
+    g.fill(220 + 30 * ratio, 110 + 105 * ratio, 140 - 30 * ratio);
+    g.rect(158, 9, Math.round(110 * ratio), 8);
+    PixelUI.txt(g, font, Math.ceil(this.timeLeft) + 's', 274, 8, g.color(107, 75, 91), LEFT, 8.5);
 
-    PixelUI.panel(g, 342, 5, 70, 16);
-    PixelUI.txt(g, font, 'Esc Pause', 347, 8, g.color(144, 98, 93));
+    PixelUI.panel(g, 338, 5, 80, 16);
+    PixelUI.txt(g, font, 'M: Menu', 344, 8, g.color(144, 98, 93), LEFT, 8.5, 70);
   }
 
   drawIntroCard(g) {
     const font = this.game.assets.font;
     const { mx, my } = this.game.getMouseBufferPos();
-    g.noStroke();
-    g.fill(0, 0, 0, 115);
-    g.rect(0, 0, 480, 272);
-
-    PixelUI.panel(g, 74, 54, 332, 160);
-    g.fill(112, 162, 198);
-    g.rect(74, 54, 332, 22);
-    PixelUI.txt(g, font, 'DUCKLING HERDER', 240, 60, g.color(243, 244, 231), CENTER);
-
-    PixelUI.txt(g, font, 'Use the mouse bubble to gently shoo ducklings!', 240, 92, g.color(107, 75, 91), CENTER);
-    PixelUI.txt(g, font, 'Herd at least ' + this.goalCount + '/20 into the pen before sunset.', 240, 112, g.color(107, 75, 91), CENTER);
-    PixelUI.txt(g, font, 'Watch out for the grumpy goose & rebel ducklings!', 240, 132, g.color(144, 98, 93), CENTER);
-
-    PixelUI.drawButton(g, font, this.startBtn, 'START (Space)', PixelUI.pointInRect(mx, my, this.startBtn), g.color(223, 240, 187));
+    this.startBtn = { x: 180, y: 204, w: 120, h: 24 };
+    PixelUI.drawRulesCard(g, font, {
+      title: 'DUCKLING HERDER (BOIDS)',
+      headerCol: g.color(112, 162, 198),
+      rules: [
+        'Move your mouse bubble behind ducklings to gently shoo them!',
+        'Guide at least ' + this.goalCount + '/' + this.totalDucklings + ' ducklings into the pen before sunset.',
+        'Ducklings can ONLY enter through the open left gate (>>)!',
+        'Watch out for the grumpy goose & rebel ducklings!'
+      ],
+      controls: 'Mouse: Shoo Bubble  |  [H] Debug Boid Forces  |  [M] Menu',
+      btnRect: this.startBtn,
+      btnLabel: 'START! (Space)',
+      mx,
+      my
+    });
   }
 
   drawPauseMenu(g) {
@@ -391,10 +414,10 @@ class DucklingScene extends Scene {
     PixelUI.txt(g, font, won ? 'ALL SAFE FOR BEDTIME!' : 'SUNSET! TRY AGAIN?', 240, 64, g.color(243, 244, 231), CENTER);
 
     if (won) {
-      const starStr = '★'.repeat(this.earnedStars) + '☆'.repeat(3 - this.earnedStars);
-      PixelUI.txt(g, font, 'Stars: ' + starStr + '  (' + this.inPenCount + '/20 safe!)', 240, 100, g.color(107, 75, 91), CENTER);
+      const starStr = '*'.repeat(this.earnedStars) + '-'.repeat(3 - this.earnedStars);
+      PixelUI.txt(g, font, 'Stars: [' + starStr + ']  (' + this.inPenCount + '/' + this.totalDucklings + ' safe!)', 240, 100, g.color(107, 75, 91), CENTER, 9.5, 280);
     } else {
-      PixelUI.txt(g, font, 'You herded ' + this.inPenCount + ' / ' + this.goalCount + ' ducklings!', 240, 102, g.color(107, 75, 91), CENTER);
+      PixelUI.txt(g, font, 'You herded ' + this.inPenCount + ' / ' + this.goalCount + ' ducklings!', 240, 102, g.color(107, 75, 91), CENTER, 9.5, 280);
     }
 
     PixelUI.drawTag(g, font, '+' + this.earnedTickets + ' Tickets earned!', 240, 166, g.color(223, 240, 187));

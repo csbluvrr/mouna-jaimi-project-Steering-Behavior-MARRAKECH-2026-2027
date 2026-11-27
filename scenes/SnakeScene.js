@@ -16,10 +16,12 @@ class SnakeScene extends Scene {
       name: 'Sprout Garden',
       nbFruits: 4,
       nbRotten: 0,
+      nbHunters: 0,
+      hunterSpeed: 0.70,
       vHead: 1.35,
-      vNorm: 0.55,
-      vEvade: 0.95,
-      vision: 48,
+      vNorm: 0.35,
+      vEvade: 0.58,
+      vision: 38,
       obstacles: []
     },
     {
@@ -27,13 +29,15 @@ class SnakeScene extends Scene {
       name: 'Dewdrop Patch',
       nbFruits: 6,
       nbRotten: 2,
+      nbHunters: 0,
+      hunterSpeed: 0.72,
       vHead: 1.55,
-      vNorm: 0.70,
-      vEvade: 1.15,
-      vision: 58,
+      vNorm: 0.52,
+      vEvade: 0.88,
+      vision: 50,
       obstacles: [
         { rx: 0.28, ry: 0.34, r: 9, kind: 'puddle' },
-        { rx: 0.72, ry: 0.66, r: 9, kind: 'mush_red' }
+        { rx: 0.72, ry: 0.66, r: 9, kind: 'mush_red', patrol: { dx: 0, dy: 34, speed: 0.025 } }
       ]
     },
     {
@@ -41,15 +45,17 @@ class SnakeScene extends Scene {
       name: 'Mushroom Ring',
       nbFruits: 8,
       nbRotten: 3,
+      nbHunters: 1,
+      hunterSpeed: 0.76,
       vHead: 1.75,
-      vNorm: 0.85,
-      vEvade: 1.35,
-      vision: 68,
+      vNorm: 0.70,
+      vEvade: 1.18,
+      vision: 62,
       obstacles: [
-        { rx: 0.26, ry: 0.30, r: 9, kind: 'mush_red' },
+        { rx: 0.26, ry: 0.30, r: 9, kind: 'mush_red', patrol: { dx: 36, dy: 0, speed: 0.028 } },
         { rx: 0.74, ry: 0.30, r: 9, kind: 'rock_big' },
         { rx: 0.26, ry: 0.72, r: 9, kind: 'puddle' },
-        { rx: 0.74, ry: 0.72, r: 9, kind: 'mush_purple_b' }
+        { rx: 0.74, ry: 0.72, r: 9, kind: 'mush_purple_b', patrol: { dx: 0, dy: 30, speed: 0.03 } }
       ]
     },
     {
@@ -57,15 +63,17 @@ class SnakeScene extends Scene {
       name: 'Berry Frenzy',
       nbFruits: 10,
       nbRotten: 4,
+      nbHunters: 1,
+      hunterSpeed: 0.92,
       vHead: 1.95,
-      vNorm: 0.95,
-      vEvade: 1.50,
-      vision: 76,
+      vNorm: 0.88,
+      vEvade: 1.45,
+      vision: 74,
       obstacles: [
-        { rx: 0.24, ry: 0.30, r: 9, kind: 'rock_big' },
+        { rx: 0.24, ry: 0.30, r: 9, kind: 'rock_big', patrol: { dx: 42, dy: 0, speed: 0.032 } },
         { rx: 0.76, ry: 0.30, r: 9, kind: 'mush_red' },
         { rx: 0.24, ry: 0.72, r: 9, kind: 'mush_purple_b' },
-        { rx: 0.76, ry: 0.72, r: 9, kind: 'puddle' },
+        { rx: 0.76, ry: 0.72, r: 9, kind: 'puddle', patrol: { dx: 0, dy: 34, speed: 0.032 } },
         { rx: 0.50, ry: 0.26, r: 8, kind: 'rock_big' }
       ]
     },
@@ -74,16 +82,18 @@ class SnakeScene extends Scene {
       name: 'Butterfly Bloom',
       nbFruits: 12,
       nbRotten: 6,
+      nbHunters: 2,
+      hunterSpeed: 1.04,
       vHead: 2.15,
-      vNorm: 1.05,
-      vEvade: 1.65,
+      vNorm: 1.04,
+      vEvade: 1.72,
       vision: 86,
       obstacles: [
-        { rx: 0.24, ry: 0.28, r: 9, kind: 'mush_red' },
+        { rx: 0.24, ry: 0.28, r: 9, kind: 'mush_red', patrol: { dx: 44, dy: 0, speed: 0.036 } },
         { rx: 0.76, ry: 0.28, r: 9, kind: 'rock_big' },
         { rx: 0.24, ry: 0.74, r: 9, kind: 'puddle' },
-        { rx: 0.76, ry: 0.74, r: 9, kind: 'mush_purple_b' },
-        { rx: 0.50, ry: 0.24, r: 8, kind: 'rock_big' },
+        { rx: 0.76, ry: 0.74, r: 9, kind: 'mush_purple_b', patrol: { dx: -44, dy: 0, speed: 0.036 } },
+        { rx: 0.50, ry: 0.24, r: 8, kind: 'rock_big', patrol: { dx: 0, dy: 26, speed: 0.034 } },
         { rx: 0.50, ry: 0.78, r: 8, kind: 'puddle' }
       ]
     }
@@ -118,6 +128,7 @@ class SnakeScene extends Scene {
     this.caterpillar = null;
     this.fruits = [];
     this.obstacles = [];
+    this.predators = [];
     this.gardenDecor = [];
     this.pollen = [];
     this.dirtPatches = [];
@@ -165,13 +176,31 @@ class SnakeScene extends Scene {
     this.fx = [];
     this.winButterfly = null;
 
-    // Obstacles fixes du niveau (Obstacle extends Vehicle, maxSpeed = 0)
+    // Obstacles du niveau (fixes ou patrouilleurs mobiles — Obstacle extends Vehicle)
     const [bx, by, bw, bh] = this.bounds;
-    this.obstacles = cfg.obstacles.map((o) => {
-      const obs = new Obstacle(bx + o.rx * bw, by + o.ry * bh, o.r, o.kind);
+    this.obstacles = cfg.obstacles.map((o, idx) => {
+      const ox = bx + o.rx * bw;
+      const oy = by + o.ry * bh;
+      const obs = new Obstacle(ox, oy, o.r, o.kind);
       obs.kind = o.kind;
+      obs.homeX = ox;
+      obs.homeY = oy;
+      obs.patrol = o.patrol || null;
+      obs.patrolPhase = idx * 1.4;
+      if (obs.patrol) obs.maxSpeed = 1.2;
       return obs;
     });
+
+    // Prédateurs affamés (GardenPredator extends Vehicle : pursue + avoid + boundaries) dès le niveau 3
+    this.predators = [];
+    const hunterSpawns = [
+      [bx + bw - 34, by + 34],
+      [bx + 34, by + bh - 34]
+    ];
+    for (let i = 0; i < (cfg.nbHunters || 0); i++) {
+      const sp = hunterSpawns[i % hunterSpawns.length];
+      this.predators.push(new GardenPredator(sp[0], sp[1], cfg.hunterSpeed || 0.8, this.bounds));
+    }
 
     // Touffes d'herbe et fleurs décoratives (animées par une douce brise)
     this.gardenDecor = [];
@@ -326,6 +355,26 @@ class SnakeScene extends Scene {
 
     // 1. Déplacement de la chenille (instantané au clavier par défaut, ou steering force)
     this.caterpillar.step(mx, my);
+
+    // 1.5. Mise à jour des obstacles patrouilleurs mobiles (via vitesse Vehicle)
+    for (const obs of this.obstacles) {
+      if (obs.patrol) {
+        obs.patrolPhase += obs.patrol.speed;
+        const targetX = obs.homeX + Math.sin(obs.patrolPhase) * obs.patrol.dx;
+        const targetY = obs.homeY + Math.sin(obs.patrolPhase) * obs.patrol.dy;
+        obs.vel.set(targetX - obs.pos.x, targetY - obs.pos.y);
+        obs.pos.add(obs.vel);
+      }
+    }
+
+    // 1.6. Mise à jour des prédateurs qui poursuivent la chenille !
+    for (const pred of this.predators) {
+      pred.step(this.caterpillar, this.obstacles);
+      if (pred.catches(this.caterpillar)) {
+        this.triggerCrash('Caught by a hungry garden bug!');
+        return;
+      }
+    }
 
     // Discrète traînée étincelante pendant le boost myrtille
     if (this.caterpillar.boostFrames > 0 && frameCount % 5 === 0) {
@@ -578,6 +627,20 @@ class SnakeScene extends Scene {
         if (sp) g.image(sp, px - Math.floor(sp.width / 2), py - Math.floor(sp.height / 2));
       }
 
+      // Rail pointillé discret sous les obstacles mobiles pour annoncer leur trajet
+      if (obs.patrol) {
+        g.push();
+        g.stroke(235, 85, 95, 95);
+        g.strokeWeight(1);
+        g.line(
+          Math.round(obs.homeX - obs.patrol.dx),
+          Math.round(obs.homeY - obs.patrol.dy),
+          Math.round(obs.homeX + obs.patrol.dx),
+          Math.round(obs.homeY + obs.patrol.dy)
+        );
+        g.pop();
+      }
+
       // Petit '!' rouge pulsant au-dessus de l'obstacle mortel
       g.noStroke();
       g.fill(255, 245, 245);
@@ -589,13 +652,14 @@ class SnakeScene extends Scene {
       obs.showDebug(g);
     }
 
-    // 3. Ombres sous les fruits + Fruits + Chenille + Papillon de victoire + FX
+    // 3. Ombres sous les fruits + Fruits + Prédateurs + Chenille + Papillon de victoire + FX
     g.noStroke();
     g.fill(68, 96, 62, 70);
     for (const f of this.fruits) {
       g.ellipse(Math.round(f.pos.x), Math.round(f.pos.y) + 6, 10, 4);
     }
     for (const f of this.fruits) f.show(g);
+    for (const pred of this.predators) pred.show(g);
     if (this.caterpillar) this.caterpillar.show(g);
     if (this.winButterfly) this.winButterfly.show(g);
     for (const fx of this.fx) fx.show(g, assets);
@@ -632,9 +696,9 @@ class SnakeScene extends Scene {
     const rings = this.caterpillar ? this.caterpillar.getRingCount() : 1;
     PixelUI.txt(g, font, 'RINGS: ' + rings, 230, 8, g.color(107, 75, 91));
 
-    PixelUI.panel(g, 308, 5, 108, 16);
-    const modeTxt = this.controlMode === 'KEYBOARD' ? '[M] Arrows' : '[M] Mouse';
-    PixelUI.txt(g, font, modeTxt + ' | Esc', 313, 8, g.color(144, 98, 93));
+    PixelUI.panel(g, 308, 5, 118, 16);
+    const modeTxt = this.controlMode === 'KEYBOARD' ? '[C] Arrows' : '[C] Mouse';
+    PixelUI.txt(g, font, modeTxt + ' | M Menu', 313, 8, g.color(144, 98, 93), LEFT, 8.5, 108);
 
     if (this.state === 'INTRO') this.drawIntroCard(g);
     else if (this.state === 'PAUSED') this.drawPauseMenu(g);
@@ -646,21 +710,22 @@ class SnakeScene extends Scene {
   drawIntroCard(g) {
     const font = this.game.assets.font;
     const { mx, my } = this.game.getMouseBufferPos();
-    g.noStroke();
-    g.fill(0, 0, 0, 115);
-    g.rect(0, 0, 480, 272);
-
-    PixelUI.panel(g, 68, 50, 344, 166);
-    g.fill(122, 174, 112);
-    g.rect(68, 50, 344, 22);
-    PixelUI.txt(g, font, 'CATERPILLAR CRAWL (5 LEVELS)', 240, 56, g.color(243, 244, 231), CENTER);
-
-    PixelUI.txt(g, font, 'Start with 1 ring & eat all fleeing fruit to advance!', 240, 86, g.color(107, 75, 91), CENTER);
-    PixelUI.txt(g, font, 'Arrows/WASD to steer (press M to switch Mouse Arrive).', 240, 106, g.color(107, 75, 91), CENTER);
-    PixelUI.txt(g, font, "Don't hit red spiky hazards, fence, or your tail!", 240, 126, g.color(189, 75, 90), CENTER);
-    PixelUI.txt(g, font, 'Avoid stationary rotten fruit (-1 ring)!', 240, 150, g.color(107, 75, 91), CENTER);
-
-    PixelUI.drawButton(g, font, this.startBtn, 'START (Space)', PixelUI.pointInRect(mx, my, this.startBtn), g.color(223, 240, 187));
+    this.startBtn = { x: 180, y: 204, w: 120, h: 24 };
+    PixelUI.drawRulesCard(g, font, {
+      title: 'CATERPILLAR CRAWL (5 LEVELS)',
+      headerCol: g.color(114, 172, 106),
+      rules: [
+        'Eat all fresh fleeing fruits to clear each level & grow!',
+        'Avoid red spiky hazards, moving patrols & hungry bugs (Lvl 3+).',
+        'Rotten fruits shrink you by 1 ring (0 rings = Game Over!).',
+        'Fruits escape faster as levels climb!'
+      ],
+      controls: 'Arrows / WASD to steer  |  [C] Mouse Mode  |  [H] Debug Sliders',
+      btnRect: this.startBtn,
+      btnLabel: 'PLAY! (Space)',
+      mx,
+      my
+    });
   }
 
   drawPauseMenu(g) {

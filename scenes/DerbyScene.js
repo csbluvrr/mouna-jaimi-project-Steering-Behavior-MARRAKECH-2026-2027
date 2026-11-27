@@ -12,9 +12,16 @@
 class DerbyScene extends Scene {
   constructor(game) {
     super(game);
-    this.mode = 'TRAINING'; // 'TRAINING' | 'RACE'
-    this.state = 'INTRO';   // 'INTRO' | 'RUNNING' | 'PAUSED' | 'GRADUATED' | 'RACE_FINISH'
+    // Race Day est le mode par défaut à l'entrée du stand ; Training Lab s'affiche uniquement en Debug [H] !
+    this.mode = 'RACE';     // 'RACE' | 'TRAINING'
+    this.state = 'INTRO';   // 'INTRO' | 'BETTING' | 'RUNNING' | 'PAUSED' | 'GRADUATED' | 'RACE_FINISH'
     this.seenIntro = false;
+
+    // Système de pari de tickets pendant Race Day
+    this.betBunnyIdx = 0;
+    this.betAmount = 10;
+    this.betResultMsg = '';
+    this.betWonTickets = 0;
 
     this.meta = null;
     this.trackImg = null;
@@ -77,9 +84,10 @@ class DerbyScene extends Scene {
 
     this.hayObstacles = [];
     this.fx = [];
+    this.mode = 'RACE'; // Toujours Race Day par défaut à l'entrée du stand
     this.createSidePanel();
     this.loadTrack(this.trackId, true);
-    this.state = this.seenIntro ? 'RUNNING' : 'INTRO';
+    this.state = this.seenIntro ? 'BETTING' : 'INTRO';
   }
 
   /** Charge un des 3 circuits (Clover S-Curve, Twister Pro, ou Meadow Classic). */
@@ -124,7 +132,8 @@ class DerbyScene extends Scene {
     }
 
     if (this.mode === 'RACE') {
-      this.startRaceDay();
+      this.prepareRaceGrid();
+      this.state = this.seenIntro ? 'BETTING' : 'INTRO';
     } else {
       this.startTraining(resetStats);
     }
@@ -168,19 +177,19 @@ class DerbyScene extends Scene {
     this.updatePanelStats();
   }
 
-  /** Lance le mode Race Day avec les cerveaux sauvegardés + pré-entraîné inclus. */
-  startRaceDay() {
+  /** Prépare la grille des 8 lapins de Race Day (avant le pari). */
+  prepareRaceGrid() {
     this.mode = 'RACE';
     this.disposePopulation();
     this.raceStandings = [];
-    this.raceCountdown = 120; // 2 secondes
-    this.state = 'RUNNING';
+    this.hayObstacles = [];
+    this.betResultMsg = '';
+    this.betWonTickets = 0;
 
     const [sx, sy] = this.meta.start;
     const heading = this.meta.start_heading_rad;
     const saved = this.game.save.data.savedBrains || [];
 
-    // Jusqu'à 8 lapins : cerveaux sauvegardés + meilleur courant + cerveaux pré-entraînés
     for (let i = 0; i < 8; i++) {
       let brain = null;
       let cfg = { ...this.config };
@@ -198,18 +207,36 @@ class DerbyScene extends Scene {
         brain = this.bestBrainEver.copy();
         label = 'Champ G' + this.generation;
       } else {
-        // Cerveau pré-entraîné embarqué (fonctionne immédiatement !)
         cfg.useRuleFallback = true;
       }
 
-      // Petit décalage sur la grille de départ
       const offset = (i - 3.5) * 2.2;
       const nx = sx - Math.sin(heading) * offset;
       const ny = sy + Math.cos(heading) * offset;
       const bunny = new DerbyBunny(nx, ny, heading, cfg, this.game.assets, brain, i, label);
-      bunny.maxSpeed = 2.15 + (i % 3) * 0.12;
+      bunny.maxSpeed = 2.12 + random(-0.08, 0.18);
       this.bunnies.push(bunny);
     }
+  }
+
+  /** Valide le pari de tickets et lance la course Race Day ! */
+  startRaceDay(skipBetting = false) {
+    if (!skipBetting) {
+      this.prepareRaceGrid();
+      this.state = 'BETTING';
+      return;
+    }
+
+    // Déduire la mise si le joueur a parié des tickets
+    const tickets = this.game.save.data.tickets || 0;
+    const stake = Math.min(this.betAmount, tickets);
+    this.betAmount = stake;
+    if (stake > 0) {
+      this.game.save.addTickets(-stake);
+    }
+
+    this.raceCountdown = 120; // 2 secondes
+    this.state = 'RUNNING';
     this.game.sound.playSfx('countdown_tick', 0.7);
   }
 
@@ -268,6 +295,11 @@ class DerbyScene extends Scene {
   }
 
   update() {
+    // Le panneau Training Lab n'apparaît QUE en mode Debug [H] !
+    if (this.panelEl) {
+      this.panelEl.style.display = Vehicle.debug ? 'flex' : 'none';
+    }
+
     for (let i = this.fx.length - 1; i >= 0; i--) {
       this.fx[i].update();
       if (this.fx[i].isDead) this.fx.splice(i, 1);
@@ -346,8 +378,29 @@ class DerbyScene extends Scene {
             .sort((a, b) => b.checkpointsPassed - a.checkpointsPassed);
           this.raceStandings = this.raceStandings.concat(rest);
           this.state = 'RACE_FINISH';
-          const stars = this.raceStandings[0] && this.raceStandings[0].finishedLap ? 3 : 2;
-          this.game.save.recordGameResult('derby', stars, 10);
+
+          // Calcul des gains du pari !
+          const chosen = this.bunnies[this.betBunnyIdx];
+          const rank = chosen ? this.raceStandings.indexOf(chosen) : -1;
+          let reward = 5; // Participation de base
+          if (this.betAmount > 0) {
+            if (rank === 0) {
+              reward = this.betAmount * 3;
+              this.betResultMsg = chosen.name + ' WON 1st! +' + reward + ' Tickets (3x)!';
+            } else if (rank === 1 || rank === 2) {
+              reward = Math.ceil(this.betAmount * 1.5);
+              this.betResultMsg = chosen.name + ' placed #' + (rank + 1) + '! +' + reward + ' Tickets (1.5x)!';
+            } else {
+              reward = 4;
+              this.betResultMsg = (chosen ? chosen.name : 'Your bunny') + ' finished #' + (rank + 1) + '. (+4 consolation)';
+            }
+          } else {
+            reward = 8;
+            this.betResultMsg = 'Free watch! +8 Tickets earned!';
+          }
+          this.betWonTickets = reward;
+          const stars = rank === 0 ? 3 : (rank >= 1 && rank <= 2 ? 2 : 1);
+          this.game.save.recordGameResult('derby', stars, reward);
           this.game.sound.playSfx('success_bell', 0.9);
           for (let i = 0; i < 26; i++) {
             this.fx.push(new SparkleFX(240, 110, 'confetti'));
@@ -477,13 +530,26 @@ class DerbyScene extends Scene {
       this.drawMiniBrain(g, leader);
     }
 
-    // 4. Classement en direct en mode Race Day
+    // 4. Classement en direct en mode Race Day + repère sur le lapin parié
     if (this.mode === 'RACE' && this.state === 'RUNNING') {
+      const chosen = this.bunnies[this.betBunnyIdx];
+      if (chosen && !chosen.dead) {
+        const cx = Math.round(chosen.pos.x * scaleX);
+        const cy = Math.round(chosen.pos.y * scaleY) - 22;
+        PixelUI.txt(g, font, 'YOUR BET', cx, cy, g.color(255, 240, 130), CENTER, 7);
+      }
+
       const sorted = [...this.bunnies].sort((a, b) => b.checkpointsPassed - a.checkpointsPassed);
-      PixelUI.panel(g, 8, 28, 102, 54);
-      PixelUI.txt(g, font, 'LEADERBOARD', 14, 31, g.color(189, 117, 126));
+      PixelUI.panel(g, 8, 28, 112, 56);
+      PixelUI.txt(g, font, 'LEADERBOARD', 14, 31, g.color(189, 117, 126), LEFT, 8.5);
       for (let i = 0; i < Math.min(3, sorted.length); i++) {
-        PixelUI.txt(g, font, (i + 1) + '. ' + sorted[i].name, 14, 44 + i * 12, g.color(107, 75, 91));
+        const isBet = sorted[i] === chosen;
+        const lbl = (i + 1) + '. ' + sorted[i].name + (isBet ? ' *' : '');
+        PixelUI.txt(
+          g, font, lbl, 14, 44 + i * 12,
+          isBet ? g.color(70, 130, 78) : g.color(107, 75, 91),
+          LEFT, 8.5, 98
+        );
       }
       if (this.raceCountdown > 0) {
         const num = Math.ceil(this.raceCountdown / 40);
@@ -496,14 +562,16 @@ class DerbyScene extends Scene {
 
     // 6. Barre HUD en haut
     const alive = this.bunnies.filter((b) => !b.dead).length;
-    PixelUI.panel(g, 8, 5, 250, 16);
+    PixelUI.panel(g, 8, 5, 290, 16);
+    const chosenName = this.bunnies[this.betBunnyIdx] ? this.bunnies[this.betBunnyIdx].name : '';
     const hudText = this.mode === 'TRAINING'
       ? 'GEN ' + this.generation + ' | ALIVE ' + alive + '/' + this.bunnies.length + ' | ' + this.speedMult + 'x'
-      : 'RACE DAY | Click track to drop hay!';
-    PixelUI.txt(g, font, hudText, 14, 8, g.color(107, 75, 91));
+      : 'RACE DAY | Bet: ' + chosenName + ' (' + this.betAmount + 'T) | Click track: hay!';
+    PixelUI.txt(g, font, hudText, 14, 8, g.color(107, 75, 91), LEFT, 8.5, 278);
 
     // Overlays
     if (this.state === 'INTRO') this.drawIntroCard(g);
+    else if (this.state === 'BETTING') this.drawBettingCard(g);
     else if (this.state === 'PAUSED') this.drawPauseMenu(g);
     else if (this.state === 'GRADUATED' || this.state === 'RACE_FINISH') this.drawFinishCard(g);
   }
@@ -560,10 +628,10 @@ class DerbyScene extends Scene {
     const el = document.createElement('div');
     el.id = 'derby-panel';
     el.innerHTML = `
-      <div class="dp-title">BUNNY DERBY LAB</div>
+      <div class="dp-title">DERBY DEBUG LAB [H]</div>
       <div class="dp-tabs">
-        <button id="dp-tab-train" class="dp-btn dp-active">Training</button>
-        <button id="dp-tab-race" class="dp-btn">Race Day</button>
+        <button id="dp-tab-race" class="dp-btn dp-active">Race Day</button>
+        <button id="dp-tab-train" class="dp-btn">Training</button>
       </div>
       <label>Track:
         <select id="dp-track">
@@ -610,6 +678,7 @@ class DerbyScene extends Scene {
       <select id="dp-saved-list"><option value="">-- Load Saved Brain --</option></select>
       <button id="dp-back" class="dp-btn dp-back">Back to Fair</button>
     `;
+    el.style.display = Vehicle.debug ? 'flex' : 'none';
     document.body.appendChild(el);
     this.panelEl = el;
 
@@ -692,20 +761,108 @@ class DerbyScene extends Scene {
   drawIntroCard(g) {
     const font = this.game.assets.font;
     const { mx, my } = this.game.getMouseBufferPos();
+    this.startBtn = { x: 170, y: 204, w: 140, h: 24 };
+    PixelUI.drawRulesCard(g, font, {
+      title: 'BUNNY DERBY — RACE DAY!',
+      headerCol: g.color(189, 117, 126),
+      rules: [
+        'Pick your favorite bunny and bet your funfair tickets!',
+        '1st place pays 3x your bet  |  2nd & 3rd place pay 1.5x!',
+        'Click anywhere on the track during the race to drop hay bales.',
+        'Bunnies steer & avoid hay using Craig Reynolds AI!'
+      ],
+      controls: 'Click to Bet & Drop Hay  |  [H] Debug AI Training Lab  |  [M] Menu',
+      btnRect: this.startBtn,
+      btnLabel: 'PLACE BET! (Space)',
+      mx,
+      my
+    });
+  }
+
+  /** Géométrie des boutons du panneau de pari Race Day. */
+  getBetLayout() {
+    const bunnyCards = [];
+    for (let i = 0; i < 8; i++) {
+      const col = i % 4;
+      const row = Math.floor(i / 4);
+      bunnyCards.push({
+        idx: i,
+        x: 56 + col * 93,
+        y: 66 + row * 44,
+        w: 88,
+        h: 39
+      });
+    }
+    const amounts = [0, 5, 10, 25, 50];
+    const betBtns = amounts.map((amt, i) => ({
+      amt,
+      label: amt === 0 ? 'FREE' : amt + ' T',
+      x: 56 + i * 74,
+      y: 168,
+      w: 68,
+      h: 20
+    }));
+    const goBtn = { x: 165, y: 202, w: 150, h: 24 };
+    return { bunnyCards, betBtns, goBtn };
+  }
+
+  drawBettingCard(g) {
+    const assets = this.game.assets;
+    const font = assets.font;
+    const { mx, my } = this.game.getMouseBufferPos();
+    const tickets = this.game.save.data.tickets || 0;
+    const L = this.getBetLayout();
+
     g.noStroke();
-    g.fill(0, 0, 0, 115);
+    g.fill(26, 20, 32, 135);
     g.rect(0, 0, 480, 272);
 
-    PixelUI.panel(g, 74, 54, 332, 160);
+    PixelUI.panel(g, 42, 26, 396, 212, g.color(250, 242, 212));
     g.fill(189, 117, 126);
-    g.rect(74, 54, 332, 22);
-    PixelUI.txt(g, font, 'BUNNY DERBY (NEUROEVOLUTION)', 240, 60, g.color(243, 244, 231), CENTER);
+    g.rect(44, 28, 392, 22, 1);
+    PixelUI.txt(g, font, 'PLACE YOUR RACE BET!  (Tickets: ' + tickets + ')', 240, 33, g.color(255, 252, 238), CENTER, 9.5, 380);
 
-    PixelUI.txt(g, font, 'Train bunnies with TensorFlow.js neural nets!', 240, 92, g.color(107, 75, 91), CENTER);
-    PixelUI.txt(g, font, 'Tune rays, layers & mutation in the side panel.', 240, 112, g.color(107, 75, 91), CENTER);
-    PixelUI.txt(g, font, 'Switch to Race Day anytime to race saved brains!', 240, 132, g.color(144, 98, 93), CENTER);
+    PixelUI.txt(g, font, '1. Choose your bunny champion (1st = 3x | Top 3 = 1.5x):', 56, 53, g.color(107, 75, 91), LEFT, 8, 370);
 
-    PixelUI.drawButton(g, font, this.startBtn, 'START (Space)', PixelUI.pointInRect(mx, my, this.startBtn), g.color(223, 240, 187));
+    for (const c of L.bunnyCards) {
+      const b = this.bunnies[c.idx];
+      const sel = this.betBunnyIdx === c.idx;
+      const hov = PixelUI.pointInRect(mx, my, c);
+      const bg = sel ? g.color(223, 240, 187) : (hov ? g.color(255, 246, 206) : g.color(238, 220, 182));
+      PixelUI.panel(g, c.x, c.y, c.w, c.h, bg);
+
+      const colName = b ? b.colour : DerbyBunny.COLOURS[c.idx];
+      const sp = assets.getSheetFrame('sprites/bunny/bunny_' + colName + '.png', 32, 32, 0, 0);
+      if (sp) g.image(sp, c.x + 2, c.y + 4);
+      const bName = b ? b.name : DerbyBunny.NAMES[c.idx];
+      PixelUI.txt(g, font, bName, c.x + 34, c.y + 10, sel ? g.color(62, 108, 70) : g.color(107, 75, 91), LEFT, 8, 52);
+      if (sel) {
+        PixelUI.txt(g, font, 'PICKED', c.x + 34, c.y + 23, g.color(70, 130, 78), LEFT, 7);
+      }
+    }
+
+    PixelUI.txt(g, font, '2. Choose bet amount:', 56, 154, g.color(107, 75, 91), LEFT, 8);
+    for (const bb of L.betBtns) {
+      const canAfford = tickets >= bb.amt;
+      const sel = this.betAmount === bb.amt;
+      const hov = PixelUI.pointInRect(mx, my, bb);
+      const bg = !canAfford
+        ? g.color(216, 206, 196)
+        : (sel ? g.color(223, 240, 187) : (hov ? g.color(255, 246, 206) : g.color(232, 207, 166)));
+      PixelUI.panel(g, bb.x, bb.y, bb.w, bb.h, bg);
+      PixelUI.txt(
+        g, font, bb.label, bb.x + bb.w / 2, bb.y + 5,
+        !canAfford ? g.color(150, 138, 134) : (sel ? g.color(62, 108, 70) : g.color(107, 75, 91)),
+        CENTER, 8.5, bb.w - 6
+      );
+    }
+
+    PixelUI.drawButton(
+      g, font, L.goBtn,
+      'START RACE! (Space)',
+      PixelUI.pointInRect(mx, my, L.goBtn),
+      g.color(223, 240, 187)
+    );
   }
 
   drawPauseMenu(g) {
@@ -728,25 +885,35 @@ class DerbyScene extends Scene {
   drawFinishCard(g) {
     const font = this.game.assets.font;
     g.noStroke();
-    g.fill(0, 0, 0, 100);
+    g.fill(0, 0, 0, 110);
     g.rect(0, 0, 480, 272);
 
-    PixelUI.panel(g, 92, 62, 296, 148);
+    PixelUI.panel(g, 76, 52, 328, 168);
     g.fill(189, 117, 126);
-    g.rect(92, 62, 296, 22);
+    g.rect(78, 54, 324, 22);
     const title = this.state === 'GRADUATED' ? 'THE BUNNIES GRADUATED!' : 'RACE DAY PODIUM!';
-    PixelUI.txt(g, font, title, 240, 68, g.color(243, 244, 231), CENTER);
+    PixelUI.txt(g, font, title, 240, 59, g.color(243, 244, 231), CENTER, 10, 310);
 
     if (this.state === 'RACE_FINISH' && this.raceStandings.length > 0) {
+      const chosen = this.bunnies[this.betBunnyIdx];
       for (let i = 0; i < Math.min(3, this.raceStandings.length); i++) {
-        PixelUI.txt(g, font, '#' + (i + 1) + '  ' + this.raceStandings[i].name, 240, 100 + i * 18, g.color(107, 75, 91), CENTER);
+        const b = this.raceStandings[i];
+        const mark = b === chosen ? ' (YOUR BET!)' : '';
+        PixelUI.txt(
+          g, font, '#' + (i + 1) + '  ' + b.name + mark, 240, 86 + i * 18,
+          b === chosen ? g.color(62, 118, 70) : g.color(107, 75, 91),
+          CENTER, 9.5, 300
+        );
+      }
+      if (this.betResultMsg) {
+        PixelUI.drawTag(g, font, this.betResultMsg, 240, 166, g.color(223, 240, 187));
       }
     } else {
-      PixelUI.txt(g, font, '60%+ bunnies completed a full lap!', 240, 108, g.color(107, 75, 91), CENTER);
-      PixelUI.txt(g, font, 'Click Save Brain or try Race Day!', 240, 130, g.color(144, 98, 93), CENTER);
+      PixelUI.txt(g, font, '60%+ bunnies completed a full lap!', 240, 102, g.color(107, 75, 91), CENTER, 9.5, 300);
+      PixelUI.txt(g, font, 'Click Save Brain or switch to Race Day!', 240, 126, g.color(144, 98, 93), CENTER, 9, 300);
     }
 
-    PixelUI.txt(g, font, 'Press Space to race again or Esc for Fair', 240, 182, g.color(144, 98, 93), CENTER);
+    PixelUI.txt(g, font, 'Press Space to race again  |  M for Menu', 240, 194, g.color(144, 98, 93), CENTER, 8.5, 310);
   }
 
   backToHub() {
@@ -758,14 +925,40 @@ class DerbyScene extends Scene {
     if (this.state === 'INTRO') {
       if (PixelUI.pointInRect(mx, my, this.startBtn)) {
         this.seenIntro = true;
-        this.state = 'RUNNING';
+        this.state = this.mode === 'RACE' ? 'BETTING' : 'RUNNING';
+        this.game.sound.playSfx('ui_click', 0.8);
+      }
+      return;
+    }
+    if (this.state === 'BETTING') {
+      const L = this.getBetLayout();
+      const tickets = this.game.save.data.tickets || 0;
+      for (const c of L.bunnyCards) {
+        if (PixelUI.pointInRect(mx, my, c)) {
+          this.betBunnyIdx = c.idx;
+          this.game.sound.playSfx('ui_click', 0.6);
+          return;
+        }
+      }
+      for (const bb of L.betBtns) {
+        if (PixelUI.pointInRect(mx, my, bb) && tickets >= bb.amt) {
+          this.betAmount = bb.amt;
+          this.game.sound.playSfx('ui_click', 0.6);
+          return;
+        }
+      }
+      if (PixelUI.pointInRect(mx, my, L.goBtn)) {
+        this.startRaceDay(true);
+        return;
       }
       return;
     }
     if (this.state === 'PAUSED') {
       if (PixelUI.pointInRect(mx, my, this.resumeBtn)) this.state = 'RUNNING';
-      else if (PixelUI.pointInRect(mx, my, this.restartBtn)) this.startTraining(true);
-      else if (PixelUI.pointInRect(mx, my, this.exitBtn)) this.backToHub();
+      else if (PixelUI.pointInRect(mx, my, this.restartBtn)) {
+        if (this.mode === 'RACE') this.startRaceDay(false);
+        else this.startTraining(true);
+      } else if (PixelUI.pointInRect(mx, my, this.exitBtn)) this.backToHub();
       return;
     }
     // En Race Day, cliquer sur la piste place une botte de foin (évitée par avoid()!)
@@ -782,9 +975,15 @@ class DerbyScene extends Scene {
     if (this.state === 'INTRO') {
       if (k === ' ' || kc === ENTER) {
         this.seenIntro = true;
-        this.state = 'RUNNING';
+        this.state = this.mode === 'RACE' ? 'BETTING' : 'RUNNING';
       } else if (kc === ESCAPE) {
         this.backToHub();
+      }
+      return;
+    }
+    if (this.state === 'BETTING') {
+      if (k === ' ' || kc === ENTER) {
+        this.startRaceDay(true);
       }
       return;
     }
@@ -795,7 +994,7 @@ class DerbyScene extends Scene {
       return;
     }
     if ((this.state === 'GRADUATED' || this.state === 'RACE_FINISH') && (k === ' ' || kc === ENTER)) {
-      if (this.mode === 'RACE') this.startRaceDay();
+      if (this.mode === 'RACE') this.startRaceDay(false);
       else this.startTraining(false);
     }
   }
