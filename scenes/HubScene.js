@@ -163,8 +163,8 @@ class HubScene extends Scene {
       {
         id: 'bouncy',
         title: 'Bouncy Castle',
-        rect: [this.bouncyCastlePos.x - 4, this.bouncyCastlePos.y - 16, this.bouncyCastlePos.w + 8, 26],
-        stand: [this.bouncyCastlePos.x + 32, this.bouncyCastlePos.y - 6]
+        rect: [this.bouncyCastlePos.x - 14, this.bouncyCastlePos.y - 14, this.bouncyCastlePos.w + 28, this.bouncyCastlePos.h + 24],
+        stand: [this.bouncyCastlePos.x + 32, this.bouncyCastlePos.y + 10]
       },
       {
         id: 'cotton_candy',
