@@ -393,6 +393,17 @@ class FoxScene extends Scene {
         g.image(floorImg, fx, this.groundY + 4, 16, 16);
       }
     }
+    // Vases antiques Zelda décoratifs aux bords du temple
+    const fancyPot = assets.getImage(zBase + 'Props/PNG/sprFancyPot.png');
+    const bluePot = assets.getImage(zBase + 'Props/PNG/sprBluePot.png');
+    if (fancyPot) {
+      g.image(fancyPot, 8, this.groundY - 15, 16, 16);
+      g.image(fancyPot, 456, this.groundY - 15, 16, 16);
+    }
+    if (bluePot) {
+      g.image(bluePot, 24, this.groundY - 14, 14, 14);
+      g.image(bluePot, 442, this.groundY - 14, 14, 14);
+    }
 
     // 3 plateformes flottantes Zelda
     for (const pl of this.platforms) {
@@ -503,13 +514,19 @@ class FoxScene extends Scene {
   drawHud(g) {
     const font = this.game.assets.font;
 
-    // Cœurs de Moo (en haut à gauche)
+    // Cœurs animés de Moo (heart idle1..4.png en haut à gauche)
     PixelUI.panel(g, 8, 5, 134, 16);
     PixelUI.txt(g, font, 'MOO', 14, 8, g.color(107, 75, 91), LEFT, 8.5);
+    const heartFrame = (Math.floor(frameCount / 14) % 4) + 1;
+    const heartImg = this.game.assets.getImage('ui/Icon & Menu/Icon & Menu/Heart HP/heart idle' + heartFrame + '.png');
     for (let i = 0; i < this.mooMaxHp; i++) {
-      g.noStroke();
-      g.fill(i < this.mooHp ? g.color(230, 82, 102) : g.color(185, 165, 165));
-      g.circle(50 + i * 16, 13, 8);
+      if (i < this.mooHp && heartImg) {
+        g.image(heartImg, 44 + i * 16, 6, 13, 13);
+      } else {
+        g.noStroke();
+        g.fill(i < this.mooHp ? g.color(230, 82, 102) : g.color(185, 165, 165, 140));
+        g.circle(50 + i * 16, 13, 7);
+      }
     }
 
     // Barre de vie du Fire Cultist Boss (en haut à droite)

@@ -60,6 +60,20 @@ class AssetManager {
         files.add('Tiny Neighbours Vol1/Emotes/' + em + '_emote_16x16.png');
       });
 
+      // Décors & faune Sprout Lands / Minifolks (cerisiers, cadeaux, bonbons, pique-nique, grenouille, abeilles, cerf, oiseau)
+      files.add('decor/cherry_blossom.png');
+      files.add('decor/candy_and_pie.png');
+      files.add('decor/present_red.png');
+      files.add('decor/present_green.png');
+      files.add('decor/picnic_foods.png');
+      files.add('sprites/ambient/bird_sheet.png');
+      files.add('sprites/ambient/bee_small_sheet.png');
+      files.add('sprites/ambient/frog_sheet.png');
+      files.add('sprites/ambient/deer1_sheet.png');
+      for (let h = 1; h <= 4; h++) {
+        files.add('ui/Icon & Menu/Icon & Menu/Heart HP/heart idle' + h + '.png');
+      }
+
       // Nouveaux assets PokéMoo Feast!! (Onix, Scorbunny, Gengar)
       files.add('generated/pokemon/onix_head.png');
       files.add('generated/pokemon/onix_rock.png');
@@ -82,6 +96,8 @@ class AssetManager {
       files.add(zBase + 'Collectables/PNG/sprRuby.png');
       files.add(zBase + 'Props/PNG/sprBlueBlock.png');
       files.add(zBase + 'Props/PNG/sprDarkPurpleBlock.png');
+      files.add(zBase + 'Props/PNG/sprFancyPot.png');
+      files.add(zBase + 'Props/PNG/sprBluePot.png');
 
       // Ressources Caterpillar Crawl (Snake) + effets communs
       ['green', 'pink', 'blue', 'gold'].forEach((col) => {

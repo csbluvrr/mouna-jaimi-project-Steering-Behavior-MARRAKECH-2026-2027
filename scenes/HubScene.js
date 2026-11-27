@@ -461,11 +461,17 @@ class HubScene extends Scene {
       SkyBackdrop.drawHorizonBlend(g, skyMood, this.worldLeft, this.worldRight, groundTop);
     }
 
-    // Nappe de pique-nique à plat au sol
+    // Nappe de pique-nique à plat au sol + vrais encas pixel-art (picnic_foods.png)
     const blanketObj = layout.objects.find((o) => o.id === 'picnic_blanket');
     if (blanketObj) {
       const bSp = assets.getSprite(blanketObj.sprite);
       if (bSp) g.image(bSp, blanketObj.x, blanketObj.y);
+      const toast = assets.getSheetFrame('decor/picnic_foods.png', 16, 16, 2, 0);
+      const sandwich = assets.getSheetFrame('decor/picnic_foods.png', 16, 16, 6, 0);
+      const onigiri = assets.getSheetFrame('decor/picnic_foods.png', 16, 16, 0, 1);
+      if (toast) g.image(toast, blanketObj.x + 19, blanketObj.y + 7, 11, 11);
+      if (sandwich) g.image(sandwich, blanketObj.x + 28, blanketObj.y + 18, 11, 11);
+      if (onigiri) g.image(onigiri, blanketObj.x + 8, blanketObj.y + 24, 10, 10);
     }
 
     // 2. Objets Y-triés du Hub central original (les 4 stands + Grande Roue tournante + Poster + MAP)
@@ -559,8 +565,16 @@ class HubScene extends Scene {
       });
     }
 
-    // Détails vivants & mobilier de parc sur les 3 ailes (fontaine Est, chat endormi, lampadaires)
+    // Détails vivants, cerisiers en fleurs & faune pixel-art sur les 3 ailes
     items.push(
+      { sortY: 96,  draw: () => this.drawCherryBlossom(g, -464, 54, 'big') },
+      { sortY: 96,  draw: () => this.drawCherryBlossom(g, -206, 64, 'med') },
+      { sortY: 96,  draw: () => this.drawCherryBlossom(g, 616,  54, 'big') },
+      { sortY: 96,  draw: () => this.drawCherryBlossom(g, 876,  64, 'med') },
+      { sortY: 214, draw: () => this.drawCherryBlossom(g, -356, 200, 'bush') },
+      { sortY: 214, draw: () => this.drawCherryBlossom(g, 796,  200, 'bush') },
+      { sortY: 222, draw: () => this.drawPondFrog(g, 368, 220) },
+      { sortY: 208, draw: () => this.drawMeadowDeer(g, 878, 204) },
       { sortY: 218, draw: () => this.drawSleepingCat(g, 96, 214) },
       { sortY: 204, draw: () => this.drawHubFountain(g, 694, 196) },
       { sortY: 132, draw: () => this.drawGardenLamp(g, -296, 114, skyMood) },
@@ -661,6 +675,7 @@ class HubScene extends Scene {
       if (sp) g.image(sp, b.x, Math.round(b.y + Math.sin(frameCount * 0.05 + b.phase) * 2));
     });
     for (const bf of this.butterflies) bf.show(g);
+    this.drawHubBees(g);
 
     if (Vehicle.debug) {
       for (const obs of this.obstacles) obs.showDebug(g);
@@ -971,15 +986,61 @@ class HubScene extends Scene {
     g.rect(x + 23, y + 26, 4, 5, 1);
     g.fill(242, 164, 108);
     g.rect(x + 36, y + 26, 4, 5, 1);
-    // Paquets cadeaux empilés à gauche du comptoir
-    g.fill(107, 75, 91);
-    g.rect(x - 9, y + 44, 9, 9);
-    g.fill(246, 152, 174);
-    g.rect(x - 8, y + 45, 7, 7);
-    g.fill(255, 242, 166);
-    g.rect(x - 5, y + 45, 1, 7);
-    g.rect(x - 8, y + 48, 7, 1);
+    // Paquets cadeaux animés pixel-art (present_red.png & present_green.png) empilés à gauche du comptoir
+    const giftCol = Math.floor(t / 16) % 4;
+    const redGift = this.game.assets.getSheetFrame('decor/present_red.png', 16, 16, giftCol, 0);
+    const greenGift = this.game.assets.getSheetFrame('decor/present_green.png', 16, 16, (giftCol + 2) % 4, 0);
+    if (redGift) g.image(redGift, x - 14, y + 40, 14, 14);
+    if (greenGift) g.image(greenGift, x + 49, y + 42, 13, 13);
     g.pop();
+  }
+
+  /** Cerisiers en fleurs roses (decor/cherry_blossom.png) pour enrichir les ailes Ouest & Est. */
+  drawCherryBlossom(g, x, y, size = 'big') {
+    const img = this.game.assets.getImage('decor/cherry_blossom.png');
+    if (!img) return;
+    if (size === 'big') g.image(img, x, y, 48, 48, 112, 0, 48, 48);
+    else if (size === 'med') g.image(img, x, y, 32, 32, 80, 16, 32, 32);
+    else g.image(img, x, y, 16, 16, 80, 64, 16, 16);
+  }
+
+  /** Petite grenouille animée près de la mare (sprites/ambient/frog_sheet.png). */
+  drawPondFrog(g, x, y) {
+    const cycle = frameCount % 220;
+    const row = cycle > 172 ? 4 : 2; // row 4 = coup de langue rose, row 2 = respiration
+    const col = row === 4 ? Math.min(7, Math.floor((cycle - 172) / 6)) : Math.floor(frameCount / 10) % 14;
+    const img = this.game.assets.getSheetFrame('sprites/ambient/frog_sheet.png', 16, 16, col, row);
+    if (img) g.image(img, x, y, 14, 14);
+  }
+
+  /** Petit faon tacheté paisible dans la prairie Est (sprites/ambient/deer1_sheet.png). */
+  drawMeadowDeer(g, x, y) {
+    const col = Math.floor(frameCount / 16) % 4;
+    const img = this.game.assets.getSheetFrame('sprites/ambient/deer1_sheet.png', 32, 32, col, 0);
+    if (img) {
+      g.push();
+      g.translate(x, y);
+      g.scale(-1, 1);
+      g.image(img, -16, -28);
+      g.pop();
+    }
+  }
+
+  /** Petites abeilles animées bourdonnant autour des parterres de fleurs (bee_small_sheet.png). */
+  drawHubBees(g) {
+    const spots = [
+      { cx: -340, cy: 192, ph: 0.4 },
+      { cx: 122,  cy: 204, ph: 1.9 },
+      { cx: 636,  cy: 192, ph: 3.5 }
+    ];
+    const col = Math.floor(frameCount / 5) % 8;
+    const img = this.game.assets.getSheetFrame('sprites/ambient/bee_small_sheet.png', 16, 16, col, 0);
+    if (!img) return;
+    for (const s of spots) {
+      const bx = Math.round(s.cx + Math.cos(frameCount * 0.045 + s.ph) * 14);
+      const by = Math.round(s.cy + Math.sin(frameCount * 0.08 + s.ph) * 6);
+      g.image(img, bx - 6, by - 6, 12, 12);
+    }
   }
 
   /** Petit chat endormi près des fleurs (Place Centrale) avec respiration douce. */
@@ -1003,18 +1064,13 @@ class HubScene extends Scene {
     g.pop();
   }
 
-  /** Petit oiseau bleu perché sur le panneau GAMES qui sautille parfois. */
+  /** Vrai petit oiseau pixel-art perché sur le panneau GAMES (sprites/ambient/bird_sheet.png). */
   drawPerchedBird(g, x, y) {
-    const hop = (frameCount % 160) < 14 ? -Math.round(Math.sin(((frameCount % 160) / 14) * Math.PI) * 3) : 0;
-    g.push();
-    g.noStroke();
-    g.fill(107, 75, 91);
-    g.rect(x, y + hop, 6, 4, 1);
-    g.fill(134, 198, 236);
-    g.rect(x + 1, y + 1 + hop, 4, 2);
-    g.fill(248, 196, 98);
-    g.rect(x + 6, y + 1 + hop, 2, 1);
-    g.pop();
+    const col = Math.floor(frameCount / 18) % 4;
+    const img = this.game.assets.getSheetFrame('sprites/ambient/bird_sheet.png', 16, 16, col, 0);
+    if (img) {
+      g.image(img, x - 4, y - 9, 14, 14);
+    }
   }
 
   /** Ondulations douces et nénuphars scintillants sur la mare aux canetons. */
@@ -1115,13 +1171,13 @@ class HubScene extends Scene {
 
     // Décoration intérieure thématique
     if (ph.label === 'SWEETS') {
-      // Bocaux de bonbons + barbe à papa
-      g.fill(248, 178, 198);
-      g.circle(x + 15, y + 32, 8);
-      g.fill(176, 224, 246);
-      g.circle(x + 35, y + 32, 8);
-      g.fill(252, 224, 134);
-      g.rect(x + 22, y + 33, 6, 5, 1);
+      // Vrais bonbons, sucette & tarte pixel-art (decor/candy_and_pie.png) sur le comptoir !
+      const pie = this.game.assets.getSheetFrame('decor/candy_and_pie.png', 16, 16, 0, 0);
+      const candy = this.game.assets.getSheetFrame('decor/candy_and_pie.png', 16, 16, 1, 0);
+      const pop = this.game.assets.getSheetFrame('decor/candy_and_pie.png', 16, 16, 3, 0);
+      if (pie) g.image(pie, x + 9, y + 27, 11, 11);
+      if (candy) g.image(candy, x + 20, y + 26, 11, 11);
+      if (pop) g.image(pop, x + 31, y + 27, 11, 11);
     } else if (ph.label === 'PHOTO') {
       // Rideaux roses entrouverts + polaroïds suspendus
       g.fill(236, 146, 174);
