@@ -57,7 +57,7 @@ class HubScene extends Scene {
     this.ringsBoothPos  = { x: 836,  y: 76,  w: 50, h: 58, stripe: [192, 226, 166], label: 'RINGS' };
 
     this.mapBoardPos    = { x: 254,  y: 184, w: 24, h: 36 };
-    this.posterPos      = { x: 288,  y: 180, w: 58, h: 46 };
+    this.posterPos      = { x: 286,  y: 148, w: 66, h: 82 };
     this.pondCenter     = { x: 404,  y: 214, rx: 38, ry: 19 };
     this.fountainPos    = { x: 578,  y: 204 };
 
@@ -94,9 +94,9 @@ class HubScene extends Scene {
       ...this.booths.map((b) => [b.x + 4, b.y + 36, 42, 22]),
       [212, 118, 56, 18],  // Socle Grande Roue
       [34,  212, 18, 12],  // Panier pique-nique
-      [146, 194, 18, 14],  // Chat aux ballons
+      [146, 198, 20, 14],  // Chat aux ballons (kid_front)
       [this.mapBoardPos.x + 2, this.mapBoardPos.y + 24, 20, 10],
-      [this.posterPos.x + 4,   this.posterPos.y + 34,   50, 12],
+      [this.posterPos.x + 6,   this.posterPos.y + 66,   54, 14],
       [368, 196, 72, 36],  // Mare aux canetons
       [444, 188, 22, 14],  // Vache
 
@@ -124,8 +124,8 @@ class HubScene extends Scene {
       {
         id: 'poster',
         title: "Today's Games",
-        rect: [this.posterPos.x - 4, this.posterPos.y + 42, this.posterPos.w + 8, 20],
-        stand: [this.posterPos.x + 29, this.posterPos.y + 56]
+        rect: [this.posterPos.x - 4, this.posterPos.y + 64, this.posterPos.w + 8, 22],
+        stand: [this.posterPos.x + 33, this.posterPos.y + 78]
       },
       {
         id: 'map',
@@ -630,8 +630,8 @@ class HubScene extends Scene {
       { sortY: 220, draw: () => { const img = assets.getSheetFrame('sprites/bunny/bunny_mint.png', 32, 32, 1, 0); if (img) g.image(img, 58, 192); } },
       { sortY: 222, draw: () => this.drawSleepingCat(g, 86, 214) },
 
-      // Chat aux ballons + ficelles
-      { sortY: 206, draw: () => {
+      // Chat aux ballons (vrai sprite 'kid_front' 48x48) + ficelles attachées à sa main !
+      { sortY: 212, draw: () => {
         const catBalloons = [
           { sp: 'balloon_red',    x: 138, y: 158, ph: 0.2 },
           { sp: 'balloon_yellow', x: 150, y: 152, ph: 1.4 },
@@ -642,11 +642,11 @@ class HubScene extends Scene {
         g.strokeWeight(1);
         for (const bl of catBalloons) {
           const by = bl.y + Math.sin(frameCount * 0.05 + bl.ph) * 2;
-          g.line(bl.x + 6, Math.round(by + 13), 154, 196);
+          g.line(bl.x + 6, Math.round(by + 13), 156, 198);
         }
         g.pop();
-        const catSp = assets.getSprite('kid_balloon');
-        if (catSp) g.image(catSp, 146, 190);
+        const catSp = assets.getSprite('kid_front');
+        if (catSp) g.image(catSp, 132, 168);
         for (const bl of catBalloons) {
           const sp = assets.getSprite(bl.sp);
           if (sp) g.image(sp, bl.x, Math.round(bl.y + Math.sin(frameCount * 0.05 + bl.ph) * 2));
@@ -873,7 +873,7 @@ class HubScene extends Scene {
     if (candy) g.image(candy, x + 19, y + 15, 11, 11);
     if (pop) g.image(pop, x + 30, y + 16, 11, 11);
     PixelUI.panel(g, x + 4, y + 33, 40, 10, g.color(252, 244, 218));
-    PixelUI.txt(g, font, 'SWEETS', x + 24, y + 34, g.color(168, 78, 104), CENTER, 6, 38);
+    this.drawWorldSign(g, 'SWEETS', x + 24, y + 38, g.color(168, 78, 104));
     g.pop();
   }
 
@@ -915,7 +915,7 @@ class HubScene extends Scene {
       g.rect(x + 3 + i * 7, y + 6, 7, 7);
     }
     PixelUI.panel(g, x + 3, y + 33, 42, 10, g.color(252, 244, 218));
-    PixelUI.txt(g, font, 'POPCORN', x + 24, y + 34, g.color(168, 66, 68), CENTER, 5.8, 40);
+    this.drawWorldSign(g, 'POPCORN', x + 24, y + 38, g.color(168, 66, 68));
     g.pop();
   }
 
@@ -1037,7 +1037,23 @@ class HubScene extends Scene {
     g.pop();
   }
 
-  /** Architectures & props distincts pour les 4 stands principaux (sans rebond). */
+  /** Dessine une enseigne directement sur le buffer monde g (reste collée au stand, sous Moo & les menus !). */
+  drawWorldSign(g, text, cx, cy, col) {
+    g.push();
+    g.noStroke();
+    g.fill(col);
+    if (this.game.assets && this.game.assets.font) {
+      g.textFont(this.game.assets.font);
+    } else {
+      g.textFont('monospace');
+    }
+    g.textSize(7);
+    g.textAlign(CENTER, CENTER);
+    g.text(text, Math.round(cx), Math.round(cy));
+    g.pop();
+  }
+
+  /** Architectures & props distincts pour les 4 stands principaux (nouveaux logos remplaçant les anciens). */
   drawMainBoothProps(g, font, id, x, y, isNear) {
     const t = frameCount;
     g.push();
@@ -1047,25 +1063,29 @@ class HubScene extends Scene {
       g.rect(x - 2, y + 6, 54, 52, 4);
     }
 
+    // Plaque de toit parchemin propre pour masquer complètement l'ancien logo du sprite
+    g.fill(107, 75, 91);
+    g.rect(x + 15, y, 20, 14, 2);
+    g.fill(247, 236, 198);
+    g.rect(x + 16, y + 1, 18, 12, 1);
+
     if (id === 'derby') {
-      const wave = Math.round(Math.sin(t * 0.1) * 1);
+      // Nouveau logo : Drapeau à damier de course au sommet + mini trophée
       g.fill(107, 75, 91);
-      g.rect(x + 2, y + 2, 1, 12);
-      g.rect(x + 47, y + 2, 1, 12);
+      g.rect(x + 20, y + 3, 1, 9);
       g.fill(252, 248, 236);
-      g.rect(x + 3, y + 2 + wave, 6, 4);
-      g.rect(x + 41, y + 2 - wave, 6, 4);
-      g.fill(64, 48, 60);
-      g.rect(x + 3, y + 2 + wave, 3, 2);
-      g.rect(x + 6, y + 4 + wave, 3, 2);
-      g.rect(x + 41, y + 2 - wave, 3, 2);
-      g.rect(x + 44, y + 4 - wave, 3, 2);
+      g.rect(x + 21, y + 3, 9, 6);
+      g.fill(58, 44, 56);
+      g.rect(x + 21, y + 3, 3, 2); g.rect(x + 27, y + 3, 3, 2);
+      g.rect(x + 24, y + 5, 3, 2);
+      g.rect(x + 21, y + 7, 3, 2); g.rect(x + 27, y + 7, 3, 2);
       g.fill(244, 198, 78);
       g.rect(x + 38, y + 32, 5, 5);
       g.rect(x + 39, y + 37, 3, 2);
       PixelUI.panel(g, x + 7, y + 43, 36, 10, g.color(248, 236, 198));
-      PixelUI.txt(g, font, 'DERBY', x + 25, y + 44, g.color(142, 66, 78), CENTER, 6.2, 34);
+      this.drawWorldSign(g, 'DERBY', x + 25, y + 48, g.color(142, 66, 78));
     } else if (id === 'snake') {
+      // Nouveau logo : Poké Ball nette
       g.fill(107, 75, 91);
       g.circle(x + 25, y + 7, 11);
       g.fill(220, 74, 80);
@@ -1079,32 +1099,32 @@ class HubScene extends Scene {
       g.fill(134, 138, 152);
       g.ellipse(x + 9, y + 36, 8, 6);
       PixelUI.panel(g, x + 5, y + 43, 40, 10, g.color(248, 236, 198));
-      PixelUI.txt(g, font, 'POKEMOO', x + 25, y + 44, g.color(184, 58, 66), CENTER, 6, 38);
+      this.drawWorldSign(g, 'POKEMOO', x + 25, y + 48, g.color(184, 58, 66));
     } else if (id === 'ducklings') {
+      // Nouveau logo : Pudding Pompompurin (chapeau caramel + corps crème doré)
       g.fill(252, 224, 128);
-      g.ellipse(x + 25, y + 8, 10, 8);
+      g.ellipse(x + 25, y + 8, 11, 8);
       g.fill(136, 84, 56);
-      g.rect(x + 21, y + 3, 8, 3, 1);
+      g.rect(x + 20, y + 3, 10, 3, 1);
       g.fill(92, 60, 48);
       g.rect(x + 23, y + 7, 1, 1);
       g.rect(x + 26, y + 7, 1, 1);
       g.fill(116, 176, 104);
       g.rect(x + 36, y + 35, 8, 4);
-      g.fill(252, 224, 134);
-      g.rect(x + 37, y + 34, 2, 2);
-      g.fill(246, 152, 174);
-      g.rect(x + 41, y + 34, 2, 2);
+      g.fill(252, 224, 134); g.rect(x + 37, y + 34, 2, 2);
+      g.fill(246, 152, 174); g.rect(x + 41, y + 34, 2, 2);
       PixelUI.panel(g, x + 7, y + 43, 36, 10, g.color(248, 236, 198));
-      PixelUI.txt(g, font, 'PURINS', x + 25, y + 44, g.color(150, 96, 56), CENTER, 6.2, 34);
+      this.drawWorldSign(g, 'PURINS', x + 25, y + 48, g.color(150, 96, 56));
     } else if (id === 'fox') {
+      // Nouveau logo : Triforce dorée nette
       g.fill(246, 206, 82);
-      g.triangle(x + 25, y + 1, x + 21, y + 7, x + 29, y + 7);
+      g.triangle(x + 25, y + 2, x + 21, y + 7, x + 29, y + 7);
       g.triangle(x + 21, y + 7, x + 18, y + 11, x + 24, y + 11);
       g.triangle(x + 29, y + 7, x + 26, y + 11, x + 32, y + 11);
       const pot = this.game.assets.getImage('Legend_of_Zink_Asset_Pack/Legend_of_Zink_Asset_Pack/Props/PNG/sprFancyPot.png');
       if (pot) g.image(pot, x + 5, y + 29, 11, 11);
       PixelUI.panel(g, x + 7, y + 43, 36, 10, g.color(248, 236, 198));
-      PixelUI.txt(g, font, 'LEGEND', x + 25, y + 44, g.color(102, 72, 136), CENTER, 6.2, 34);
+      this.drawWorldSign(g, 'LEGEND', x + 25, y + 48, g.color(102, 72, 136));
     }
     g.pop();
   }
@@ -1185,9 +1205,9 @@ class HubScene extends Scene {
       g.rect(sx + 1, y + 14, sw - 2, 10);
     }
     PixelUI.panel(g, x + 8, y + 2, 34, 11, g.color(247, 236, 198));
-    PixelUI.txt(g, font, ph.label, x + 25, y + 3, g.color(107, 75, 91), CENTER, 6.5, 32);
+    this.drawWorldSign(g, ph.label, x + 25, y + 7, g.color(107, 75, 91));
     PixelUI.panel(g, x + 11, y + 45, 28, 10, g.color(247, 236, 198));
-    PixelUI.txt(g, font, 'SOON', x + 25, y + 46, g.color(144, 98, 93), CENTER, 6.2, 26);
+    this.drawWorldSign(g, 'SOON', x + 25, y + 50, g.color(144, 98, 93));
     g.pop();
   }
 
@@ -1369,7 +1389,7 @@ class HubScene extends Scene {
     PixelUI.panel(g, m.x, m.y, m.w, 22, g.color(247, 236, 198));
     g.fill(112, 162, 198);
     g.rect(m.x + 1, m.y + 1, m.w - 2, 9);
-    PixelUI.txt(g, font, 'MAP', m.x + m.w / 2, m.y + 2, g.color(255, 252, 238), CENTER, 6.5);
+    this.drawWorldSign(g, 'MAP', m.x + m.w / 2, m.y + 5, g.color(255, 252, 238));
     g.fill(189, 117, 126); g.rect(m.x + 4,  m.y + 14, 3, 3);
     g.fill(114, 172, 106); g.rect(m.x + 11, m.y + 14, 3, 3);
     g.fill(112, 162, 198); g.rect(m.x + 18, m.y + 14, 3, 3);
@@ -1427,6 +1447,7 @@ class HubScene extends Scene {
   drawHud(g) {
     const assets = this.game.assets;
     const font = assets.font;
+    const vw = this.game.viewW || BUFFER_W;
     const tickets = this.game.save.data.tickets;
     PixelUI.panel(g, 6, 6, 56, 16);
     const ticketSp = assets.getSprite('ticket');
@@ -1442,6 +1463,14 @@ class HubScene extends Scene {
       );
       PixelUI.txt(g, font, '+', this.ticketPlusBtn.x + 9, this.ticketPlusBtn.y + 3, g.color(62, 108, 70), CENTER, 10);
     }
+
+    // Encart des raccourcis clavier en haut à droite (juste sous le bouton [F] Fullscreen)
+    const cw = 128;
+    const cx = vw - cw - 6;
+    const cy = 22;
+    PixelUI.panel(g, cx, cy, cw, 30, g.color(247, 236, 200));
+    PixelUI.txt(g, font, 'Esc: Menu  |  H: Debug', cx + cw / 2, cy + 4, g.color(107, 75, 91), CENTER, 7, cw - 8);
+    PixelUI.txt(g, font, 'M: Map | P: Games | Shift: Run', cx + cw / 2, cy + 16, g.color(144, 98, 93), CENTER, 6.8, cw - 8);
   }
 
   getOverlayOffsets() {
@@ -1573,6 +1602,13 @@ class HubScene extends Scene {
       this.game.save.save();
       this.game.sound.playSfx('ui_click', 0.7);
       this.showToast(next === 'sunset' ? 'Sky: Sunset Glow!' : 'Sky: Sunny Day!', 1800);
+      return;
+    }
+
+    if (k === 'm' || k === 'M') {
+      this.game.sound.playSfx('ui_click');
+      this.overlay = false;
+      this.mapOverlay = !this.mapOverlay;
       return;
     }
 

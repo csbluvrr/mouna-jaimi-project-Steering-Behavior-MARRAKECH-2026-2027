@@ -238,40 +238,47 @@ class DerbyBunny extends Vehicle {
       g.pop();
     }
 
-    let img = null;
-    let mirror = this.vel.x < -0.05;
-    if (this.colour === 'smoke') {
-      // Intègre le nouveau spritesheet animé Bunny/Bunny 1 16x16 animation.png (32x32)
-      const bRow = this.dead ? 0 : (mirror ? 5 : 4);
-      const bCol = this.dead ? 0 : Math.floor(frameCount / 5) % 6;
-      img = this.assets.getSheetFrame('Bunny/Bunny 1 16x16 animation.png', 32, 32, bCol, bRow);
-      mirror = false; // déjà orienté gauche/droite dans le spritesheet
-    } else {
-      const col = this.dead ? 0 : Math.floor(frameCount / 6) % 4;
-      const row = this.dead ? 3 : 1; // row 1 = hop, row 3 = sit_and_rest
-      img = this.assets.getSheetFrame(
-        'sprites/bunny/bunny_' + this.colour + '.png',
-        32,
-        32,
-        col,
-        row
-      );
-    }
+    // Tous les 8 lapins utilisent le même petit modèle de lapin avec une couleur bien distincte !
+    const mirror = this.vel.x < -0.05;
+    const col = this.dead ? 0 : Math.floor(frameCount / 6) % 4;
+    const row = this.dead ? 3 : 1; // row 1 = hop, row 3 = sit_and_rest
+    const img = this.assets.getSheetFrame(
+      'sprites/bunny/bunny_' + this.colour + '.png',
+      32,
+      32,
+      col,
+      row
+    );
+
+    const badgeColors = [
+      [255, 255, 255], // snow
+      [255, 164, 152], // peach
+      [255, 224, 102], // butter
+      [136, 226, 156], // mint
+      [204, 156, 242], // lavender
+      [126, 206, 246], // sky
+      [212, 146, 86],  // caramel
+      [128, 124, 138]  // smoke
+    ];
+    const bc = badgeColors[this.colourIdx % badgeColors.length];
 
     g.push();
     g.translate(px, py);
-    // globalAlpha natif (accéléré matériellement, ~100x plus rapide que p5.tint() !)
     if (this.dead && g.drawingContext) {
       g.drawingContext.globalAlpha = this.fadeAlpha / 255;
     }
+    // Petit anneau coloré discret sous chaque lapin pour les différencier en un clin d'œil
+    g.noStroke();
+    g.fill(bc[0], bc[1], bc[2], 210);
+    g.ellipse(0, 1, 12, 5);
     if (mirror) {
       g.scale(-1, 1);
     }
     if (img) {
-      g.image(img, -16, this.colour === 'smoke' ? -22 : -27);
+      g.image(img, -16, -27);
     } else {
       g.noStroke();
-      g.fill(255);
+      g.fill(bc[0], bc[1], bc[2]);
       g.circle(0, 0, 6);
     }
     if (this.dead && g.drawingContext) {

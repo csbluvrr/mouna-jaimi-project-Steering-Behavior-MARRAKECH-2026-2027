@@ -403,9 +403,14 @@ function keyPressed() {
     return false;
   }
 
-  // Touche M : ouvre/ferme le menu livre
+  // Touche M : ouvre/ferme la Carte (Park Map) dans le Hub, ou le Menu ailleurs
   if (key === 'm' || key === 'M') {
-    triggerMenuToggle();
+    const cur = game.scenes ? game.scenes.current : null;
+    if (cur && game.scenes.currentName === 'hub' && (!game.pauseMenu || !game.pauseMenu.open)) {
+      game.scenes.keyPressed(key, keyCode);
+    } else {
+      triggerMenuToggle();
+    }
     return false;
   }
 

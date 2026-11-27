@@ -295,9 +295,9 @@ class DerbyScene extends Scene {
   }
 
   update() {
-    // Le panneau Training Lab n'apparaît QUE en mode Debug [H] !
+    // Le panneau Training Lab s'affiche en mode TRAINING ou en mode Debug [H]
     if (this.panelEl) {
-      this.panelEl.style.display = Vehicle.debug ? 'flex' : 'none';
+      this.panelEl.style.display = (this.mode === 'TRAINING' || Vehicle.debug) ? 'flex' : 'none';
     }
 
     for (let i = this.fx.length - 1; i >= 0; i--) {
@@ -498,46 +498,17 @@ class DerbyScene extends Scene {
       }
     }
 
-    // 2. Lapins coureurs + rayons capteurs du leader + petite poussière derrière le leader
+    // 2. Lapins coureurs (les rayons capteurs NE s'affichent QU'en mode TRAINING, jamais en Race Day !)
     const leader = this.getLeaderBunny();
     if (leader && !leader.dead && this.state === 'RUNNING' && frameCount % 7 === 0) {
       this.fx.push(new SparkleFX(leader.pos.x * scaleX, leader.pos.y * scaleY + 2, 'sparkle'));
     }
+    const drawRaysNow = this.mode === 'TRAINING' && (this.showRays || Vehicle.debug);
     for (const b of this.bunnies) {
-      b.show(g, scaleX, scaleY, b === leader, (this.showRays || Vehicle.debug) && b === leader);
+      b.show(g, scaleX, scaleY, b === leader, drawRaysNow && b === leader);
     }
 
-    // Ballons colorés qui flottent autour du circuit + tribune de spectateurs animés + pollen doré
-    // Mini tribune festive de spectateurs en haut à droite (hors piste)
-    g.push();
-    g.noStroke();
-    g.fill(107, 75, 91);
-    g.rect(314, 4, 156, 17, 2);
-    g.fill(186, 138, 102);
-    g.rect(315, 5, 154, 15, 1);
-    g.fill(236, 212, 172);
-    g.rect(316, 13, 152, 6);
-    const fanCols = [
-      [246, 152, 174], [252, 224, 134], [158, 212, 236],
-      [212, 176, 232], [176, 226, 158], [250, 188, 138]
-    ];
-    for (let i = 0; i < 12; i++) {
-      const fx = 322 + i * 12;
-      const cheer = Math.floor((frameCount + i * 9) / 14) % 2 === 0 ? -1 : 0;
-      const c = fanCols[i % fanCols.length];
-      g.fill(c[0], c[1], c[2]);
-      g.rect(fx, 8 + cheer, 6, 6, 1);
-      g.fill(107, 75, 91);
-      g.rect(fx + 1, 10 + cheer, 1, 1);
-      g.rect(fx + 4, 10 + cheer, 1, 1);
-      // Petit drapeau agité par un spectateur sur 3
-      if (i % 3 === 0) {
-        g.fill(255, 246, 182);
-        g.rect(fx + 6, 6 + cheer, 3, 2);
-      }
-    }
-    g.pop();
-
+    // Ballons colorés qui flottent autour du circuit + pollen doré
     for (const bl of this.balloons) {
       const bsp = assets.getSprite(bl.sprite);
       if (bsp) {
@@ -555,31 +526,18 @@ class DerbyScene extends Scene {
       g.rect(Math.round(p.x), Math.round(p.y), 2, 2);
     }
 
-    // 3. Mini visualisation du réseau de neurones du leader (en bas à gauche)
+    // 3. Mini visualisation du réseau de neurones du leader (uniquement en TRAINING)
     if (leader && this.mode === 'TRAINING' && this.state === 'RUNNING') {
       this.drawMiniBrain(g, leader);
     }
 
-    // 4. Classement en direct en mode Race Day + repère sur le lapin parié
+    // 4. Repère discret sur le lapin parié + compte à rebours (zéro panneau par-dessus la piste !)
     if (this.mode === 'RACE' && this.state === 'RUNNING') {
       const chosen = this.bunnies[this.betBunnyIdx];
       if (chosen && !chosen.dead) {
         const cx = Math.round(chosen.pos.x * scaleX);
         const cy = Math.round(chosen.pos.y * scaleY) - 22;
         PixelUI.txt(g, font, 'YOUR BET', cx, cy, g.color(255, 240, 130), CENTER, 7);
-      }
-
-      const sorted = [...this.bunnies].sort((a, b) => b.checkpointsPassed - a.checkpointsPassed);
-      PixelUI.panel(g, 8, 28, 112, 56);
-      PixelUI.txt(g, font, 'LEADERBOARD', 14, 31, g.color(189, 117, 126), LEFT, 8.5);
-      for (let i = 0; i < Math.min(3, sorted.length); i++) {
-        const isBet = sorted[i] === chosen;
-        const lbl = (i + 1) + '. ' + sorted[i].name + (isBet ? ' *' : '');
-        PixelUI.txt(
-          g, font, lbl, 14, 44 + i * 12,
-          isBet ? g.color(70, 130, 78) : g.color(107, 75, 91),
-          LEFT, 8.5, 98
-        );
       }
       if (this.raceCountdown > 0) {
         const num = Math.ceil(this.raceCountdown / 40);
@@ -590,14 +548,23 @@ class DerbyScene extends Scene {
     // 5. Effets confettis
     for (const fx of this.fx) fx.show(g, assets);
 
-    // 6. Barre HUD en haut
+    // 6. Barre HUD ultra-compacte tout en haut (y=2, h=14 — ne cache JAMAIS la piste !)
     const alive = this.bunnies.filter((b) => !b.dead).length;
-    PixelUI.panel(g, 8, 5, 290, 16);
-    const chosenName = this.bunnies[this.betBunnyIdx] ? this.bunnies[this.betBunnyIdx].name : '';
-    const hudText = this.mode === 'TRAINING'
-      ? 'GEN ' + this.generation + ' | ALIVE ' + alive + '/' + this.bunnies.length + ' | ' + this.speedMult + 'x'
-      : 'RACE DAY | Bet: ' + chosenName + ' (' + this.betAmount + 'T) | Click track: hay!';
-    PixelUI.txt(g, font, hudText, 14, 8, g.color(107, 75, 91), LEFT, 8.5, 278);
+    if (this.mode === 'RACE') {
+      const chosen = this.bunnies[this.betBunnyIdx];
+      const chosenName = chosen ? chosen.name : '';
+      PixelUI.panel(g, 6, 2, 224, 14);
+      PixelUI.txt(g, font, 'BET: ' + chosenName + ' (' + this.betAmount + 'T) | Click: hay', 12, 4, g.color(107, 75, 91), LEFT, 7.5, 214);
+
+      const sorted = [...this.bunnies].sort((a, b) => b.checkpointsPassed - a.checkpointsPassed);
+      const top3 = sorted.slice(0, 3).map((b, i) => (i + 1) + '.' + b.name).join('  ');
+      PixelUI.panel(g, 234, 2, 240, 14);
+      PixelUI.txt(g, font, top3, 354, 4, g.color(144, 78, 92), CENTER, 7.5, 230);
+    } else {
+      PixelUI.panel(g, 6, 2, 290, 14);
+      const hudText = 'TRAINING | GEN ' + this.generation + ' | ALIVE ' + alive + '/' + this.bunnies.length + ' | ' + this.speedMult + 'x';
+      PixelUI.txt(g, font, hudText, 12, 4, g.color(107, 75, 91), LEFT, 7.5, 278);
+    }
 
     // Overlays
     if (this.state === 'INTRO') this.drawIntroCard(g);
@@ -791,22 +758,41 @@ class DerbyScene extends Scene {
   drawIntroCard(g) {
     const font = this.game.assets.font;
     const { mx, my } = this.game.getMouseBufferPos();
-    this.startBtn = { x: 170, y: 204, w: 140, h: 24 };
-    PixelUI.drawRulesCard(g, font, {
-      title: 'BUNNY DERBY — RACE DAY!',
-      headerCol: g.color(189, 117, 126),
-      rules: [
-        'Pick your favorite bunny and bet your funfair tickets!',
-        '1st place pays 3x your bet  |  2nd & 3rd place pay 1.5x!',
-        'Click anywhere on the track during the race to drop hay bales.',
-        'Bunnies steer & avoid hay using Craig Reynolds AI!'
-      ],
-      controls: 'Click to Bet & Drop Hay  |  [H] Debug AI Training Lab  |  [M] Menu',
-      btnRect: this.startBtn,
-      btnLabel: 'PLACE BET! (Space)',
-      mx,
-      my
+    this.startBtn = { x: 68,  y: 202, w: 164, h: 24 };
+    this.trainBtn = { x: 248, y: 202, w: 164, h: 24 };
+
+    g.noStroke();
+    g.fill(26, 20, 32, 135);
+    g.rect(0, 0, 480, 272);
+
+    PixelUI.panel(g, 52, 32, 376, 208, g.color(250, 242, 212));
+    g.fill(189, 117, 126);
+    g.rect(54, 34, 372, 22, 1);
+    PixelUI.txt(g, font, 'BUNNY DERBY — CHOOSE YOUR MODE!', 240, 39, g.color(255, 252, 238), CENTER, 10, 360);
+
+    const lines = [
+      '• WATCH & BET: Pick a bunny, bet tickets (1st = 3x, Top 3 = 1.5x),',
+      '  and watch randomly selected pre-trained AI racers!',
+      '• TRAINING LAB: Open the Neuroevolution trainer (TF.js), adjust',
+      '  rays, layers, neurons & mutation, and save your own brains!',
+      '• Click the track during a race to drop hay bales (avoid AI).'
+    ];
+    lines.forEach((ln, i) => {
+      PixelUI.txt(g, font, ln, 68, 70 + i * 20, g.color(107, 75, 91), LEFT, 8.2, 344);
     });
+
+    PixelUI.txt(g, font, 'Esc: Menu  |  H: Toggle Debug Panel', 240, 178, g.color(144, 98, 93), CENTER, 8);
+
+    PixelUI.drawButton(
+      g, font, this.startBtn, 'WATCH & BET (Space)',
+      PixelUI.pointInRect(mx, my, this.startBtn),
+      g.color(223, 240, 187), g.color(202, 232, 152)
+    );
+    PixelUI.drawButton(
+      g, font, this.trainBtn, 'TRAINING LAB (AI)',
+      PixelUI.pointInRect(mx, my, this.trainBtn),
+      g.color(210, 228, 248), g.color(184, 212, 242)
+    );
   }
 
   /** Géométrie des boutons du panneau de pari Race Day. */
@@ -955,7 +941,28 @@ class DerbyScene extends Scene {
     if (this.state === 'INTRO') {
       if (PixelUI.pointInRect(mx, my, this.startBtn)) {
         this.seenIntro = true;
-        this.state = this.mode === 'RACE' ? 'BETTING' : 'RUNNING';
+        this.mode = 'RACE';
+        if (this.panelEl) {
+          this.panelEl.style.display = Vehicle.debug ? 'flex' : 'none';
+          const rTab = this.panelEl.querySelector('#dp-tab-race');
+          const tTab = this.panelEl.querySelector('#dp-tab-train');
+          if (rTab && tTab) { rTab.classList.add('dp-active'); tTab.classList.remove('dp-active'); }
+        }
+        this.startRaceDay(false);
+        this.state = 'BETTING';
+        this.game.sound.playSfx('ui_click', 0.8);
+      } else if (this.trainBtn && PixelUI.pointInRect(mx, my, this.trainBtn)) {
+        this.seenIntro = true;
+        this.mode = 'TRAINING';
+        this.showRays = true;
+        if (this.panelEl) {
+          this.panelEl.style.display = 'flex';
+          const rTab = this.panelEl.querySelector('#dp-tab-race');
+          const tTab = this.panelEl.querySelector('#dp-tab-train');
+          if (rTab && tTab) { tTab.classList.add('dp-active'); rTab.classList.remove('dp-active'); }
+        }
+        this.startTraining(true);
+        this.state = 'RUNNING';
         this.game.sound.playSfx('ui_click', 0.8);
       }
       return;

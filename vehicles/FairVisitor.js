@@ -193,7 +193,7 @@ class FairVisitor extends Vehicle {
     } else {
       const col = moving ? Math.floor(frameCount / 9 + this.phase) % 4 : 0;
       const img = this.assets.getSheetFrame('sprites/npc/kid_4dir_sheet.png', 48, 48, col, this.dirRow);
-      if (img) g.image(img, -24, -40);
+      if (img) g.image(img, -24, -32);
     }
 
     g.pop();
