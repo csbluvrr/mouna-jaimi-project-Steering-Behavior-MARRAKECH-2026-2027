@@ -1312,11 +1312,14 @@ class HubScene extends Scene {
       PixelUI.panel(g, x + 7, y + 43, 36, 10, g.color(248, 236, 198));
       this.drawWorldSign(g, 'PURINS', x + 25, y + 48, g.color(150, 96, 56));
     } else if (id === 'fox') {
-      // Nouveau logo : Triforce dorée nette
-      g.fill(246, 206, 82);
+      // Nouveau logo : Triforce dorée avec contour net prune-brun pour bien ressortir
+      g.stroke(107, 75, 91);
+      g.strokeWeight(1.2);
+      g.fill(244, 192, 46);
       g.triangle(x + 25, y + 2, x + 21, y + 7, x + 29, y + 7);
-      g.triangle(x + 21, y + 7, x + 18, y + 11, x + 24, y + 11);
-      g.triangle(x + 29, y + 7, x + 26, y + 11, x + 32, y + 11);
+      g.triangle(x + 21, y + 7, x + 17, y + 12, x + 25, y + 12);
+      g.triangle(x + 29, y + 7, x + 25, y + 12, x + 33, y + 12);
+      g.noStroke();
       const pot = this.game.assets.getImage('minigames/legend_of_moo/zelda/Props/PNG/sprFancyPot.png');
       if (pot) g.image(pot, x + 5, y + 29, 11, 11);
       PixelUI.panel(g, x + 7, y + 43, 36, 10, g.color(248, 236, 198));
@@ -1727,11 +1730,14 @@ class HubScene extends Scene {
       g.fill(164, 108, 72);
       g.rect(-1, 1, 2, 1);
     } else if (id === 'fox') {
-      // Triforce dorée
-      g.fill(246, 206, 82);
+      // Triforce dorée avec contour net prune-brun
+      g.stroke(107, 75, 91);
+      g.strokeWeight(1.1);
+      g.fill(244, 192, 46);
       g.triangle(0, -5, -4, 0, 4, 0);
-      g.triangle(-4, 0, -7, 4, -1, 4);
-      g.triangle(4, 0, 1, 4, 7, 4);
+      g.triangle(-4, 0, -8, 5, 0, 5);
+      g.triangle(4, 0, 0, 5, 8, 5);
+      g.noStroke();
     }
     g.pop();
   }
