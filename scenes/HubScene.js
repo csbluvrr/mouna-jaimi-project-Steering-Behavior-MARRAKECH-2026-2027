@@ -512,35 +512,63 @@ class HubScene extends Scene {
         img.ellipse(px, py, 34 + (i % 3) * 10, 14 + (i % 2) * 6);
       }
 
-      // Grande allée sable continue reliant les 3 ailes (y = 136..174)
+      // Herbe douce + fleurs le long de la bordure sud (dessinée AVANT les chemins pour ne jamais couper l'allée d'entrée !)
+      img.fill(142, 190, 92);
+      img.rect(0, 248, BUFFER_W, 24);
+      for (let fx = 10; fx < BUFFER_W; fx += 28) {
+        if (section === 'plaza' && fx >= 208 && fx <= 272) continue;
+        img.fill(124, 174, 82);
+        img.ellipse(fx + 6, 260, 14, 6);
+        img.fill((fx % 56 === 10) ? img.color(248, 174, 198) : img.color(255, 238, 144));
+        img.rect(fx + 4, 258, 2, 2);
+        img.rect(fx + 9, 261, 2, 2);
+      }
+
+      // === TOUS LES CHEMINS EN 2 PASSES (bordure sable d'abord, intérieur ensuite -> FUSION 100% SANS COUTURE !) ===
+      const drawPathsLayer = (pad) => {
+        // 1. Grande allée sable continue reliant les 3 ailes
+        img.rect(0, 137 - pad, BUFFER_W, 36 + pad * 2);
+
+        if (section === 'west') {
+          // Parvis devant Barbe à Papa (-408), Limonade (-336), Prize (-265) & Pop-Corn (-120)
+          img.rect(64 - pad,  126 - pad, 64 + pad * 2, 20 + pad * 2, 6);
+          img.rect(136 - pad, 126 - pad, 64 + pad * 2, 20 + pad * 2, 6);
+          img.rect(206 - pad, 124 - pad, 68 + pad * 2, 24 + pad * 2, 6);
+          img.rect(352 - pad, 126 - pad, 64 + pad * 2, 20 + pad * 2, 6);
+        } else if (section === 'plaza') {
+          // Place circulaire centrale + allée d'entrée descendant jusqu'au tout bas de l'écran (y=272) !
+          img.ellipse(240, 166, 110 + pad * 2, 64 + pad * 2);
+          img.rect(225 - pad, 170, 30 + pad * 2, BUFFER_H - 170);
+          // Parvis devant les 4 stands de jeux
+          for (const bx of [24, 114, 300, 390]) {
+            img.rect(bx - pad, 126 - pad, 66 + pad * 2, 20 + pad * 2, 6);
+          }
+        } else {
+          // Aile Est : parvis devant Carrousel (542), Scène (676) & Anneaux (854)
+          img.rect(54 - pad,  124 - pad, 86 + pad * 2, 22 + pad * 2, 8);
+          img.rect(192 - pad, 124 - pad, 92 + pad * 2, 22 + pad * 2, 8);
+          img.rect(368 - pad, 126 - pad, 62 + pad * 2, 20 + pad * 2, 6);
+        }
+      };
+
+      // Passe 1 : Bordure sable foncé unifiée
       img.fill(210, 184, 138);
-      img.rect(0, 134, BUFFER_W, 42);
+      drawPathsLayer(3);
+      // Passe 2 : Intérieur sable clair fusionné sans aucune ligne interne !
       img.fill(232, 210, 166);
-      img.rect(0, 137, BUFFER_W, 36);
-      // Petits galets décoratifs sur l'allée
+      drawPathsLayer(0);
+
+      // Petits galets décoratifs discrets sur l'allée principale
       img.fill(218, 194, 148);
       for (let gx = 12; gx < BUFFER_W; gx += 26) {
         img.rect(gx, 143 + (gx % 5), 4, 2, 1);
         img.rect(gx + 12, 163 - (gx % 4), 3, 2, 1);
       }
 
-      if (section === 'west') {
-        // Parvis propres devant Barbe à Papa, Prize Boutique & Pop-Corn
-        img.fill(232, 210, 166);
-        img.rect(64,  126, 64, 18, 6);
-        img.rect(206, 124, 68, 22, 6);
-        img.rect(352, 126, 64, 18, 6);
-      } else if (section === 'plaza') {
-        // Place circulaire pavée au centre de la fête foraine + allée d'entrée sud
-        img.fill(210, 184, 138);
-        img.ellipse(240, 166, 118, 72);
-        img.rect(222, 174, 36, 98);
-        img.fill(232, 210, 166);
-        img.ellipse(240, 166, 110, 64);
-        img.rect(225, 174, 30, 98);
-        // Parvis devant les 4 stands de jeux
-        for (const bx of [24, 114, 300, 390]) {
-          img.rect(bx, 126, 66, 18, 6);
+      if (section === 'plaza') {
+        // Petits galets discrets sur l'allée d'entrée sud
+        for (let gy = 196; gy < BUFFER_H - 6; gy += 18) {
+          img.rect(232 + (gy % 9), gy, 3, 2, 1);
         }
         // Bassin de la mare aux canetons (cx=152, cy=212, à gauche de l'entrée)
         img.fill(107, 75, 91, 140);
@@ -549,30 +577,9 @@ class HubScene extends Scene {
         img.ellipse(152, 212, 76, 38);
         img.fill(164, 218, 236);
         img.ellipse(144, 208, 44, 20);
-      } else {
-        // Aile Est : parvis devant Carrousel, Tarot, Anneaux + placette de la fontaine
-        img.fill(232, 210, 166);
-        img.rect(54,  124, 86, 20, 8);
-        img.rect(218, 126, 64, 18, 6);
-        img.rect(348, 126, 64, 18, 6);
-        img.fill(210, 184, 138);
-        img.ellipse(98, 206, 62, 34);
-        img.fill(232, 210, 166);
-        img.ellipse(98, 206, 56, 28);
       }
 
       // Clôture en bois chaleureuse Sprout Lands le long du bord sud (y=240..254) — zéro rocher !
-      // Herbe douce + petites touches de fleurs sous la clôture (y=252..272)
-      img.fill(142, 190, 92);
-      img.rect(0, 248, BUFFER_W, 24);
-      for (let fx = 10; fx < BUFFER_W; fx += 28) {
-        if (section === 'plaza' && fx >= 210 && fx <= 270) continue;
-        img.fill(124, 174, 82);
-        img.ellipse(fx + 6, 260, 14, 6);
-        img.fill((fx % 56 === 10) ? img.color(248, 174, 198) : img.color(255, 238, 144));
-        img.rect(fx + 4, 258, 2, 2);
-        img.rect(fx + 9, 261, 2, 2);
-      }
 
       const drawHorizontalFenceSegment = (xStart, xEnd) => {
         if (xEnd <= xStart) return;
@@ -709,7 +716,10 @@ class HubScene extends Scene {
     let idx = 0;
     for (let bx = -480; bx < 960; bx += 16) {
       this.buntingRow.push({ sprite: idx % 2 === 0 ? 'bunting_a' : 'bunting_b', x: bx });
-      this.lightsRow.push({ x: bx, y: 242, idx });
+      // Pas de guirlande lumineuse en travers de l'ouverture d'entrée sud (x = 204 .. 272) !
+      if (bx < 204 || bx >= 272) {
+        this.lightsRow.push({ x: bx, y: 242, idx });
+      }
       idx++;
     }
   }
