@@ -348,21 +348,21 @@ class HubScene extends Scene {
           ]
         }
       }),
-      // Fun Gang (Kris, Ralsei & Susie) réunis ensemble dans la même zone !
-      new FairVisitor(-262, 154, 'guest_strip', this.game.assets, {
+      // Fun Gang (Kris, Ralsei & Susie) en routine de groupe synchronisée (marchent ensemble + actions + boucle !)
+      new FairVisitor(-258, 156, 'guest_strip', this.game.assets, {
         name: 'Kris', guestFile: 'kris_walk', guestW: 32, guestH: 36, guestFrames: 4,
-        bounds: [-305, 140, 115, 46], emote: 'Star',
+        trioMode: true, bounds: [-450, 136, 1380, 74], emote: 'Star',
         greeting: '* (Kris holds up a shiny golden balloon while hanging out with Ralsei and Susie.)'
       }),
-      new FairVisitor(-236, 152, 'guest_strip', this.game.assets, {
+      new FairVisitor(-234, 158, 'guest_strip', this.game.assets, {
         name: 'Ralsei', guestFile: 'ralsei_walk', guestW: 32, guestH: 32, guestFrames: 4,
-        bounds: [-305, 140, 115, 46], emote: 'Heart',
-        greeting: 'Hello Moo! Kris, Susie and I are having the coziest time at your funfair!'
+        trioMode: true, bounds: [-450, 136, 1380, 74], emote: 'Heart',
+        greeting: 'Hello Moo! Kris, Susie and I are exploring every corner of your funfair together!'
       }),
-      new FairVisitor(-250, 172, 'guest_strip', this.game.assets, {
+      new FairVisitor(-280, 160, 'guest_strip', this.game.assets, {
         name: 'Susie', guestFile: 'susie_walk', guestW: 32, guestH: 34, guestFrames: 4,
-        bounds: [-305, 140, 115, 46], emote: 'Exclamation',
-        greeting: "Heh, this popcorn rules! Don't tell Ralsei I ate three buckets!"
+        trioMode: true, bounds: [-450, 136, 1380, 74], emote: 'Exclamation',
+        greeting: "Heh, stick with us! First snacks, then the Ferris wheel, then fireworks!"
       }),
       new FairVisitor(248, 170, 'guest_strip', this.game.assets, {
         name: 'Luffy', guestFile: 'luffy_walk', guestW: 32, guestH: 32, guestFrames: 4,
@@ -408,6 +408,23 @@ class HubScene extends Scene {
         greeting: "Wait... how did I end up at a funfair? Which way is the Sunny?!"
       })
     ];
+
+    // Initialiser la tournée synchronisée du Trio Fun Gang (Kris, Ralsei, Susie)
+    this.funGang = {
+      kris:   this.visitors.find((v) => v.name === 'Kris'),
+      ralsei: this.visitors.find((v) => v.name === 'Ralsei'),
+      susie:  this.visitors.find((v) => v.name === 'Susie'),
+      phase: 'HANGOUT', // 'HANGOUT' | 'WALK'
+      stopIdx: 0,
+      timer: 320,
+      stops: [
+        { x: -255, y: 158, mode: 'SNACK',  label: 'West Snacks' },
+        { x: -355, y: 162, mode: 'PICNIC', label: 'Sweet Street' },
+        { x: 228,  y: 160, mode: 'CHEER',  label: 'Ferris Plaza' },
+        { x: 716,  y: 158, mode: 'PARTY',  label: 'Concert Stage' }
+      ]
+    };
+    this.applyFunGangHangoutActions();
 
     // 8. Papillons répartis sur tout le parc
     this.butterflies = [];
@@ -583,6 +600,9 @@ class HubScene extends Scene {
     const targetCamX = this.computeTargetCamX();
     this.camX += (targetCamX - this.camX) * smooth;
     if (Math.abs(targetCamX - this.camX) < 0.08) this.camX = targetCamX;
+
+    // Mise à jour du Trio Fun Gang (boucle synchronisée : action ensemble -> marche groupée -> spot suivant)
+    this.updateFunGangTrio();
 
     // Mise à jour de toute la faune et des visiteurs (Steering Behaviors + routines + NPC-à-NPC)
     for (const v of this.visitors) v.step(this.moo, this.visitors, this.obstacles);
@@ -851,6 +871,88 @@ class HubScene extends Scene {
       burst: false,
       sparks: []
     });
+  }
+
+  /** Attribue les animations d'action synchronisées du Trio Fun Gang (boire, gâteau, applaudir, barbe à papa). */
+  applyFunGangHangoutActions() {
+    const fg = this.funGang;
+    if (!fg || !fg.kris || !fg.ralsei || !fg.susie) return;
+    const stop = fg.stops[fg.stopIdx];
+    const cx = stop.x;
+    fg.kris.trioFaceX = cx;
+    fg.ralsei.trioFaceX = cx;
+    fg.susie.trioFaceX = cx;
+    fg.kris.emoteTimer = 0;
+    fg.ralsei.emoteTimer = 0;
+    fg.susie.emoteTimer = 0;
+
+    if (stop.mode === 'SNACK') {
+      fg.kris.trioAction   = { file: 'kris_act_drink',   w: 32, h: 34, frames: 4, emote: 'Happy', allowFlip: false };
+      fg.ralsei.trioAction = { file: 'ralsei_act_cake',  w: 32, h: 34, frames: 4, emote: 'Heart', allowFlip: true };
+      fg.susie.trioAction  = { file: 'susie_act_drink',  w: 32, h: 34, frames: 4, emote: 'Happy', allowFlip: false };
+    } else if (stop.mode === 'PICNIC') {
+      fg.kris.trioAction   = { file: 'kris_act_balloon', w: 32, h: 36, frames: 4, emote: 'Star',  allowFlip: false };
+      fg.ralsei.trioAction = { file: 'ralsei_act_cheer', w: 32, h: 34, frames: 4, emote: 'Heart', allowFlip: false };
+      fg.susie.trioAction  = { file: 'susie_act_snack',  w: 32, h: 34, frames: 2, emote: 'Happy', allowFlip: true };
+    } else if (stop.mode === 'CHEER') {
+      fg.kris.trioAction   = { file: 'kris_act_balloon', w: 32, h: 36, frames: 4, emote: 'Happy', allowFlip: false };
+      fg.ralsei.trioAction = { file: 'ralsei_act_cheer', w: 32, h: 34, frames: 4, emote: 'Star',  allowFlip: false };
+      fg.susie.trioAction  = { file: 'susie_act_drink',  w: 32, h: 34, frames: 4, emote: 'Exclamation', allowFlip: false };
+    } else {
+      // PARTY devant la scène + feu d'artifice festif !
+      fg.kris.trioAction   = { file: 'kris_act_balloon', w: 32, h: 36, frames: 4, emote: 'Star',  allowFlip: false };
+      fg.ralsei.trioAction = { file: 'ralsei_act_cheer', w: 32, h: 34, frames: 4, emote: 'Heart', allowFlip: false };
+      fg.susie.trioAction  = { file: 'susie_act_snack',  w: 32, h: 34, frames: 2, emote: 'Exclamation', allowFlip: true };
+      this.launchFirework(this.stagePos.x + 42, 26);
+    }
+  }
+
+  /** Machine à états du Trio Fun Gang : HANGOUT (action ensemble) -> WALK (marche groupée vers le spot suivant) -> boucle. */
+  updateFunGangTrio() {
+    const fg = this.funGang;
+    if (!fg || !fg.kris || !fg.ralsei || !fg.susie) return;
+    const members = [fg.kris, fg.ralsei, fg.susie];
+    const offsets = [[0, 0], [24, 2], [-24, 4]];
+
+    if (fg.phase === 'HANGOUT') {
+      fg.timer--;
+      // Alterner les émotes toutes les 1.5s pour donner l'impression qu'ils discutent & rient !
+      if (fg.timer % 90 === 0) {
+        const emotes = ['Happy', 'Heart', 'Star', 'Exclamation'];
+        for (const m of members) {
+          if (m.trioAction) {
+            m.trioAction.emote = emotes[Math.floor(random(emotes.length))];
+            m.emoteTimer = 0;
+          }
+        }
+      }
+      if (fg.timer <= 0) {
+        fg.stopIdx = (fg.stopIdx + 1) % fg.stops.length;
+        fg.phase = 'WALK';
+        fg.timer = 1400; // Garde-fou anti-blocage
+        const nextStop = fg.stops[fg.stopIdx];
+        for (let i = 0; i < members.length; i++) {
+          members[i].trioAction = null;
+          members[i].trioTarget = createVector(nextStop.x + offsets[i][0], nextStop.y + offsets[i][1]);
+        }
+      }
+    } else {
+      // WALK : Ralsei et Susie marchent en formation avec Kris jusqu'au prochain lieu
+      fg.timer--;
+      const stop = fg.stops[fg.stopIdx];
+      fg.kris.trioTarget = createVector(stop.x, stop.y);
+      fg.ralsei.trioTarget = createVector(stop.x + 24, stop.y + 2);
+      fg.susie.trioTarget = createVector(stop.x - 24, stop.y + 4);
+
+      const allArrived = members.every((m) =>
+        m.trioTarget && p5.Vector.dist(m.pos, m.trioTarget) < 16
+      );
+      if (allArrived || fg.timer <= 0) {
+        fg.phase = 'HANGOUT';
+        fg.timer = 360; // ~6 secondes d'action animée ensemble avant de repartir !
+        this.applyFunGangHangoutActions();
+      }
+    }
   }
 
   draw(g) {

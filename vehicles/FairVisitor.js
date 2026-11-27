@@ -25,6 +25,10 @@ class FairVisitor extends Vehicle {
     this.guestFrames = options.guestFrames || 4;
     this.guestDrawW = options.guestDrawW || this.guestW;
     this.guestDrawH = options.guestDrawH || this.guestH;
+    this.trioMode = Boolean(options.trioMode); // Mode groupe synchronisé (Fun Gang : Kris, Ralsei, Susie)
+    this.trioTarget = null;
+    this.trioAction = null; // { file, w, h, frames, emote }
+    this.trioFaceX = null;
     this.emote = options.emote || 'Happy'; // 'Heart' | 'Happy' | 'Star' | 'Exclamation' | 'Surprised' | 'Interrogation'
     this.emoteTimer = 0;
     this.bounds = options.bounds || [24, 136, 432, 86];
@@ -73,7 +77,29 @@ class FairVisitor extends Vehicle {
     this.obstaclesRef = obstacles || [];
     if (this.chatCooldown > 0) this.chatCooldown--;
 
-    if (!this.stationary) {
+    if (this.trioMode) {
+      // Mode groupe synchronisé (Fun Gang) : soit en train de faire une action ensemble, soit en marche groupée via arrive() !
+      if (this.trioAction) {
+        this.routineState = 'CHAT';
+        this.vel.mult(0.75);
+        this.acc.mult(0);
+        this.emoteTimer++;
+        if (this.trioFaceX !== null) {
+          this.facingLeft = this.trioFaceX < this.pos.x;
+        }
+      } else if (this.trioTarget) {
+        this.routineState = 'STROLL';
+        this.maxSpeed = 0.72;
+        const arr = this.arrive(this.trioTarget, 16);
+        const av = this.avoid(this.obstaclesRef);
+        const sep = this.separation(this.othersRef, 16);
+        this.applyForce(arr.mult(1.35));
+        this.applyForce(av.mult(1.8));
+        this.applyForce(sep.mult(0.85));
+        this.update();
+        if (Math.abs(this.vel.x) > 0.05) this.facingLeft = this.vel.x < 0;
+      }
+    } else if (!this.stationary) {
       this.routineTimer--;
 
       if (this.routineState === 'CHAT') {
@@ -183,18 +209,19 @@ class FairVisitor extends Vehicle {
       if (this.facingLeft) g.scale(-1, 1);
       if (img) g.image(img, -16, -30);
     } else if (this.kind === 'guest_strip') {
-      // Invités crossover animés (4 ou 6 frames horizontales : Kris, Ralsei, Susie, Niko, Knight, Link, Luffy, Zoro, Chopper)
-      const col = moving ? Math.floor(frameCount / 7 + this.phase) % this.guestFrames : 0;
-      const img = this.assets.getSheetFrame(
-        'characters/npcs/guests/' + this.guestFile + '.png',
-        this.guestW,
-        this.guestH,
-        col,
-        0
-      );
-      const bob = moving ? 0 : Math.round(Math.sin(frameCount * 0.08 + this.phase) * 0.6);
-      if (this.facingLeft) g.scale(-1, 1);
-      if (img) g.image(img, -Math.round(this.guestDrawW / 2), -this.guestDrawH + 2 + bob, this.guestDrawW, this.guestDrawH);
+      // Invités crossover animés (action spéciale de groupe si trioAction actif, sinon marche normale)
+      const act = this.trioAction;
+      const file = act ? act.file : this.guestFile;
+      const fw = act ? (act.w || 32) : this.guestW;
+      const fh = act ? (act.h || 32) : this.guestH;
+      const frames = act ? (act.frames || 4) : this.guestFrames;
+      const dw = act ? fw : this.guestDrawW;
+      const dh = act ? fh : this.guestDrawH;
+      const col = (moving || act) ? Math.floor(frameCount / (act ? 11 : 7) + this.phase) % frames : 0;
+      const img = this.assets.getSheetFrame('characters/npcs/guests/' + file + '.png', fw, fh, col, 0);
+      const bob = act ? Math.round(Math.sin(frameCount * 0.14 + this.phase) * 0.8) : (moving ? 0 : Math.round(Math.sin(frameCount * 0.08 + this.phase) * 0.6));
+      if (this.facingLeft && (!act || act.allowFlip !== false)) g.scale(-1, 1);
+      if (img) g.image(img, -Math.round(dw / 2), -dh + 2 + bob, dw, dh);
     } else if (this.kind === 'guest_single') {
       // Invités crossover 1-frame avec petit sautillement mignon en marchant (Luffy, Zoro, Chopper)
       const img = this.assets.getImage('characters/npcs/guests/' + this.guestFile + '.png');
@@ -227,7 +254,9 @@ class FairVisitor extends Vehicle {
 
     // Émotes animées uniquement (les dialogues texte ne s'ouvrent que quand le joueur appuie sur Space !)
     const bob = Math.sin(frameCount * 0.12) * 1.2;
-    const activeEmote = this.showBubble ? this.emote : (this.routineState === 'CHAT' ? this.chatEmote : null);
+    const activeEmote = this.showBubble
+      ? this.emote
+      : (this.trioAction && this.trioAction.emote ? this.trioAction.emote : (this.routineState === 'CHAT' ? this.chatEmote : null));
     if (activeEmote) {
       const emFrame = Math.min(3, Math.floor(this.emoteTimer / 4));
       const emPath = 'characters/npcs/tiny_neighbours/emotes/' + activeEmote + '_emote_16x16.png';
