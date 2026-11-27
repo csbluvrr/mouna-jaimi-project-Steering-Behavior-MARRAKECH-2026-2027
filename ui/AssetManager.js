@@ -81,6 +81,11 @@ class AssetManager {
       files.add('generated/fox/pickup_ring_0.png');
       files.add('generated/fox/pickup_ring_1.png');
 
+      // Animation du livre de menu (ouverture / fermeture / pages)
+      for (let i = 1; i <= 5; i++) {
+        files.add('ui/Icon & Menu/Icon & Menu/Menu/menu swipe animation' + i + '.png');
+      }
+
       files.forEach((relPath) => this.loadImageKey(relPath));
       this.checkDone();
     });

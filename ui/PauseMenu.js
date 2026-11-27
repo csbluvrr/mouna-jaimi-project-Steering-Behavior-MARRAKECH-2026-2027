@@ -1,215 +1,619 @@
 /**
- * Menu Pause / Jeu global déclenché par la touche Échap (Escape).
- * S'affiche par-dessus n'importe quelle scène (Hub ou mini-jeu) dans le style
- * bois pastel Sprout Lands, met le jeu en pause et permet de naviguer sans
- * quitter le mode plein écran.
+ * Menu Livre animé (déclenché par Échap ou M).
+ * Utilise les 5 sprites d'ouverture/fermeture du livre (menu swipe animation1..5.png)
+ * avec 4 onglets marque-pages cliquables et une animation fluide de page qui tourne :
+ * - Page 0 (Status)   : Profil de Moo, tickets, étoiles, carte de tampons + accès rapide
+ * - Page 1 (Games)    : Les 4 mini-jeux de la fête foraine + accès direct & commandes
+ * - Page 2 (Settings) : Plein écran (F), Son, Mode Debug (H) + légende Steering Behaviors
+ * - Page 3 (Exit)     : Reprendre, Retour au Hub, Écran Titre
  */
 class PauseMenu {
   constructor(game) {
     this.game = game;
-    this.open = false;
-    this.selectedIdx = 0;
+    this.state = 'CLOSED'; // 'CLOSED' | 'OPENING' | 'OPEN' | 'FLIPPING' | 'CLOSING'
+    this.animFrame = 0;
+    this.pageIdx = 0;      // 0..3
+    this.selectedIdx = 0;  // Bouton surligné dans la page courante
+
+    // État de l'animation de page qui tourne
+    this.flipFrom = 0;
+    this.flipTo = 0;
+    this.flipDir = 1;
+    this.flipT = 0;
+
+    // Action exécutée automatiquement dès que le livre finit de se refermer
+    this.pendingAction = null;
+  }
+
+  /** Vrai tant que le livre est visible (ouvert ou en cours d'animation). */
+  get open() {
+    return this.state !== 'CLOSED';
   }
 
   toggle() {
-    this.open = !this.open;
-    this.selectedIdx = 0;
-    if (this.game.sound) {
-      this.game.sound.playSfx('ui_click', 0.85);
+    if (this.state === 'CLOSED' || this.state === 'CLOSING') {
+      this.state = 'OPENING';
+      this.animFrame = 0;
+      this.selectedIdx = 0;
+      this.pendingAction = null;
+      if (this.game.sound) this.game.sound.playSfx('ui_click', 0.85);
+    } else if (this.state === 'OPEN' || this.state === 'FLIPPING') {
+      this.close();
     }
   }
 
-  close() {
-    this.open = false;
+  close(afterCloseAction = null) {
+    if (this.state === 'CLOSED' || this.state === 'CLOSING') return;
+    this.pendingAction = afterCloseAction;
+    this.state = 'CLOSING';
+    this.animFrame = 0;
+    if (this.game.sound) this.game.sound.playSfx('ui_click', 0.7);
   }
 
-  /** Construit la liste des actions contextuelles selon la scène active. */
-  getItems() {
+  switchPage(newIdx) {
+    const target = ((newIdx % 4) + 4) % 4;
+    if (target === this.pageIdx && this.state === 'OPEN') return;
+    this.flipFrom = this.pageIdx;
+    this.flipTo = target;
+    this.flipDir = target >= this.pageIdx ? 1 : -1;
+    this.flipT = 0;
+    this.selectedIdx = 0;
+    this.state = 'FLIPPING';
+    if (this.game.sound) this.game.sound.playSfx('ui_click', 0.6);
+  }
+
+  /** Met à jour les animations d'ouverture, de fermeture et de tournage de page. */
+  update() {
+    if (this.state === 'OPENING') {
+      this.animFrame++;
+      if (this.animFrame >= 15) {
+        this.state = 'OPEN';
+      }
+    } else if (this.state === 'CLOSING') {
+      this.animFrame++;
+      if (this.animFrame >= 14) {
+        this.state = 'CLOSED';
+        const act = this.pendingAction;
+        this.pendingAction = null;
+        if (act) act();
+      }
+    } else if (this.state === 'FLIPPING') {
+      this.flipT += 0.085;
+      if (this.flipT >= 1) {
+        this.flipT = 1;
+        this.pageIdx = this.flipTo;
+        this.state = 'OPEN';
+      }
+    }
+  }
+
+  /** Calcule la géométrie du livre (320x256 à l'échelle 2x exacte) et ses zones cliquables. */
+  getBookMetrics() {
+    const vw = this.game.viewW || BUFFER_W;
+    const vh = this.game.viewH || BUFFER_H;
+    const bw = 320;
+    const bh = 256;
+    const bx = Math.round((vw - bw) / 2);
+    const by = Math.round((vh - bh) / 2);
+
+    // 4 onglets marque-pages alignés sur les pixels exacts de menu swipe animation1.png (x2)
+    const tabs = [
+      { idx: 0, name: 'Status',   x: bx + 276, y: by + 42,  w: 34, h: 28 },
+      { idx: 1, name: 'Games',    x: bx + 276, y: by + 76,  w: 34, h: 28 },
+      { idx: 2, name: 'Settings', x: bx + 276, y: by + 110, w: 34, h: 30 },
+      { idx: 3, name: 'Exit',     x: bx + 276, y: by + 146, w: 34, h: 32 }
+    ];
+
+    return {
+      vw,
+      vh,
+      bx,
+      by,
+      bw,
+      bh,
+      spineX: bx + 144,
+      leftPage:  { x: bx + 14,  y: by + 40, w: 118, h: 170 },
+      rightPage: { x: bx + 156, y: by + 40, w: 118, h: 170 },
+      tabs
+    };
+  }
+
+  /** Retourne les boutons interactifs de la page active. */
+  getPageButtons(pageIdx, m) {
     const sceneName = this.game.scenes ? this.game.scenes.currentName : 'hub';
     const isFS = Boolean(document.fullscreenElement);
     const muted = this.game.sound ? this.game.sound.muted : false;
-    const items = [];
+    const rp = m.rightPage;
+    const lp = m.leftPage;
 
-    items.push({
-      id: 'resume',
-      label: 'Resume Game',
-      action: () => this.close()
-    });
-
-    if (sceneName === 'hub') {
-      items.push({
-        id: 'games',
-        label: "Today's Games",
-        action: () => {
-          this.close();
-          if (this.game.scenes.current) {
-            this.game.scenes.current.overlay = true;
-          }
-        }
-      });
-    } else if (sceneName !== 'title') {
-      items.push({
-        id: 'hub',
-        label: 'Back to Funfair Hub',
-        action: () => {
-          this.close();
-          this.game.scenes.switchTo('hub', { fromBooth: sceneName });
-        }
-      });
+    if (pageIdx === 0) {
+      const btns = [
+        { label: 'Resume Game', action: () => this.close(), accent: true }
+      ];
+      if (sceneName === 'hub') {
+        btns.push({
+          label: "Today's Games",
+          action: () => this.close(() => {
+            if (this.game.scenes.current) this.game.scenes.current.overlay = true;
+          })
+        });
+      } else if (sceneName !== 'title') {
+        btns.push({
+          label: 'Back to Hub',
+          action: () => this.close(() => this.game.scenes.switchTo('hub', { fromBooth: sceneName }))
+        });
+      }
+      btns.push({ label: 'Mini-Games >', action: () => this.switchPage(1) });
+      btns.push({ label: 'Settings >', action: () => this.switchPage(2) });
+      return btns.map((b, i) => ({
+        ...b,
+        x: rp.x + 6,
+        y: rp.y + 34 + i * 28,
+        w: rp.w - 12,
+        h: 22
+      }));
     }
 
-    items.push({
-      id: 'fullscreen',
-      label: isFS ? 'Exit Fullscreen (F)' : 'Fullscreen (F)',
-      action: () => {
-        if (typeof toggleFullscreen === 'function') toggleFullscreen();
-      }
-    });
+    if (pageIdx === 1) {
+      const games = [
+        { id: 'derby',     label: 'Bunny Derby' },
+        { id: 'snake',     label: 'Caterpillar' },
+        { id: 'ducklings', label: 'Ducklings' },
+        { id: 'fox',       label: 'Fox Showdown' }
+      ];
+      return games.map((gm, i) => ({
+        label: gm.label,
+        gameId: gm.id,
+        action: () => this.close(() => this.game.scenes.switchTo(gm.id, { fromBooth: gm.id })),
+        x: lp.x + 6,
+        y: lp.y + 32 + i * 32,
+        w: lp.w - 12,
+        h: 25
+      }));
+    }
 
-    items.push({
-      id: 'sound',
-      label: muted ? 'Sound: OFF' : 'Sound: ON',
-      action: () => {
-        if (this.game.sound) this.game.sound.toggleMute();
-      }
-    });
+    if (pageIdx === 2) {
+      const btns = [
+        {
+          label: isFS ? 'Fullscreen: ON' : 'Fullscreen: OFF',
+          action: () => { if (typeof toggleFullscreen === 'function') toggleFullscreen(); }
+        },
+        {
+          label: muted ? 'Sound: OFF' : 'Sound: ON',
+          action: () => { if (this.game.sound) this.game.sound.toggleMute(); }
+        },
+        {
+          label: Vehicle.debug ? 'Debug [H]: ON' : 'Debug [H]: OFF',
+          action: () => { Vehicle.debug = !Vehicle.debug; }
+        }
+      ];
+      return btns.map((b, i) => ({
+        ...b,
+        x: lp.x + 6,
+        y: lp.y + 38 + i * 32,
+        w: lp.w - 12,
+        h: 24
+      }));
+    }
 
-    items.push({
-      id: 'debug',
-      label: Vehicle.debug ? 'Debug Mode [H]: ON' : 'Debug Mode [H]: OFF',
-      action: () => {
-        Vehicle.debug = !Vehicle.debug;
-      }
-    });
-
+    // Page 3 : Exit / Navigation
+    const exitBtns = [
+      { label: 'Resume Game', action: () => this.close(), accent: true }
+    ];
+    if (sceneName !== 'hub' && sceneName !== 'title') {
+      exitBtns.push({
+        label: 'Back to Hub',
+        action: () => this.close(() => this.game.scenes.switchTo('hub', { fromBooth: sceneName }))
+      });
+    }
     if (sceneName !== 'title') {
-      items.push({
-        id: 'title',
+      exitBtns.push({
         label: 'Title Screen',
-        action: () => {
-          this.close();
-          this.game.scenes.switchTo('title');
-        }
+        action: () => this.close(() => this.game.scenes.switchTo('title'))
       });
     }
-
-    return items;
-  }
-
-  getLayout() {
-    const vw = this.game.viewW || BUFFER_W;
-    const vh = this.game.viewH || BUFFER_H;
-    const items = this.getItems();
-    const panelW = 196;
-    const btnH = 20;
-    const gap = 5;
-    const headerH = 26;
-    const footerH = 18;
-    const panelH = headerH + items.length * (btnH + gap) + footerH;
-    const px = Math.round((vw - panelW) / 2);
-    const py = Math.round((vh - panelH) / 2);
-
-    const buttons = items.map((item, i) => ({
-      ...item,
-      x: px + 14,
-      y: py + headerH + 4 + i * (btnH + gap),
-      w: panelW - 28,
-      h: btnH
+    return exitBtns.map((b, i) => ({
+      ...b,
+      x: rp.x + 6,
+      y: rp.y + 42 + i * 32,
+      w: rp.w - 12,
+      h: 24
     }));
-
-    return { vw, vh, px, py, panelW, panelH, buttons };
   }
 
   draw(g) {
-    if (!this.open) return;
+    if (this.state === 'CLOSED') return;
 
-    const font = this.game.assets ? this.game.assets.font : null;
-    const { vw, vh, px, py, panelW, panelH, buttons } = this.getLayout();
+    this.update();
+    if (this.state === 'CLOSED') return;
 
-    // Coordonnées brutes de la souris dans le buffer complet viewW x viewH
-    const mx = (mouseX / Math.max(1, width)) * vw;
-    const my = (mouseY / Math.max(1, height)) * vh;
+    const assets = this.game.assets;
+    const font = assets ? assets.font : null;
+    const m = this.getBookMetrics();
+    const mx = (mouseX / Math.max(1, width)) * m.vw;
+    const my = (mouseY / Math.max(1, height)) * m.vh;
 
-    // Voile assombri derrière le menu
+    // 1. Fond assombri animé (fondu doux à l'ouverture/fermeture)
+    let dimAlpha = 148;
+    if (this.state === 'OPENING') dimAlpha = Math.round((this.animFrame / 15) * 148);
+    else if (this.state === 'CLOSING') dimAlpha = Math.round((1 - this.animFrame / 14) * 148);
+
     g.push();
     g.noStroke();
-    g.fill(28, 22, 34, 150);
-    g.rect(0, 0, vw, vh);
+    g.fill(26, 20, 32, dimAlpha);
+    g.rect(0, 0, m.vw, m.vh);
 
-    // Cadre bois pastel Sprout Lands
-    PixelUI.panel(g, px, py, panelW, panelH);
+    // 2. Choisir la frame du livre (5 = fermé -> 1 = grand ouvert)
+    let spriteNum = 1;
+    if (this.state === 'OPENING') {
+      const idx = Math.min(4, Math.floor((this.animFrame / 15) * 5));
+      spriteNum = 5 - idx; // 5, 4, 3, 2, 1
+    } else if (this.state === 'CLOSING') {
+      const idx = Math.min(4, Math.floor((this.animFrame / 14) * 5));
+      spriteNum = 1 + idx; // 1, 2, 3, 4, 5
+    }
 
-    // Bandeau titre rose-bois
+    const bookImg = assets
+      ? assets.getImage('ui/Icon & Menu/Icon & Menu/Menu/menu swipe animation' + spriteNum + '.png')
+      : null;
+
+    // Léger rebond vertical à l'ouverture
+    const bounceY = this.state === 'OPENING'
+      ? Math.round((1 - this.animFrame / 15) * 8)
+      : (this.state === 'CLOSING' ? Math.round((this.animFrame / 14) * 8) : 0);
+
+    if (bookImg) {
+      g.image(bookImg, m.bx, m.by + bounceY, m.bw, m.bh);
+    } else {
+      PixelUI.panel(g, m.bx + 12, m.by + 32, m.bw - 24, m.bh - 64);
+    }
+
+    // 3. Contenu des pages (uniquement quand le livre est ouvert ou en train de tourner une page)
+    if (this.state === 'OPEN') {
+      this.drawTabHighlight(g, m, this.pageIdx, mx, my);
+      this.drawPageSpread(g, font, this.pageIdx, m, mx, my);
+      this.drawFooterHint(g, font, m);
+    } else if (this.state === 'FLIPPING') {
+      this.drawTabHighlight(g, m, this.flipTo, mx, my);
+      // Pages visibles sous la feuille qui tourne
+      const leftIdx = this.flipDir > 0 ? this.flipFrom : this.flipTo;
+      const rightIdx = this.flipDir > 0 ? this.flipTo : this.flipFrom;
+      this.drawLeftPageOnly(g, font, leftIdx, m, -999, -999);
+      this.drawRightPageOnly(g, font, rightIdx, m, -999, -999);
+      this.drawFlippingSheet(g, m, this.flipT, this.flipDir);
+      this.drawFooterHint(g, font, m);
+    }
+
+    g.pop();
+  }
+
+  /** Dessine la feuille de parchemin animée qui se soulève et bascule par-dessus la reliure. */
+  drawFlippingSheet(g, m, t, dir) {
+    // Progression lissée (ease in-out)
+    const ease = t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
+    const angle = ease * Math.PI;
+    const cosA = Math.cos(angle); // +1 -> 0 -> -1
+    const sinA = Math.sin(angle); // 0 -> +1 -> 0
+
+    const pageW = 122;
+    const pageH = 172;
+    const topY = m.by + 38;
+    const lift = Math.round(sinA * 10);
+
+    // Direction : dir > 0 tourne de droite vers gauche ; dir < 0 de gauche vers droite
+    const signedX = dir > 0 ? cosA * pageW : -cosA * pageW;
+    const x0 = m.spineX;
+    const x1 = Math.round(m.spineX + signedX);
+
+    g.push();
+    // Ombre douce portée sur la reliure pendant le mouvement
     g.noStroke();
-    g.fill(189, 117, 126);
-    g.rect(px + 2, py + 2, panelW - 4, 20);
-    PixelUI.txt(g, font, 'MENU', px + Math.round(panelW / 2), py + 6, g.color(243, 244, 231), CENTER);
+    g.fill(92, 42, 16, Math.round(sinA * 95));
+    const shadowW = Math.max(6, Math.round(sinA * 26));
+    g.rect(m.spineX - Math.round(shadowW / 2), topY + 2, shadowW, pageH - 2);
 
-    // Boutons interactifs
-    buttons.forEach((b, i) => {
-      const hov = PixelUI.pointInRect(mx, my, b);
-      if (hov) this.selectedIdx = i;
-      const active = i === this.selectedIdx;
-      const bg = active ? g.color(223, 240, 187) : g.color(232, 207, 166);
-      const fg = active ? g.color(70, 101, 80) : g.color(107, 75, 91);
+    // Feuille de parchemin qui pivote (polygone trapézoïdal donnant l'effet 3D de courbure)
+    const isFront = (dir > 0 && cosA >= 0) || (dir < 0 && cosA <= 0);
+    g.fill(isFront ? g.color(246, 186, 84) : g.color(230, 154, 54));
+    g.stroke(96, 44, 18);
+    g.strokeWeight(1.5);
+    g.beginShape();
+    g.vertex(x0, topY);
+    g.vertex(x1, topY - lift);
+    g.vertex(x1, topY + pageH - lift);
+    g.vertex(x0, topY + pageH);
+    g.endShape(CLOSE);
 
-      PixelUI.panel(g, b.x, b.y, b.w, b.h, bg);
-      const prefix = active ? '> ' : '';
-      PixelUI.txt(g, font, prefix + b.label, b.x + Math.round(b.w / 2), b.y + 4, fg, CENTER);
-    });
+    // Lignes d'écriture esquissées sur la page qui tourne
+    if (Math.abs(x1 - x0) > 22) {
+      g.stroke(148, 84, 34, 140);
+      g.strokeWeight(1);
+      const minX = Math.min(x0, x1) + 8;
+      const maxX = Math.max(x0, x1) - 8;
+      for (let ly = topY + 26; ly < topY + pageH - 24; ly += 16) {
+        g.line(minX, ly - Math.round(lift * 0.5), maxX, ly - Math.round(lift * 0.5));
+      }
+    }
+    g.pop();
+  }
 
-    // Indication discrète en pied de panneau
+  /** Met en valeur l'onglet marque-page actif (et le survol souris). */
+  drawTabHighlight(g, m, activeIdx, mx, my) {
+    for (const tab of m.tabs) {
+      const isAct = tab.idx === activeIdx;
+      const isHov = PixelUI.pointInRect(mx, my, tab);
+      if (isAct || isHov) {
+        g.push();
+        g.noFill();
+        g.stroke(isAct ? g.color(255, 245, 190) : g.color(255, 230, 160, 180));
+        g.strokeWeight(isAct ? 2 : 1);
+        g.rect(tab.x + 1, tab.y + 1, tab.w - 2, tab.h - 2);
+        if (isAct) {
+          g.noStroke();
+          g.fill(255, 245, 190);
+          g.triangle(
+            tab.x + tab.w + 2, tab.y + Math.round(tab.h / 2),
+            tab.x + tab.w + 7, tab.y + Math.round(tab.h / 2) - 4,
+            tab.x + tab.w + 7, tab.y + Math.round(tab.h / 2) + 4
+          );
+        }
+        g.pop();
+      }
+    }
+  }
+
+  drawFooterHint(g, font, m) {
     PixelUI.txt(
       g,
       font,
-      'Esc / M: Resume  |  F: Fullscreen',
-      px + Math.round(panelW / 2),
-      py + panelH - 14,
-      g.color(144, 98, 93),
+      'Click tabs or <- / -> to flip  |  Esc / M: Close',
+      Math.round(m.vw / 2),
+      m.by + m.bh - 18,
+      g.color(247, 235, 170),
+      CENTER
+    );
+  }
+
+  /** Dessine une bannière de titre style papier/bois sur une page du livre. */
+  drawPageHeader(g, font, title, pageRect) {
+    g.push();
+    g.fill(138, 62, 26);
+    g.stroke(62, 26, 12);
+    g.strokeWeight(1.5);
+    g.rect(pageRect.x + 10, pageRect.y + 6, pageRect.w - 20, 18, 2);
+    PixelUI.txt(
+      g,
+      font,
+      title,
+      pageRect.x + Math.round(pageRect.w / 2),
+      pageRect.y + 9,
+      g.color(255, 244, 214),
       CENTER
     );
     g.pop();
   }
 
-  mousePressed(rawX, rawY) {
-    if (!this.open) return false;
-    const { px, py, panelW, panelH, buttons } = this.getLayout();
+  /** Dessine un bouton parchemin assorti au livre. */
+  drawBookButton(g, font, b, active) {
+    g.push();
+    g.fill(active ? g.color(255, 238, 176) : (b.accent ? g.color(224, 240, 184) : g.color(166, 86, 36)));
+    g.stroke(62, 26, 12);
+    g.strokeWeight(1.5);
+    g.rect(b.x, b.y, b.w, b.h, 2);
 
-    const hit = buttons.find((b) => PixelUI.pointInRect(rawX, rawY, b));
-    if (hit) {
-      if (this.game.sound) this.game.sound.playSfx('ui_click', 0.9);
-      hit.action();
+    const fg = active || b.accent ? g.color(74, 34, 16) : g.color(255, 244, 214);
+    const prefix = active ? '> ' : '';
+    PixelUI.txt(g, font, prefix + b.label, b.x + Math.round(b.w / 2), b.y + 5, fg, CENTER);
+    g.pop();
+  }
+
+  drawPageSpread(g, font, idx, m, mx, my) {
+    this.drawLeftPageOnly(g, font, idx, m, mx, my);
+    this.drawRightPageOnly(g, font, idx, m, mx, my);
+  }
+
+  drawLeftPageOnly(g, font, idx, m, mx, my) {
+    const lp = m.leftPage;
+    const assets = this.game.assets;
+    const save = this.game.save ? this.game.save.data : { tickets: 0, stars: {} };
+    const ink = g.color(82, 36, 16);
+
+    if (idx === 0) {
+      // PAGE 0 GAUCHE : Profil de Moo + Tickets + Étoiles
+      this.drawPageHeader(g, font, 'MOO PROFILE', lp);
+
+      // Cadre portrait de Moo (cligne des yeux !)
+      g.push();
+      g.fill(246, 214, 148);
+      g.stroke(96, 44, 18);
+      g.strokeWeight(1.5);
+      g.rect(lp.x + 36, lp.y + 30, 46, 48, 2);
+      g.pop();
+
+      const blinkCol = Math.floor(frameCount / 80) % 4 === 3 ? 1 : 0;
+      const mooImg = assets.getSheetFrame('sprites/moo/better sprite.png', 32, 40, blinkCol, 0);
+      if (mooImg) {
+        g.image(mooImg, lp.x + 43, lp.y + 34);
+      }
+
+      // Tickets + Étoiles totales
+      const ticketSp = assets.getSprite('ticket');
+      if (ticketSp) g.image(ticketSp, lp.x + 14, lp.y + 88);
+      PixelUI.txt(g, font, 'Tickets: ' + (save.tickets || 0), lp.x + 32, lp.y + 89, ink);
+
+      const totalStars = ['derby', 'snake', 'ducklings', 'fox']
+        .reduce((acc, k) => acc + ((save.stars && save.stars[k]) || 0), 0);
+      PixelUI.txt(g, font, 'Stars: ' + totalStars + ' / 12', lp.x + 14, lp.y + 108, ink);
+
+      // Mini carte de tampons (4 jeux)
+      PixelUI.txt(g, font, 'Fair Stamps:', lp.x + 14, lp.y + 128, ink);
+      const ids = ['derby', 'snake', 'ducklings', 'fox'];
+      ids.forEach((id, i) => {
+        const won = (save.stars && save.stars[id] > 0);
+        const sx = lp.x + 14 + i * 24;
+        const sy = lp.y + 144;
+        const stampImg = assets.getSheetFrame('generated/hub/stamp_empty_full_16x16.png', 16, 16, won ? 1 : 0, 0);
+        if (stampImg) {
+          g.image(stampImg, sx, sy);
+        } else {
+          g.fill(won ? g.color(120, 190, 100) : g.color(190, 130, 70));
+          g.rect(sx, sy, 14, 14);
+        }
+      });
+    } else if (idx === 1) {
+      // PAGE 1 GAUCHE : Liste des 4 mini-jeux cliquables
+      this.drawPageHeader(g, font, 'MINI-GAMES', lp);
+      const buttons = this.getPageButtons(1, m);
+      buttons.forEach((b, i) => {
+        const hov = PixelUI.pointInRect(mx, my, b);
+        if (hov) this.selectedIdx = i;
+        this.drawBookButton(g, font, b, i === this.selectedIdx);
+      });
+    } else if (idx === 2) {
+      // PAGE 2 GAUCHE : Réglages (Fullscreen, Son, Debug)
+      this.drawPageHeader(g, font, 'SETTINGS', lp);
+      const buttons = this.getPageButtons(2, m);
+      buttons.forEach((b, i) => {
+        const hov = PixelUI.pointInRect(mx, my, b);
+        if (hov) this.selectedIdx = i;
+        this.drawBookButton(g, font, b, i === this.selectedIdx);
+      });
+    } else {
+      // PAGE 3 GAUCHE : Récapitulatif & Fermeture
+      this.drawPageHeader(g, font, 'FUNFAIR', lp);
+      const sceneName = this.game.scenes ? this.game.scenes.currentName : 'hub';
+      PixelUI.txt(g, font, 'Current:', lp.x + 12, lp.y + 40, ink);
+      PixelUI.txt(g, font, sceneName.toUpperCase(), lp.x + 12, lp.y + 56, g.color(138, 62, 26));
+      PixelUI.txt(g, font, 'Progress is', lp.x + 12, lp.y + 88, ink);
+      PixelUI.txt(g, font, 'auto-saved!', lp.x + 12, lp.y + 104, ink);
+      PixelUI.txt(g, font, 'See you soon,', lp.x + 12, lp.y + 132, ink);
+      PixelUI.txt(g, font, 'Moo!', lp.x + 12, lp.y + 148, g.color(138, 62, 26));
+    }
+  }
+
+  drawRightPageOnly(g, font, idx, m, mx, my) {
+    const rp = m.rightPage;
+    const save = this.game.save ? this.game.save.data : { stars: {} };
+    const ink = g.color(82, 36, 16);
+
+    if (idx === 0) {
+      // PAGE 0 DROITE : Actions rapides
+      this.drawPageHeader(g, font, 'QUICK MENU', rp);
+      const buttons = this.getPageButtons(0, m);
+      buttons.forEach((b, i) => {
+        const hov = PixelUI.pointInRect(mx, my, b);
+        if (hov) this.selectedIdx = i;
+        this.drawBookButton(g, font, b, i === this.selectedIdx);
+      });
+    } else if (idx === 1) {
+      // PAGE 1 DROITE : Étoiles par jeu + Raccourcis
+      this.drawPageHeader(g, font, 'PROGRESS', rp);
+      const games = [
+        { id: 'derby',     name: 'Derby' },
+        { id: 'snake',     name: 'Snake' },
+        { id: 'ducklings', name: 'Ducks' },
+        { id: 'fox',       name: 'Fox' }
+      ];
+      games.forEach((gm, i) => {
+        const st = (save.stars && save.stars[gm.id]) || 0;
+        const starsTxt = '*'.repeat(st) + '-'.repeat(3 - st);
+        PixelUI.txt(g, font, gm.name + ': [' + starsTxt + ']', rp.x + 10, rp.y + 36 + i * 20, ink);
+      });
+      PixelUI.txt(g, font, 'Controls:', rp.x + 10, rp.y + 122, g.color(138, 62, 26));
+      PixelUI.txt(g, font, 'WASD / Arrows', rp.x + 10, rp.y + 138, ink);
+      PixelUI.txt(g, font, 'F: Full  H: Debug', rp.x + 10, rp.y + 152, ink);
+    } else if (idx === 2) {
+      // PAGE 2 DROITE : Info Steering Behaviors
+      this.drawPageHeader(g, font, 'STEERING AI', rp);
+      PixelUI.txt(g, font, 'Craig Reynolds', rp.x + 10, rp.y + 36, g.color(138, 62, 26));
+      PixelUI.txt(g, font, 'Press [H] anytime', rp.x + 10, rp.y + 56, ink);
+      PixelUI.txt(g, font, 'to inspect rays,', rp.x + 10, rp.y + 70, ink);
+      PixelUI.txt(g, font, 'forces, obstacles', rp.x + 10, rp.y + 84, ink);
+      PixelUI.txt(g, font, '& debug sliders!', rp.x + 10, rp.y + 98, ink);
+      PixelUI.txt(g, font, '100% Vehicle +', rp.x + 10, rp.y + 128, g.color(138, 62, 26));
+      PixelUI.txt(g, font, 'BehaviorManager', rp.x + 10, rp.y + 142, g.color(138, 62, 26));
+    } else {
+      // PAGE 3 DROITE : Boutons Exit / Hub / Resume
+      this.drawPageHeader(g, font, 'EXIT MENU', rp);
+      const buttons = this.getPageButtons(3, m);
+      buttons.forEach((b, i) => {
+        const hov = PixelUI.pointInRect(mx, my, b);
+        if (hov) this.selectedIdx = i;
+        this.drawBookButton(g, font, b, i === this.selectedIdx);
+      });
+    }
+  }
+
+  mousePressed(rawX, rawY) {
+    if (this.state !== 'OPEN') return true;
+    const m = this.getBookMetrics();
+
+    // 1. Clic sur un des 4 onglets marque-pages -> tourne la page avec animation !
+    const hitTab = m.tabs.find((t) => PixelUI.pointInRect(rawX, rawY, t));
+    if (hitTab) {
+      this.switchPage(hitTab.idx);
       return true;
     }
 
-    // Clic à l'extérieur du panneau -> referme le menu
-    if (rawX < px || rawX > px + panelW || rawY < py || rawY > py + panelH) {
+    // 2. Clic sur un bouton de la page active
+    const buttons = this.getPageButtons(this.pageIdx, m);
+    const hitBtn = buttons.find((b) => PixelUI.pointInRect(rawX, rawY, b));
+    if (hitBtn) {
+      if (this.game.sound) this.game.sound.playSfx('ui_click', 0.9);
+      hitBtn.action();
+      return true;
+    }
+
+    // 3. Clic à l'extérieur du livre -> referme le livre avec animation
+    if (rawX < m.bx || rawX > m.bx + m.bw || rawY < m.by + 28 || rawY > m.by + m.bh - 28) {
       this.close();
       return true;
     }
+
     return true;
   }
 
   keyPressed(k, kc) {
-    if (!this.open) return false;
-    const items = this.getItems();
-    if (kc === UP_ARROW || k === 'w' || k === 'W' || k === 'z' || k === 'Z') {
-      this.selectedIdx = (this.selectedIdx - 1 + items.length) % items.length;
-      if (this.game.sound) this.game.sound.playSfx('ui_click', 0.5);
+    if (this.state !== 'OPEN') return true;
+    const m = this.getBookMetrics();
+    const buttons = this.getPageButtons(this.pageIdx, m);
+
+    // Flèches Gauche/Droite ou A/D : tourner les pages du livre !
+    if (kc === LEFT_ARROW || k === 'a' || k === 'A' || k === 'q' || k === 'Q') {
+      this.switchPage(this.pageIdx - 1);
       return true;
     }
-    if (kc === DOWN_ARROW || k === 's' || k === 'S') {
-      this.selectedIdx = (this.selectedIdx + 1) % items.length;
-      if (this.game.sound) this.game.sound.playSfx('ui_click', 0.5);
+    if (kc === RIGHT_ARROW || k === 'd' || k === 'D') {
+      this.switchPage(this.pageIdx + 1);
       return true;
     }
-    if (kc === ENTER || kc === RETURN || k === ' ') {
-      const item = items[this.selectedIdx];
-      if (item) {
-        if (this.game.sound) this.game.sound.playSfx('ui_click', 0.9);
-        item.action();
+
+    // Touches 1..4 : saut direct à un onglet avec animation de page
+    if (k >= '1' && k <= '4') {
+      this.switchPage(parseInt(k, 10) - 1);
+      return true;
+    }
+
+    // Navigation verticale dans les boutons de la page
+    if (buttons.length > 0) {
+      if (kc === UP_ARROW || k === 'w' || k === 'W' || k === 'z' || k === 'Z') {
+        this.selectedIdx = (this.selectedIdx - 1 + buttons.length) % buttons.length;
+        if (this.game.sound) this.game.sound.playSfx('ui_click', 0.5);
+        return true;
       }
-      return true;
+      if (kc === DOWN_ARROW || k === 's' || k === 'S') {
+        this.selectedIdx = (this.selectedIdx + 1) % buttons.length;
+        if (this.game.sound) this.game.sound.playSfx('ui_click', 0.5);
+        return true;
+      }
+      if (kc === ENTER || kc === RETURN || k === ' ') {
+        const btn = buttons[this.selectedIdx];
+        if (btn) {
+          if (this.game.sound) this.game.sound.playSfx('ui_click', 0.9);
+          btn.action();
+        }
+        return true;
+      }
     }
     return true;
   }
