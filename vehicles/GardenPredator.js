@@ -57,11 +57,11 @@ class GardenPredator extends Vehicle {
     // Aura fantôme violette de Gengar + ombre
     g.noStroke();
     g.fill(92, 48, 138, 85);
-    g.ellipse(px, py + 7, 16, 6);
+    g.ellipse(px, py + 10, 22, 8);
     g.noFill();
     g.stroke(176, 86, 232, 120 + Math.round(pulse * 110));
-    g.strokeWeight(1.2);
-    g.circle(px, py, 18 + pulse * 3);
+    g.strokeWeight(1.4);
+    g.circle(px, py, 24 + pulse * 3);
 
     // Gengar animé (gengar.png : 4x4 cellules 64x64 -> row 0=bas, 1=gauche, 2=droite, 3=haut)
     let row = 0;
@@ -74,7 +74,7 @@ class GardenPredator extends Vehicle {
     const gImg = this.assets ? this.assets.getSheetFrame('minigames/pokemoo/gengar.png', 64, 64, col, row) : null;
     const floatY = Math.round(Math.sin(frameCount * 0.14 + this.phase) * 1.5);
     if (gImg) {
-      g.image(gImg, px - 12, py - 13 + floatY, 24, 24);
+      g.image(gImg, px - 23, py - 24 + floatY, 46, 46);
     } else {
       g.noStroke();
       g.fill(128, 72, 178);
