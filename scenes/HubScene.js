@@ -504,12 +504,37 @@ class HubScene extends Scene {
       img.background(grass[0], grass[1], grass[2]);
       img.noStroke();
 
-      // Douces plaques d'herbe nuancées pour donner du relief
+      // Douces plaques d'herbe nuancées + touffes d'herbe Sprout Lands + trèfles & pâquerettes (0 coût FPS !)
+      const seed = section === 'west' ? 17 : (section === 'east' ? 41 : 7);
       img.fill(146, 194, 94);
-      for (let i = 0; i < 18; i++) {
-        const px = ((i * 89 + (section === 'west' ? 17 : section === 'east' ? 41 : 7)) % 440) + 20;
-        const py = ((i * 53 + 104) % 126) + 102;
+      for (let i = 0; i < 20; i++) {
+        const px = ((i * 89 + seed) % 440) + 20;
+        const py = ((i * 53 + 104) % 128) + 102;
         img.ellipse(px, py, 34 + (i % 3) * 10, 14 + (i % 2) * 6);
+      }
+      // Touffes d'herbe pixel-art (3 brins) + petits points de pâquerettes sur les pelouses hautes & basses
+      for (let i = 0; i < 72; i++) {
+        const tx = ((i * 67 + seed * 13) % 448) + 16;
+        const ty = ((i * 41 + seed * 7) % 136) + 98;
+        if (ty >= 130 && ty <= 178) continue; // garder l'allée principale propre
+        // Petite touffe d'herbe verte foncée + reflet clair
+        img.fill(120, 172, 78);
+        img.rect(tx, ty, 1, 3);
+        img.rect(tx + 2, ty - 1, 1, 4);
+        img.rect(tx + 4, ty, 1, 3);
+        img.fill(176, 222, 118);
+        img.rect(tx + 2, ty - 1, 1, 1);
+        // Micro-fleurs sauvages (pâquerettes blanches, boutons d'or, pétales roses, myosotis bleus)
+        if (i % 2 === 0) {
+          const cols = [[255, 252, 232], [255, 232, 126], [248, 174, 202], [174, 220, 248]];
+          const fc = cols[(i + seed) % cols.length];
+          const fx = tx + ((i % 3) - 1) * 5;
+          const fy = ty + 4;
+          img.fill(fc[0], fc[1], fc[2]);
+          img.rect(fx, fy, 2, 2);
+          img.fill(255, 244, 152);
+          img.rect(fx, fy, 1, 1);
+        }
       }
 
       // Herbe douce + fleurs le long de la bordure sud (dessinée AVANT les chemins pour ne jamais couper l'allée d'entrée !)
@@ -698,17 +723,43 @@ class HubScene extends Scene {
     ];
 
     this.ambientFlowers = [
-      { sprite: 'flower_pink',   x: -436, y: 204, phase: 0.2 },
-      { sprite: 'flower_yellow', x: -346, y: 214, phase: 1.1 },
-      { sprite: 'flower_blue',   x: -178, y: 212, phase: 2.0 },
+      // Aile Ouest (Sweet Street & Cherry Grove)
+      { sprite: 'flower_pink',   x: -444, y: 194, phase: 0.2 },
+      { sprite: 'flower_yellow', x: -426, y: 222, phase: 0.7 },
+      { sprite: 'mush_red',      x: -452, y: 122, phase: 1.0 },
+      { sprite: 'flower_blue',   x: -362, y: 192, phase: 1.4 },
+      { sprite: 'flower_yellow', x: -346, y: 224, phase: 1.1 },
+      { sprite: 'flower_pink',   x: -292, y: 218, phase: 1.9 },
+      { sprite: 'mush_red',      x: -268, y: 226, phase: 2.3 },
+      { sprite: 'flower_blue',   x: -222, y: 192, phase: 2.0 },
+      { sprite: 'flower_pink',   x: -162, y: 224, phase: 2.5 },
+      { sprite: 'flower_yellow', x: -124, y: 216, phase: 2.8 },
       { sprite: 'flower_pink',   x: -64,  y: 206, phase: 2.9 },
-      { sprite: 'flower_yellow', x: 108,  y: 218, phase: 0.6 },
+      { sprite: 'flower_blue',   x: -34,  y: 194, phase: 3.3 },
+      { sprite: 'mush_red',      x: -74,  y: 120, phase: 3.6 },
+      // Place Centrale (autour des pelouses, de la mare & du pique-nique)
+      { sprite: 'flower_yellow', x: 16,   y: 196, phase: 0.4 },
+      { sprite: 'mush_red',      x: 18,   y: 224, phase: 0.8 },
+      { sprite: 'flower_yellow', x: 102,  y: 224, phase: 0.6 },
+      { sprite: 'flower_pink',   x: 196,  y: 194, phase: 1.5 },
+      { sprite: 'flower_blue',   x: 198,  y: 224, phase: 2.5 },
+      { sprite: 'flower_yellow', x: 274,  y: 224, phase: 1.2 },
       { sprite: 'flower_pink',   x: 368,  y: 218, phase: 1.8 },
-      { sprite: 'flower_blue',   x: 200,  y: 224, phase: 2.5 },
-      { sprite: 'flower_yellow', x: 516,  y: 214, phase: 0.9 },
+      { sprite: 'flower_blue',   x: 422,  y: 224, phase: 2.2 },
+      { sprite: 'mush_red',      x: 460,  y: 216, phase: 2.7 },
+      { sprite: 'flower_yellow', x: 182,  y: 118, phase: 3.1 },
+      { sprite: 'flower_pink',   x: 292,  y: 118, phase: 3.4 },
+      // Aile Est (Carrousel, Fontaine, Scène, Ruisseau & Prairie)
+      { sprite: 'flower_yellow', x: 506,  y: 214, phase: 0.9 },
+      { sprite: 'mush_red',      x: 498,  y: 192, phase: 1.3 },
+      { sprite: 'flower_blue',   x: 522,  y: 226, phase: 1.6 },
       { sprite: 'flower_pink',   x: 646,  y: 216, phase: 1.7 },
+      { sprite: 'flower_yellow', x: 668,  y: 226, phase: 2.1 },
+      { sprite: 'mush_red',      x: 726,  y: 224, phase: 2.6 },
       { sprite: 'flower_blue',   x: 766,  y: 216, phase: 3.1 },
-      { sprite: 'flower_yellow', x: 906,  y: 212, phase: 4.0 }
+      { sprite: 'flower_pink',   x: 862,  y: 226, phase: 3.5 },
+      { sprite: 'flower_yellow', x: 906,  y: 212, phase: 4.0 },
+      { sprite: 'flower_blue',   x: 924,  y: 192, phase: 4.4 }
     ];
 
     this.buntingRow = [];
