@@ -662,8 +662,8 @@ class HubScene extends Scene {
         if (layout && layout.games) {
           layout.games.forEach((gm, i) => {
             const [sx, sy] = layout.poster.slots_in_sprite[i];
-            const bSp = assets.getSprite('booth_' + gm.id);
-            if (bSp) g.image(bSp, this.posterPos.x + sx + 4, this.posterPos.y + sy + 2, 14, 12, 18, 1, 14, 12);
+            // Dessine nos 4 nouveaux logos (drapeau, Poké Ball, patte marron, Triforce) sur le panneau GAMES !
+            this.drawGameLogo(g, gm.id, this.posterPos.x + sx + 11, this.posterPos.y + sy + 8, 0.95);
           });
         }
         this.drawPerchedBird(g, this.posterPos.x + 44, this.posterPos.y - 2);
@@ -1509,6 +1509,48 @@ class HubScene extends Scene {
     }));
   }
 
+  /** Dessine le nouveau logo thématique d'un mini-jeu centré en (cx, cy) à l'échelle `sc`. */
+  drawGameLogo(g, id, cx, cy, sc = 1) {
+    g.push();
+    g.translate(Math.round(cx), Math.round(cy));
+    g.scale(sc);
+    g.noStroke();
+    if (id === 'derby') {
+      // Drapeau à damier de course
+      g.fill(107, 75, 91);
+      g.rect(-5, -4, 1, 9);
+      g.fill(252, 248, 236);
+      g.rect(-4, -4, 9, 6);
+      g.fill(58, 44, 56);
+      g.rect(-4, -4, 3, 2); g.rect(2, -4, 3, 2);
+      g.rect(-1, -2, 3, 2);
+      g.rect(-4, 0, 3, 2);  g.rect(2, 0, 3, 2);
+    } else if (id === 'snake') {
+      // Poké Ball
+      g.fill(107, 75, 91); g.circle(0, 0, 11);
+      g.fill(220, 74, 80); g.arc(0, 0, 9, 9, PI, TWO_PI);
+      g.fill(250, 248, 240); g.arc(0, 0, 9, 9, 0, PI);
+      g.fill(58, 44, 56); g.rect(-5, -1, 10, 2);
+      g.fill(250, 248, 240); g.circle(0, 0, 3);
+    } else if (id === 'ducklings') {
+      // Empreinte de patte marron (Purins)
+      g.fill(128, 78, 50);
+      g.ellipse(0, 2, 7, 5);
+      g.circle(-4, -2, 3);
+      g.circle(0, -3, 3);
+      g.circle(4, -2, 3);
+      g.fill(164, 108, 72);
+      g.rect(-1, 1, 2, 1);
+    } else if (id === 'fox') {
+      // Triforce dorée
+      g.fill(246, 206, 82);
+      g.triangle(0, -5, -4, 0, 4, 0);
+      g.triangle(-4, 0, -7, 4, -1, 4);
+      g.triangle(4, 0, 1, 4, 7, 4);
+    }
+    g.pop();
+  }
+
   drawPosterOverlay(g) {
     const assets = this.game.assets;
     const font = assets.font;
@@ -1529,8 +1571,9 @@ class HubScene extends Scene {
       const yy = Math.round(c.y + (hov ? -2 + Math.sin(frameCount * 0.3) : 0));
       PixelUI.panel(g, c.x, yy, c.w, c.h, g.color(232, 207, 166));
       PixelUI.txt(g, font, c.gm.title, c.x + 8, yy + 5, g.color(107, 75, 91), LEFT, 9, c.w - 14);
-      const bSp = assets.getSprite(c.gm.sprite);
-      if (bSp) g.image(bSp, c.x + 8, yy + 26, 28, 24, 18, 1, 14, 12);
+      // Nouveau logo thématique encadré (2x) sur chaque carte du poster
+      PixelUI.panel(g, c.x + 8, yy + 25, 26, 24, g.color(247, 236, 198));
+      this.drawGameLogo(g, c.gm.id, c.x + 21, yy + 37, 1.5);
       const stars = this.game.save.data.stars[c.gm.id] || 0;
       PixelUI.txt(g, font, 'press ' + (i + 1) + '  [' + '*'.repeat(stars) + '-'.repeat(3 - stars) + ']', c.x + 42, yy + 32, g.color(144, 98, 93), LEFT, 8.5, 108);
     });
