@@ -906,13 +906,24 @@ class HubScene extends Scene {
         const label = labels[this.promptTrigger.id] || ('Play ' + this.promptTrigger.title + '? (Space)');
         PixelUI.drawTag(g, font, label, this.moo.pos.x, this.moo.pos.y - 40 + Math.sin(frameCount * 0.12) * 1.4);
       } else if (this.nearbyVisitor) {
-        PixelUI.drawTag(
-          g, font,
-          'Talk to ' + this.nearbyVisitor.name + ' (Space)',
-          this.moo.pos.x,
-          this.moo.pos.y - 40 + Math.sin(frameCount * 0.12) * 1.4,
-          g.color(255, 250, 224)
-        );
+        // Petite icône pixel de bulle de dialogue animée (•••) au-dessus du personnage !
+        const ix = Math.round(this.nearbyVisitor.pos.x);
+        const iy = Math.round(this.nearbyVisitor.pos.y - 34 + Math.sin(frameCount * 0.14) * 1.5);
+        g.push();
+        g.noStroke();
+        g.fill(107, 75, 91);
+        g.rect(ix - 8, iy - 6, 16, 11, 3);
+        g.triangle(ix - 2, iy + 5, ix + 2, iy + 5, ix, iy + 8);
+        g.fill(255, 250, 224);
+        g.rect(ix - 7, iy - 5, 14, 9, 2);
+        g.triangle(ix - 1, iy + 4, ix + 1, iy + 4, ix, iy + 7);
+        // 3 petits points qui ondulent doucement
+        g.fill(189, 117, 126);
+        for (let k = 0; k < 3; k++) {
+          const dy = Math.round(Math.sin(frameCount * 0.16 + k * 1.1) * 0.8);
+          g.rect(ix - 4 + k * 3, iy - 1 + dy, 2, 2);
+        }
+        g.pop();
       }
     }
 
