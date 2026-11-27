@@ -32,6 +32,8 @@ class TitleScene extends Scene {
 
   init() {
     this.showCredits = false;
+    this.menuIdx = 0;
+    if (this.game.sound) this.game.sound.playMusic('title');
   }
 
   hasSavedProgress() {
