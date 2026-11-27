@@ -62,7 +62,9 @@ class AssetManager {
       // Nouveaux invités crossover du Hub (Deltarune, OneShot, Hollow Knight, Zelda, One Piece)
       [
         'kris_walk', 'ralsei_walk', 'susie_walk',
-        'kris_act_drink', 'kris_act_balloon', 'ralsei_act_cheer', 'ralsei_act_cake', 'susie_act_drink', 'susie_act_snack',
+        'kris_act_mallet', 'kris_act_drink', 'kris_act_balloon',
+        'ralsei_act_magic', 'ralsei_act_dance', 'ralsei_act_cheer', 'ralsei_act_cake',
+        'susie_act_mallet', 'susie_act_laugh', 'susie_act_cheer', 'susie_act_drink', 'susie_act_snack',
         'niko_walk', 'knight_walk', 'link_walk', 'luffy_walk', 'zoro_walk', 'chopper_walk'
       ].forEach((gName) => {
         files.add('characters/npcs/guests/' + gName + '.png');

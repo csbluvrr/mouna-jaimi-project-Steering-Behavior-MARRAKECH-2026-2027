@@ -217,7 +217,7 @@ class FairVisitor extends Vehicle {
       const frames = act ? (act.frames || 4) : this.guestFrames;
       const dw = act ? fw : this.guestDrawW;
       const dh = act ? fh : this.guestDrawH;
-      const col = (moving || act) ? Math.floor(frameCount / (act ? 11 : 7) + this.phase) % frames : 0;
+      const col = (moving || act) ? Math.floor(frameCount / (act ? (act.speed || 7) : 7) + this.phase) % frames : 0;
       const img = this.assets.getSheetFrame('characters/npcs/guests/' + file + '.png', fw, fh, col, 0);
       const bob = act ? Math.round(Math.sin(frameCount * 0.14 + this.phase) * 0.8) : (moving ? 0 : Math.round(Math.sin(frameCount * 0.08 + this.phase) * 0.6));
       if (this.facingLeft && (!act || act.allowFlip !== false)) g.scale(-1, 1);

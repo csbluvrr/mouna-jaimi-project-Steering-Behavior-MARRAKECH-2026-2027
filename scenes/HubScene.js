@@ -887,22 +887,25 @@ class HubScene extends Scene {
     fg.susie.emoteTimer = 0;
 
     if (stop.mode === 'SNACK') {
-      fg.kris.trioAction   = { file: 'kris_act_drink',   w: 32, h: 34, frames: 4, emote: 'Happy', allowFlip: false };
-      fg.ralsei.trioAction = { file: 'ralsei_act_cake',  w: 32, h: 34, frames: 4, emote: 'Heart', allowFlip: true };
-      fg.susie.trioAction  = { file: 'susie_act_drink',  w: 32, h: 34, frames: 4, emote: 'Happy', allowFlip: false };
+      // Jeu de maillet forain (Kris & Susie balancent leur gros maillet rose, Ralsei applaudit !)
+      fg.kris.trioAction   = { file: 'kris_act_mallet',  w: 42, h: 36, frames: 8, speed: 6, emote: 'Exclamation', allowFlip: false };
+      fg.ralsei.trioAction = { file: 'ralsei_act_cheer', w: 36, h: 36, frames: 8, speed: 6, emote: 'Heart',       allowFlip: false };
+      fg.susie.trioAction  = { file: 'susie_act_mallet', w: 42, h: 38, frames: 8, speed: 6, emote: 'Happy',       allowFlip: false };
     } else if (stop.mode === 'PICNIC') {
-      fg.kris.trioAction   = { file: 'kris_act_balloon', w: 32, h: 36, frames: 4, emote: 'Star',  allowFlip: false };
-      fg.ralsei.trioAction = { file: 'ralsei_act_cheer', w: 32, h: 34, frames: 4, emote: 'Heart', allowFlip: false };
-      fg.susie.trioAction  = { file: 'susie_act_snack',  w: 32, h: 34, frames: 2, emote: 'Happy', allowFlip: true };
+      // Spectacle de magie de Ralsei (boules de feu!) + glaces de Susie + soda de Kris
+      fg.kris.trioAction   = { file: 'kris_act_drink',   w: 32, h: 34, frames: 4, speed: 8, emote: 'Star',        allowFlip: false };
+      fg.ralsei.trioAction = { file: 'ralsei_act_magic', w: 40, h: 36, frames: 8, speed: 6, emote: 'Star',        allowFlip: true };
+      fg.susie.trioAction  = { file: 'susie_act_laugh',  w: 36, h: 38, frames: 8, speed: 7, emote: 'Happy',       allowFlip: false };
     } else if (stop.mode === 'CHEER') {
-      fg.kris.trioAction   = { file: 'kris_act_balloon', w: 32, h: 36, frames: 4, emote: 'Happy', allowFlip: false };
-      fg.ralsei.trioAction = { file: 'ralsei_act_cheer', w: 32, h: 34, frames: 4, emote: 'Star',  allowFlip: false };
-      fg.susie.trioAction  = { file: 'susie_act_drink',  w: 32, h: 34, frames: 4, emote: 'Exclamation', allowFlip: false };
+      // Danse d'écharpe magique de Ralsei + rires de Susie + maillet de Kris
+      fg.kris.trioAction   = { file: 'kris_act_mallet',  w: 42, h: 36, frames: 8, speed: 6, emote: 'Happy',       allowFlip: false };
+      fg.ralsei.trioAction = { file: 'ralsei_act_dance', w: 44, h: 36, frames: 8, speed: 6, emote: 'Heart',       allowFlip: true };
+      fg.susie.trioAction  = { file: 'susie_act_cheer',  w: 36, h: 38, frames: 8, speed: 7, emote: 'Exclamation', allowFlip: false };
     } else {
-      // PARTY devant la scène + feu d'artifice festif !
-      fg.kris.trioAction   = { file: 'kris_act_balloon', w: 32, h: 36, frames: 4, emote: 'Star',  allowFlip: false };
-      fg.ralsei.trioAction = { file: 'ralsei_act_cheer', w: 32, h: 34, frames: 4, emote: 'Heart', allowFlip: false };
-      fg.susie.trioAction  = { file: 'susie_act_snack',  w: 32, h: 34, frames: 2, emote: 'Exclamation', allowFlip: true };
+      // PARTY devant la scène : boules de feu + glaces/danse + ballon doré + feux d'artifice !
+      fg.kris.trioAction   = { file: 'kris_act_balloon', w: 32, h: 36, frames: 4, speed: 8, emote: 'Star',        allowFlip: false };
+      fg.ralsei.trioAction = { file: 'ralsei_act_magic', w: 40, h: 36, frames: 8, speed: 6, emote: 'Heart',       allowFlip: true };
+      fg.susie.trioAction  = { file: 'susie_act_laugh',  w: 36, h: 38, frames: 8, speed: 7, emote: 'Exclamation', allowFlip: false };
       this.launchFirework(this.stagePos.x + 42, 26);
     }
   }
