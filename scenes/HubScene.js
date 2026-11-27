@@ -115,12 +115,14 @@ class HubScene extends Scene {
       [368, 196, 72, 36],  // Mare aux canetons
       [444, 188, 22, 14],  // Vache
 
-      // Aile Est (Carrousel + Scène & Feux d'artifice + Mare aux nénuphars + Anneaux + Fontaine + Banc)
+      // Aile Est (Carrousel + Scène & Feux d'artifice + Ruisseau/Mare + Anneaux + Fontaine + Banc)
       [this.carouselPos.x + 6,   this.carouselPos.y + 42,   60, 26],
       [this.stagePos.x + 4,      this.stagePos.y + 42,      76, 24],
       [this.ringsBoothPos.x + 4, this.ringsBoothPos.y + 36, 42, 22],
       [this.fountainPos.x - 16,  this.fountainPos.y - 6,    32, 16],
-      [804, 200, 48, 26],  // Mare aux nénuphars Est
+      [this.creekX - 2,          96,                        24, 42], // Ruisseau au nord du pont
+      [this.creekX - 2,          178,                       24, 34], // Ruisseau au sud du pont
+      [this.creekX + 6,          198,                       56, 30], // Mare aux nénuphars Est
       [690, 198, 22, 10]   // Banc Est
     ];
 
@@ -332,8 +334,8 @@ class HubScene extends Scene {
       new FairVisitor(648, 166, 'kid', this.game.assets, {
         name: 'Benji', bounds: [560, 144, 180, 46], emote: 'Happy'
       }),
-      new FairVisitor(812, 184, 'new_bunny', this.game.assets, {
-        name: 'Meadow Bunny', bounds: [740, 154, 145, 54], emote: 'Heart'
+      new FairVisitor(874, 186, 'new_bunny', this.game.assets, {
+        name: 'Meadow Bunny', bounds: [856, 168, 66, 44], emote: 'Heart'
       }),
 
       // === INVITÉS CROSSOVER SPÉCIAUX (Deltarune Fun Gang ensemble, OneShot, Hollow Knight, Zelda, One Piece) ===
@@ -683,7 +685,7 @@ class HubScene extends Scene {
       // Arrière-plan Est
       { kind: 'tree_tall',  x: 500,  y: 66, sortY: 96 },
       { kind: 'cherry_big', x: 632,  y: 52, sortY: 96 },
-      { kind: 'tree_apple', x: 778,  y: 66, sortY: 96 },
+      { kind: 'tree_apple', x: 816,  y: 66, sortY: 96 },
       { kind: 'cherry_med', x: 904,  y: 64, sortY: 96 }
     ];
 
@@ -697,7 +699,7 @@ class HubScene extends Scene {
       { sprite: 'flower_blue',   x: 206,  y: 224, phase: 2.5 },
       { sprite: 'flower_yellow', x: 516,  y: 214, phase: 0.9 },
       { sprite: 'flower_pink',   x: 646,  y: 216, phase: 1.7 },
-      { sprite: 'flower_blue',   x: 804,  y: 218, phase: 3.1 },
+      { sprite: 'flower_blue',   x: 766,  y: 216, phase: 3.1 },
       { sprite: 'flower_yellow', x: 906,  y: 212, phase: 4.0 }
     ];
 
@@ -1224,7 +1226,7 @@ class HubScene extends Scene {
       { sortY: 206, draw: () => this.drawWoodenBench(g, -104, 196) },
       { sortY: 206, draw: () => this.drawWoodenBench(g, 690, 196) },
       { sortY: 214, draw: () => this.drawCherryBlossom(g, -412, 198, 'bush') },
-      { sortY: 214, draw: () => this.drawCherryBlossom(g, 822,  198, 'bush') },
+      { sortY: 220, draw: () => this.drawCherryBlossom(g, 874,  214, 'bush') },
 
       // Panier pique-nique + amis lapins + chat endormi (scène narrative)
       { sortY: 222, draw: () => { const sp = assets.getSprite('picnic_basket'); if (sp) g.image(sp, 35, 208); } },
@@ -1294,7 +1296,7 @@ class HubScene extends Scene {
         const shCol = Math.floor(frameCount / 9 + 5) % 12;
         const sh = assets.getSheetFrame('packs/tiny_swords/terrain/Resources/Meat/Sheep/Sheep_Grass.png', 128, 128, shCol, 0);
         g.push();
-        g.translate(836, 198);
+        g.translate(902, 200);
         g.scale(-1, 1);
         if (sh) g.image(sh, -16, 0, 32, 32);
         g.pop();
@@ -1311,7 +1313,7 @@ class HubScene extends Scene {
       { sortY: 132, draw: () => this.drawGardenLamp(g, -166, 114, skyMood) },
       { sortY: 132, draw: () => this.drawGardenLamp(g, 514,  114, skyMood) },
       { sortY: 132, draw: () => this.drawGardenLamp(g, 664,  114, skyMood) },
-      { sortY: 132, draw: () => this.drawGardenLamp(g, 796,  114, skyMood) }
+      { sortY: 132, draw: () => this.drawGardenLamp(g, 772,  114, skyMood) }
     );
 
     // Visiteurs, canetons & Moo
@@ -2460,51 +2462,88 @@ class HubScene extends Scene {
     g.pop();
   }
 
-  /** Ruisseau scintillant, Pont en bois franchissable & Mare aux nénuphars (Aile Est). */
+  /** Ruisseau scintillant fusionnant sans couture dans la Mare aux nénuphars + Pont en bois (Aile Est). */
   drawEastCreekAndBridge(g) {
     const cx = this.creekX;
+    const pondX = cx + 28;
+    const pondY = 212;
     const t = frameCount;
+    const skyMood = this.game.save && this.game.save.data.skyMood === 'sunset' ? 'sunset' : 'day';
+    const sb = typeof SkyBackdrop !== 'undefined' ? SkyBackdrop.getBlend(skyMood) : 0;
+
     g.push();
     g.noStroke();
-    // Lit du ruisseau vertical (y = 94 .. 216)
-    g.fill(102, 162, 184);
-    g.rect(cx - 2, 94, 24, 122);
+
+    // === COUCHE 1 : BERGE EXTÉRIEURE UNIFIÉE (Ruisseau + Jonction évasée + Mare) ===
+    g.fill(96, 154, 178);
+    g.rect(cx - 2, 94, 24, 114);
+    g.ellipse(cx + 12, 204, 34, 22); // Transition courbée douce entre ruisseau et mare
+    g.ellipse(pondX, pondY, 64, 32);
+
+    // === COUCHE 2 : EAU INTÉRIEURE FUSIONNÉE SANS AUCUNE COUTURE ===
     g.fill(132, 198, 224);
-    g.rect(cx, 94, 20, 122);
-    // Mare aux nénuphars reliée au ruisseau (cx+34, y=214)
-    g.fill(102, 162, 184);
-    g.ellipse(cx + 34, 214, 56, 30);
-    g.fill(132, 198, 224);
-    g.ellipse(cx + 34, 214, 50, 24);
-    // Reflets d'eau qui glissent vers le bas
-    g.fill(220, 248, 255, 165);
+    g.rect(cx, 94, 20, 114);
+    g.ellipse(cx + 12, 204, 30, 18);
+    g.ellipse(pondX, pondY, 58, 27);
+
+    // Reflet lumineux doux + teinte dorée au coucher de soleil
+    g.fill(164, 220, 240, 145);
+    g.rect(cx + 3, 94, 12, 108);
+    g.ellipse(pondX - 4, pondY - 2, 40, 16);
+    if (sb > 0.08) {
+      g.fill(255, 184, 134, Math.round(95 * sb));
+      g.rect(cx + 2, 96, 14, 106);
+      g.ellipse(pondX - 2, pondY - 1, 44, 17);
+    }
+
+    // Courant d'eau animé glissant dans le ruisseau jusqu'à la mare
+    g.fill(228, 250, 255, 175);
     for (let i = 0; i < 5; i++) {
-      const ry = 98 + ((t * 0.45 + i * 24) % 108);
+      const ry = 98 + ((t * 0.45 + i * 22) % 104);
       g.rect(cx + 4 + (i % 2) * 7, Math.round(ry), 5, 2);
     }
-    // Nénuphars verts & fleurs de lotus roses sur la mare
-    g.fill(106, 174, 98);
-    g.ellipse(cx + 22, 212, 9, 5);
-    g.ellipse(cx + 44, 218, 10, 6);
-    g.fill(252, 174, 198);
-    g.circle(cx + 44, 216, 4);
-    g.fill(255, 242, 168);
-    g.rect(cx + 43, 215, 2, 2);
 
-    // Pont en bois traversant le chemin principal (y = 142 .. 176, 100% marchable !)
+    // Ondes concentriques dans la mare aux nénuphars
+    g.noFill();
+    g.strokeWeight(1);
+    const rip = (t * 0.016) % 1;
+    g.stroke(236, 252, 255, Math.round((1 - rip) * 155));
+    g.ellipse(pondX, pondY, 8 + rip * 26, 4 + rip * 11);
+
+    // Nénuphars verts & petite fleur de lotus délicate
+    g.noStroke();
+    g.fill(104, 174, 96);
+    g.ellipse(pondX - 10, pondY + 2, 9, 5);
+    g.ellipse(pondX + 14, pondY + 4, 10, 5);
+    g.fill(248, 168, 196);
+    g.rect(pondX + 12, pondY + 1, 4, 3, 1);
+    g.fill(255, 244, 170);
+    g.rect(pondX + 13, pondY + 2, 2, 1);
+
+    // === COUCHE 3 : PONT EN BOIS FRANCHISSABLE SUR LE CHEMIN (y = 138 .. 176) ===
+    // Ombre sous le pont dans l'eau
+    g.fill(74, 118, 142, 120);
+    g.rect(cx - 2, 175, 24, 5);
+    // Tablier en planches de bois
     g.fill(107, 75, 91);
-    g.rect(cx - 5, 142, 30, 34, 2);
+    g.rect(cx - 5, 139, 30, 36, 2);
     for (let px = cx - 3; px < cx + 23; px += 4) {
-      g.fill((px % 8 === 0) ? g.color(206, 160, 114) : g.color(222, 178, 130));
-      g.rect(px, 144, 3, 30);
+      g.fill((px % 8 === 0) ? g.color(206, 160, 114) : g.color(224, 180, 132));
+      g.rect(px, 141, 3, 32);
     }
-    // Rambardes haut & bas du pont
+    // Rambardes haut & bas + 4 poteaux d'angle sculptés
     g.fill(107, 75, 91);
-    g.rect(cx - 5, 140, 30, 4);
-    g.rect(cx - 5, 173, 30, 4);
-    g.fill(176, 128, 88);
-    g.rect(cx - 4, 141, 28, 2);
-    g.rect(cx - 4, 174, 28, 2);
+    g.rect(cx - 5, 137, 30, 4);
+    g.rect(cx - 5, 172, 30, 4);
+    g.fill(182, 134, 92);
+    g.rect(cx - 4, 138, 28, 2);
+    g.rect(cx - 4, 173, 28, 2);
+    for (const [bx, by] of [[cx - 6, 135], [cx + 21, 135], [cx - 6, 170], [cx + 21, 170]]) {
+      g.fill(107, 75, 91);
+      g.rect(bx, by, 5, 7, 1);
+      g.fill(236, 198, 148);
+      g.rect(bx + 1, by + 1, 3, 5);
+    }
     g.pop();
   }
 
