@@ -243,7 +243,7 @@ class DerbyBunny extends Vehicle {
     const col = this.dead ? 0 : Math.floor(frameCount / 6) % 4;
     const row = this.dead ? 3 : 1; // row 1 = hop, row 3 = sit_and_rest
     const img = this.assets.getSheetFrame(
-      'sprites/bunny/bunny_' + this.colour + '.png',
+      'characters/animals/bunnies/bunny_' + this.colour + '.png',
       32,
       32,
       col,
@@ -288,7 +288,7 @@ class DerbyBunny extends Vehicle {
 
     // Couronne dorée au-dessus du lapin en tête !
     if (isLeader && !this.dead) {
-      const crown = this.assets.getImage('generated/derby/crown.png');
+      const crown = this.assets.getImage('minigames/derby/crown.png');
       if (crown) {
         g.image(crown, px - Math.floor(crown.width / 2), py - 18);
       }

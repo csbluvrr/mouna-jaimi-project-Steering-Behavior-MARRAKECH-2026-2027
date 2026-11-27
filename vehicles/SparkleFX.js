@@ -48,9 +48,9 @@ class SparkleFX extends Vehicle {
       g.fill(red(c), green(c), blue(c), alpha);
       g.text(this.label, Math.round(this.pos.x), Math.round(this.pos.y));
     } else if (this.kind === 'confetti') {
-      const sheet = assets.getImage('generated/fx/confetti_6colors_3x3.png');
+      const sheet = assets.getImage('fx/confetti_6colors_3x3.png');
       if (sheet) {
-        const frame = assets.getSheetFrame('generated/fx/confetti_6colors_3x3.png', 3, 3, this.confettiIdx, 0);
+        const frame = assets.getSheetFrame('fx/confetti_6colors_3x3.png', 3, 3, this.confettiIdx, 0);
         if (frame) g.image(frame, Math.round(this.pos.x), Math.round(this.pos.y));
       } else {
         g.noStroke();
@@ -59,7 +59,7 @@ class SparkleFX extends Vehicle {
       }
     } else {
       const frameIdx = Math.min(3, Math.floor((1 - this.life / this.maxLife) * 4));
-      const frame = assets.getSheetFrame('generated/fx/sparkle_4frames_9x9.png', 9, 9, frameIdx, 0);
+      const frame = assets.getSheetFrame('fx/sparkle_4frames_9x9.png', 9, 9, frameIdx, 0);
       if (frame) {
         g.image(frame, Math.round(this.pos.x) - 4, Math.round(this.pos.y) - 4);
       }

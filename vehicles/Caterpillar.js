@@ -216,7 +216,7 @@ class Caterpillar extends Vehicle {
       g.circle(px, py, 22 + Math.sin(frameCount * 0.3) * 2);
     }
 
-    const headImg = this.assets.getImage('generated/pokemon/onix_head.png');
+    const headImg = this.assets.getImage('minigames/pokemoo/onix_head.png');
     g.push();
     g.translate(px, py);
     if (this.vel.x < -0.1) {

@@ -50,7 +50,7 @@ class Projectile extends Vehicle {
   }
 
   show(g) {
-    const zBase = 'Legend_of_Zink_Asset_Pack/Legend_of_Zink_Asset_Pack/';
+    const zBase = 'minigames/legend_of_moo/zelda/';
     const img = this.assets
       ? this.assets.getImage(
           this.owner === 'moo'

@@ -178,7 +178,7 @@ class Moo extends Vehicle {
     if (typeof CosmeticCatalog !== 'undefined') {
       CosmeticCatalog.drawMooWithOutfit(g, this.assets, activeOutfit, drawX, drawY, col, this.dir, 1);
     } else {
-      const img = this.assets.getSheetFrame('sprites/moo/better sprite.png', 32, 40, col, this.dir);
+      const img = this.assets.getSheetFrame('characters/moo/moo_main.png', 32, 40, col, this.dir);
       if (img) g.image(img, drawX, drawY);
     }
 

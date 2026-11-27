@@ -380,11 +380,11 @@ class DucklingScene extends Scene {
     g.rect(this.pond.x - this.pond.rx + 2, this.pond.y - 10, 2, 3);
 
     const frogCol = Math.floor(t / 10) % 14;
-    const frogImg = this.game.assets.getSheetFrame('sprites/ambient/frog_sheet.png', 16, 16, frogCol, 2);
+    const frogImg = this.game.assets.getSheetFrame('characters/animals/ambient/frog_sheet.png', 16, 16, frogCol, 2);
     if (frogImg) g.image(frogImg, this.pond.x - this.pond.rx - 10, this.pond.y + 4, 14, 14);
 
     const beeCol = Math.floor(t / 5) % 8;
-    const beeImg = this.game.assets.getSheetFrame('sprites/ambient/bee_small_sheet.png', 16, 16, beeCol, 0);
+    const beeImg = this.game.assets.getSheetFrame('characters/animals/ambient/bee_small_sheet.png', 16, 16, beeCol, 0);
     if (beeImg) {
       g.image(beeImg, Math.round(76 + Math.cos(t * 0.04) * 18), Math.round(64 + Math.sin(t * 0.07) * 8), 11, 11);
       g.image(beeImg, Math.round(256 + Math.cos(t * 0.035 + 2) * 20), Math.round(224 + Math.sin(t * 0.06 + 1) * 7), 11, 11);

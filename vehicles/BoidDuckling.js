@@ -184,7 +184,7 @@ class BoidDuckling extends Vehicle {
     const moving = this.vel.magSq() > 0.02;
     const col = moving ? Math.floor(frameCount / 7 + this.hopPhase) % 4 : 0;
 
-    // Pompompurin (generated/purin/pompompurin_sheet.png : 4x6 cellules 32x32)
+    // Pompompurin (minigames/purins/pompompurin_sheet.png : 4x6 cellules 32x32)
     // row 0 = face, row 1 = droite, row 2 = dos, row 3 = gauche, row 5 = joyeux dans la ferme
     let row = 0;
     if (this.mode === 'IN_PEN') {
@@ -197,7 +197,7 @@ class BoidDuckling extends Vehicle {
       }
     }
 
-    const img = this.assets.getSheetFrame('generated/purin/pompompurin_sheet.png', 32, 32, col, row);
+    const img = this.assets.getSheetFrame('minigames/purins/pompompurin_sheet.png', 32, 32, col, row);
 
     const hop = this.mode === 'IN_PEN'
       ? Math.abs(Math.sin(frameCount * 0.16 + this.hopPhase)) * -3.5

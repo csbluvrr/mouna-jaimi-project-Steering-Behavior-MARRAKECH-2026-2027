@@ -297,7 +297,7 @@ class FoxScene extends Scene {
   draw(g) {
     const assets = this.game.assets;
     const font = assets.font;
-    const zBase = 'Legend_of_Zink_Asset_Pack/Legend_of_Zink_Asset_Pack/';
+    const zBase = 'minigames/legend_of_moo/zelda/';
 
     // 1. Ciel Zelda + Temple d'Hyrule en arrière-plan
     const skyMood = this.game.save && this.game.save.data.skyMood === 'sunset' ? 'sunset' : 'day';
@@ -508,7 +508,7 @@ class FoxScene extends Scene {
     g.pop();
 
     if (this.fox.isKO) {
-      const star = assets.getImage('generated/fx/dizzy_star.png');
+      const star = assets.getImage('fx/dizzy_star.png');
       for (let i = 0; i < 3; i++) {
         const a = frameCount * 0.1 + (TWO_PI * i) / 3;
         if (star) g.image(star, Math.round(px + Math.cos(a) * 11) - 4, Math.round(py - 18 + Math.sin(a) * 4) - 4);
@@ -523,7 +523,7 @@ class FoxScene extends Scene {
     PixelUI.panel(g, 8, 5, 134, 16);
     PixelUI.txt(g, font, 'MOO', 14, 8, g.color(107, 75, 91), LEFT, 8.5);
     const heartFrame = (Math.floor(frameCount / 14) % 4) + 1;
-    const heartImg = this.game.assets.getImage('ui/Icon & Menu/Icon & Menu/Heart HP/heart idle' + heartFrame + '.png');
+    const heartImg = this.game.assets.getImage('ui/book_menu/heart_hp/heart idle' + heartFrame + '.png');
     for (let i = 0; i < this.mooMaxHp; i++) {
       if (i < this.mooHp && heartImg) {
         g.image(heartImg, 44 + i * 16, 6, 13, 13);

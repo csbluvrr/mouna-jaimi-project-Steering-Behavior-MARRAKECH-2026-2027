@@ -32,7 +32,7 @@ class HubButterfly extends Vehicle {
 
   show(g) {
     const col = Math.floor(frameCount / 6 + this.phase) % 2;
-    const img = this.assets.getSheetFrame('generated/ambient/butterfly_2frames_12x10.png', 12, 10, col, 0);
+    const img = this.assets.getSheetFrame('characters/animals/ambient/butterfly_2frames_12x10.png', 12, 10, col, 0);
     if (img) {
       const bob = Math.sin(frameCount * 0.12 + this.phase) * 1.5;
       g.image(img, Math.round(this.pos.x) - 6, Math.round(this.pos.y + bob) - 5);

@@ -1,7 +1,7 @@
 /**
  * Catalogue officiel des cosmétiques de Moo's Funfair (18 cosmétiques + 7 hoodies).
  * Tous les cosmétiques sont des spritesheets 128x160 (4x4 cellules 32x40) alignées
- * frame par frame sur sprites/moo/better sprite.png :
+ * frame par frame sur characters/moo/moo_main.png :
  * - Ordre de rendu strict : behind -> Moo (hoodie) -> over (back, neck, face, head).
  * - Un seul objet équipé par emplacement (head, face, neck, back, hoodie).
  */
@@ -16,26 +16,26 @@ class CosmeticCatalog {
 
   static ITEMS = [
     // --- HEAD (9) ---
-    { id: 'party_hat',    slot: 'head', name: 'Party Hat',    price: 15, sheet: 'generated/cosmetics/head/party_hat.png' },
-    { id: 'top_hat',      slot: 'head', name: 'Top Hat',      price: 20, sheet: 'generated/cosmetics/head/top_hat.png' },
-    { id: 'mushroom_cap', slot: 'head', name: 'Mushroom Cap', price: 22, sheet: 'generated/cosmetics/head/mushroom_cap.png' },
-    { id: 'flower_crown', slot: 'head', name: 'Flower Crown', price: 18, sheet: 'generated/cosmetics/head/flower_crown.png' },
-    { id: 'tiny_sprout',  slot: 'head', name: 'Tiny Sprout',  price: 12, sheet: 'generated/cosmetics/head/tiny_sprout.png' },
-    { id: 'big_red_bow',  slot: 'head', name: 'Big Red Bow',  price: 15, sheet: 'generated/cosmetics/head/big_red_bow.png' },
-    { id: 'gold_crown',   slot: 'head', name: 'Gold Crown',   price: 40, sheet: 'generated/cosmetics/head/gold_crown.png' },
-    { id: 'angel_halo',   slot: 'head', name: 'Angel Halo',   price: 35, sheet: 'generated/cosmetics/head/angel_halo.png' },
-    { id: 'headphones',   slot: 'head', name: 'Headphones',   price: 28, sheet: 'generated/cosmetics/head/headphones.png' },
+    { id: 'party_hat',    slot: 'head', name: 'Party Hat',    price: 15, sheet: 'characters/moo/cosmetics/head/party_hat.png' },
+    { id: 'top_hat',      slot: 'head', name: 'Top Hat',      price: 20, sheet: 'characters/moo/cosmetics/head/top_hat.png' },
+    { id: 'mushroom_cap', slot: 'head', name: 'Mushroom Cap', price: 22, sheet: 'characters/moo/cosmetics/head/mushroom_cap.png' },
+    { id: 'flower_crown', slot: 'head', name: 'Flower Crown', price: 18, sheet: 'characters/moo/cosmetics/head/flower_crown.png' },
+    { id: 'tiny_sprout',  slot: 'head', name: 'Tiny Sprout',  price: 12, sheet: 'characters/moo/cosmetics/head/tiny_sprout.png' },
+    { id: 'big_red_bow',  slot: 'head', name: 'Big Red Bow',  price: 15, sheet: 'characters/moo/cosmetics/head/big_red_bow.png' },
+    { id: 'gold_crown',   slot: 'head', name: 'Gold Crown',   price: 40, sheet: 'characters/moo/cosmetics/head/gold_crown.png' },
+    { id: 'angel_halo',   slot: 'head', name: 'Angel Halo',   price: 35, sheet: 'characters/moo/cosmetics/head/angel_halo.png' },
+    { id: 'headphones',   slot: 'head', name: 'Headphones',   price: 28, sheet: 'characters/moo/cosmetics/head/headphones.png' },
 
     // --- FACE (3) ---
-    { id: 'round_glasses',    slot: 'face', name: 'Round Glasses',  price: 18, sheet: 'generated/cosmetics/face/round_glasses.png' },
-    { id: 'heart_sunglasses', slot: 'face', name: 'Heart Shades',   price: 24, sheet: 'generated/cosmetics/face/heart_sunglasses.png' },
-    { id: 'cheek_stars',      slot: 'face', name: 'Cheek Stars',    price: 14, sheet: 'generated/cosmetics/face/cheek_stars.png' },
+    { id: 'round_glasses',    slot: 'face', name: 'Round Glasses',  price: 18, sheet: 'characters/moo/cosmetics/face/round_glasses.png' },
+    { id: 'heart_sunglasses', slot: 'face', name: 'Heart Shades',   price: 24, sheet: 'characters/moo/cosmetics/face/heart_sunglasses.png' },
+    { id: 'cheek_stars',      slot: 'face', name: 'Cheek Stars',    price: 14, sheet: 'characters/moo/cosmetics/face/cheek_stars.png' },
 
     // --- NECK (4) ---
-    { id: 'red_bow_tie', slot: 'neck', name: 'Red Bow Tie', price: 14, sheet: 'generated/cosmetics/neck/red_bow_tie.png' },
-    { id: 'knit_scarf',  slot: 'neck', name: 'Knit Scarf',  price: 20, sheet: 'generated/cosmetics/neck/knit_scarf.png' },
-    { id: 'bell_choker', slot: 'neck', name: 'Bell Choker', price: 16, sheet: 'generated/cosmetics/neck/bell_choker.png' },
-    { id: 'flower_lei',  slot: 'neck', name: 'Flower Lei',  price: 22, sheet: 'generated/cosmetics/neck/flower_lei.png' },
+    { id: 'red_bow_tie', slot: 'neck', name: 'Red Bow Tie', price: 14, sheet: 'characters/moo/cosmetics/neck/red_bow_tie.png' },
+    { id: 'knit_scarf',  slot: 'neck', name: 'Knit Scarf',  price: 20, sheet: 'characters/moo/cosmetics/neck/knit_scarf.png' },
+    { id: 'bell_choker', slot: 'neck', name: 'Bell Choker', price: 16, sheet: 'characters/moo/cosmetics/neck/bell_choker.png' },
+    { id: 'flower_lei',  slot: 'neck', name: 'Flower Lei',  price: 22, sheet: 'characters/moo/cosmetics/neck/flower_lei.png' },
 
     // --- BACK (2 — couche behind + couche over) ---
     {
@@ -43,27 +43,27 @@ class CosmeticCatalog {
       slot: 'back',
       name: 'Green Pack',
       price: 30,
-      sheet: 'generated/cosmetics/back/green_backpack.png',
-      behindSheet: 'generated/cosmetics/back/green_backpack_behind.png'
+      sheet: 'characters/moo/cosmetics/back/green_backpack.png',
+      behindSheet: 'characters/moo/cosmetics/back/green_backpack_behind.png'
     },
     {
       id: 'fairy_wings',
       slot: 'back',
       name: 'Fairy Wings',
       price: 45,
-      sheet: 'generated/cosmetics/back/fairy_wings.png',
-      behindSheet: 'generated/cosmetics/back/fairy_wings_behind.png'
+      sheet: 'characters/moo/cosmetics/back/fairy_wings.png',
+      behindSheet: 'characters/moo/cosmetics/back/fairy_wings_behind.png'
     },
 
     // --- HOODIES (défaut jaune + 7 couleurs de remplacement complet) ---
-    { id: 'default',  slot: 'hoodie', name: 'Sunny Yellow', price: 0,  swatch: [253, 218, 119], sheet: 'sprites/moo/better sprite.png' },
-    { id: 'pink',     slot: 'hoodie', name: 'Pink Hoodie',  price: 20, swatch: [242, 152, 182], sheet: 'generated/cosmetics/hoodies/moo_hoodie_pink.png' },
-    { id: 'mint',     slot: 'hoodie', name: 'Mint Hoodie',  price: 20, swatch: [150, 222, 182], sheet: 'generated/cosmetics/hoodies/moo_hoodie_mint.png' },
-    { id: 'lavender', slot: 'hoodie', name: 'Lavender',     price: 22, swatch: [188, 160, 236], sheet: 'generated/cosmetics/hoodies/moo_hoodie_lavender.png' },
-    { id: 'sky',      slot: 'hoodie', name: 'Sky Blue',     price: 20, swatch: [142, 198, 242], sheet: 'generated/cosmetics/hoodies/moo_hoodie_sky.png' },
-    { id: 'red',      slot: 'hoodie', name: 'Berry Red',    price: 22, swatch: [218, 82, 90],   sheet: 'generated/cosmetics/hoodies/moo_hoodie_red.png' },
-    { id: 'white',    slot: 'hoodie', name: 'Cloud White',  price: 18, swatch: [244, 242, 238], sheet: 'generated/cosmetics/hoodies/moo_hoodie_white.png' },
-    { id: 'black',    slot: 'hoodie', name: 'Midnight',     price: 25, swatch: [68, 62, 74],    sheet: 'generated/cosmetics/hoodies/moo_hoodie_black.png' }
+    { id: 'default',  slot: 'hoodie', name: 'Sunny Yellow', price: 0,  swatch: [253, 218, 119], sheet: 'characters/moo/moo_main.png' },
+    { id: 'pink',     slot: 'hoodie', name: 'Pink Hoodie',  price: 20, swatch: [242, 152, 182], sheet: 'characters/moo/cosmetics/hoodies/moo_hoodie_pink.png' },
+    { id: 'mint',     slot: 'hoodie', name: 'Mint Hoodie',  price: 20, swatch: [150, 222, 182], sheet: 'characters/moo/cosmetics/hoodies/moo_hoodie_mint.png' },
+    { id: 'lavender', slot: 'hoodie', name: 'Lavender',     price: 22, swatch: [188, 160, 236], sheet: 'characters/moo/cosmetics/hoodies/moo_hoodie_lavender.png' },
+    { id: 'sky',      slot: 'hoodie', name: 'Sky Blue',     price: 20, swatch: [142, 198, 242], sheet: 'characters/moo/cosmetics/hoodies/moo_hoodie_sky.png' },
+    { id: 'red',      slot: 'hoodie', name: 'Berry Red',    price: 22, swatch: [218, 82, 90],   sheet: 'characters/moo/cosmetics/hoodies/moo_hoodie_red.png' },
+    { id: 'white',    slot: 'hoodie', name: 'Cloud White',  price: 18, swatch: [244, 242, 238], sheet: 'characters/moo/cosmetics/hoodies/moo_hoodie_white.png' },
+    { id: 'black',    slot: 'hoodie', name: 'Midnight',     price: 25, swatch: [68, 62, 74],    sheet: 'characters/moo/cosmetics/hoodies/moo_hoodie_black.png' }
   ];
 
   static keyFor(slot, id) {
@@ -80,7 +80,7 @@ class CosmeticCatalog {
 
   /** Retourne tous les chemins d'images à précharger dans AssetManager. */
   static getAllAssetPaths() {
-    const paths = ['generated/booths/booth_prize.png'];
+    const paths = ['world/hub/booths/booth_prize.png'];
     for (const it of CosmeticCatalog.ITEMS) {
       if (it.sheet) paths.push(it.sheet);
       if (it.behindSheet) paths.push(it.behindSheet);
@@ -117,7 +117,7 @@ class CosmeticCatalog {
 
     // 2. Couche MOO (spritesheet de base ou hoodie couleur équipé)
     const hoodieItem = CosmeticCatalog.find('hoodie', eq.hoodie || 'default');
-    drawLayer(hoodieItem ? hoodieItem.sheet : 'sprites/moo/better sprite.png');
+    drawLayer(hoodieItem ? hoodieItem.sheet : 'characters/moo/moo_main.png');
 
     // 3. Couches OVER (dos en vue arrière, cou, visage, tête)
     if (backItem && backItem.sheet) drawLayer(backItem.sheet);

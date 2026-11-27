@@ -30,7 +30,7 @@ class GardenFruit extends Vehicle {
     this.headRef = null;
     this.obstaclesRef = [];
 
-    // Coordonnées (col, row) dans items/plants_items.png (grille 16x16)
+    // Coordonnées (col, row) dans world/items/plants_items.png (grille 16x16)
     const spriteMap = {
       berry: [1, 3],      // Baie rouge (+1)
       shy: [3, 10],       // Fruit timide rapide (+2)
@@ -284,7 +284,7 @@ class GardenFruit extends Vehicle {
       row = this.vel.y < 0 ? 1 : 0;
     }
     const col = Math.floor(frameCount / 8 + this.phase) % 2;
-    const scImg = this.assets.getSheetFrame('scorbunny.png', 160, 160, col, row);
+    const scImg = this.assets.getSheetFrame('minigames/pokemoo/scorbunny.png', 160, 160, col, row);
     if (scImg) {
       g.image(scImg, px - 9, py - 11, 18, 18);
     } else {

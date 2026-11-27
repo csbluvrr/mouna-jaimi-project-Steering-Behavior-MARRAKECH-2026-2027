@@ -58,7 +58,7 @@ class PauseMenu {
 
     this.recoloredFrames = {};
     for (let i = 1; i <= 5; i++) {
-      const src = assets.getImage('ui/Icon & Menu/Icon & Menu/Menu/menu swipe animation' + i + '.png');
+      const src = assets.getImage('ui/book_menu/menu/menu swipe animation' + i + '.png');
       if (!src) continue;
       const copy = createImage(src.width, src.height);
       copy.copy(src, 0, 0, src.width, src.height, 0, 0, src.width, src.height);
@@ -343,7 +343,7 @@ class PauseMenu {
 
     const frames = this.ensureRecoloredBookFrames();
     const bookImg = (frames && frames[spriteNum])
-      || (assets ? assets.getImage('ui/Icon & Menu/Icon & Menu/Menu/menu swipe animation' + spriteNum + '.png') : null);
+      || (assets ? assets.getImage('ui/book_menu/menu/menu swipe animation' + spriteNum + '.png') : null);
 
     // Léger rebond vertical à l'ouverture
     const bounceY = this.state === 'OPENING'
@@ -579,7 +579,7 @@ class PauseMenu {
     if (backItem && backItem.behindSheet) drawCropped(backItem.behindSheet);
 
     const hoodieItem = CosmeticCatalog.find('hoodie', eq.hoodie || 'default');
-    drawCropped(hoodieItem ? hoodieItem.sheet : 'sprites/moo/better sprite.png');
+    drawCropped(hoodieItem ? hoodieItem.sheet : 'characters/moo/moo_main.png');
 
     const neckItem = eq.neck ? CosmeticCatalog.find('neck', eq.neck) : null;
     if (neckItem) drawCropped(neckItem.sheet);
@@ -632,7 +632,7 @@ class PauseMenu {
         const won = (save.stars && save.stars[id] > 0);
         const sx = lp.x + 12 + i * 24;
         const sy = lp.y + 140;
-        const stampImg = assets.getSheetFrame('generated/hub/stamp_empty_full_16x16.png', 16, 16, won ? 1 : 0, 0);
+        const stampImg = assets.getSheetFrame('world/hub/props/stamp_empty_full_16x16.png', 16, 16, won ? 1 : 0, 0);
         if (stampImg) {
           g.image(stampImg, sx, sy);
         } else {

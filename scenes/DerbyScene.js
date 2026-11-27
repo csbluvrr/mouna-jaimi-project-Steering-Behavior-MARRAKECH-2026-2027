@@ -100,8 +100,8 @@ class DerbyScene extends Scene {
 
     if (trackId === 'classic') {
       this.meta = this.game.assets.derbyMeta;
-      this.trackImg = this.game.assets.getImage('derby/track_01.png');
-      const maskImg = this.game.assets.getImage('derby/track_01_mask.png');
+      this.trackImg = this.game.assets.getImage('minigames/derby/track_01.png');
+      const maskImg = this.game.assets.getImage('minigames/derby/track_01_mask.png');
       if (maskImg) {
         maskImg.loadPixels();
         this.maskPixels = maskImg.pixels;
@@ -467,7 +467,7 @@ class DerbyScene extends Scene {
       const sy = Math.round(spc.y * scaleY);
       const hop = Math.abs(Math.sin(frameCount * 0.14 + spc.phase)) * -3;
       const frameCol = Math.floor(frameCount / 10 + spc.phase) % 4;
-      const img = assets.getSheetFrame('sprites/bunny/bunny_' + spc.colour + '.png', 32, 32, frameCol, 0);
+      const img = assets.getSheetFrame('characters/animals/bunnies/bunny_' + spc.colour + '.png', 32, 32, frameCol, 0);
       g.push();
       g.translate(sx, Math.round(sy + hop));
       if (spc.facingLeft) g.scale(-1, 1);
@@ -477,7 +477,7 @@ class DerbyScene extends Scene {
 
     // Drapeau de départ/arrivée
     if (this.meta) {
-      const flag = assets.getImage('generated/derby/finish_flag.png');
+      const flag = assets.getImage('minigames/derby/finish_flag.png');
       const [sx, sy] = this.meta.start;
       if (flag) {
         const wave = Math.round(Math.sin(frameCount * 0.12) * 0.7);
@@ -486,7 +486,7 @@ class DerbyScene extends Scene {
     }
 
     // Bottes de foin placées au clic (évitement avoid)
-    const hayImg = assets.getImage('generated/derby/hay_bale.png');
+    const hayImg = assets.getImage('minigames/derby/hay_bale.png');
     for (const obs of this.hayObstacles) {
       const hx = Math.round(obs.pos.x * scaleX);
       const hy = Math.round(obs.pos.y * scaleY);
@@ -852,7 +852,7 @@ class DerbyScene extends Scene {
       PixelUI.panel(g, c.x, c.y, c.w, c.h, bg);
 
       const colName = b ? b.colour : DerbyBunny.COLOURS[c.idx];
-      const sp = assets.getSheetFrame('sprites/bunny/bunny_' + colName + '.png', 32, 32, 0, 0);
+      const sp = assets.getSheetFrame('characters/animals/bunnies/bunny_' + colName + '.png', 32, 32, 0, 0);
       if (sp) g.image(sp, c.x + 2, c.y + 4);
       const bName = b ? b.name : DerbyBunny.NAMES[c.idx];
       PixelUI.txt(g, font, bName, c.x + 34, c.y + 10, sel ? g.color(62, 108, 70) : g.color(107, 75, 91), LEFT, 8, 52);

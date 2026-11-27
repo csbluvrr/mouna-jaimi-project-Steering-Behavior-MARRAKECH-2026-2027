@@ -43,7 +43,7 @@ class TitleScene extends Scene {
   draw(g) {
     const assets = this.game.assets;
     const font = assets.font;
-    const ground = assets.getImage('hub/hub_ground.png');
+    const ground = assets.getImage('world/hub/hub_ground.png');
     const skyMood = this.game.save && this.game.save.data.skyMood === 'sunset' ? 'sunset' : 'day';
     const t = frameCount;
 
@@ -110,7 +110,7 @@ class TitleScene extends Scene {
     drawSp('bush_berry', 432, 196);
 
     const duckFrame = Math.floor(t / 18) % 2;
-    const duckImg = assets.getSheetFrame('sprites/npc/duckling_sheet.png', 16, 16, duckFrame, 0);
+    const duckImg = assets.getSheetFrame('characters/animals/ducklings/duckling_sheet.png', 16, 16, duckFrame, 0);
     if (duckImg) {
       const dx = Math.round(284 + Math.sin(t * 0.015) * 18);
       g.image(duckImg, dx, 222);
@@ -161,7 +161,7 @@ class TitleScene extends Scene {
         2
       );
     } else {
-      const mooImg = assets.getSheetFrame('sprites/moo/better sprite.png', 32, 40, blinkCol, 0);
+      const mooImg = assets.getSheetFrame('characters/moo/moo_main.png', 32, 40, blinkCol, 0);
       if (mooImg) g.image(mooImg, mooX, mooY, 64, 80);
     }
 

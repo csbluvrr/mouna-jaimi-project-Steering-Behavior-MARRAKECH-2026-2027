@@ -316,7 +316,7 @@ class HubScene extends Scene {
   /** Pré-rend les 3 sols du parc dans un style 100% unifié, sans aucun décalage ni chevauchement. */
   buildAllWingGrounds() {
     if (this.westGroundImg && this.plazaGroundImg && this.eastGroundImg) return;
-    const baseGround = this.game.assets.getImage('hub/hub_ground.png');
+    const baseGround = this.game.assets.getImage('world/hub/hub_ground.png');
     const grass = [156, 204, 102];
 
     const makeSection = (section) => {
@@ -707,9 +707,9 @@ class HubScene extends Scene {
     // Nappe de pique-nique + encas pixel-art (picnic_foods.png)
     const blanketSp = assets.getSprite('picnic_blanket');
     if (blanketSp) g.image(blanketSp, 26, 192);
-    const toast = assets.getSheetFrame('decor/picnic_foods.png', 16, 16, 2, 0);
-    const sandwich = assets.getSheetFrame('decor/picnic_foods.png', 16, 16, 6, 0);
-    const onigiri = assets.getSheetFrame('decor/picnic_foods.png', 16, 16, 0, 1);
+    const toast = assets.getSheetFrame('world/decor/picnic_foods.png', 16, 16, 2, 0);
+    const sandwich = assets.getSheetFrame('world/decor/picnic_foods.png', 16, 16, 6, 0);
+    const onigiri = assets.getSheetFrame('world/decor/picnic_foods.png', 16, 16, 0, 1);
     if (toast) g.image(toast, 45, 199, 11, 11);
     if (sandwich) g.image(sandwich, 54, 210, 11, 11);
     if (onigiri) g.image(onigiri, 34, 216, 10, 10);
@@ -764,7 +764,7 @@ class HubScene extends Scene {
     items.push(
       { sortY: this.cottonCartPos.y + this.cottonCartPos.h,  draw: () => this.drawCottonCandyCart(g, font, this.cottonCartPos, nearId === 'cotton_candy') },
       { sortY: this.prizeBoothPos.y + this.prizeBoothPos.h,  draw: () => {
-        const sp = assets.getImage('generated/booths/booth_prize.png');
+        const sp = assets.getImage('world/hub/booths/booth_prize.png');
         if (sp) g.image(sp, this.prizeBoothPos.x, this.prizeBoothPos.y);
         this.drawPrizeBoothDecor(g, this.prizeBoothPos.x, this.prizeBoothPos.y, nearId === 'prize');
       }},
@@ -789,8 +789,8 @@ class HubScene extends Scene {
 
       // Panier pique-nique + amis lapins + chat endormi (scène narrative)
       { sortY: 222, draw: () => { const sp = assets.getSprite('picnic_basket'); if (sp) g.image(sp, 35, 208); } },
-      { sortY: 218, draw: () => { const img = assets.getSheetFrame('sprites/bunny/bunny_lavender.png', 32, 32, 0, 0); if (img) g.image(img, 42, 190); } },
-      { sortY: 220, draw: () => { const img = assets.getSheetFrame('sprites/bunny/bunny_mint.png', 32, 32, 1, 0); if (img) g.image(img, 58, 192); } },
+      { sortY: 218, draw: () => { const img = assets.getSheetFrame('characters/animals/bunnies/bunny_lavender.png', 32, 32, 0, 0); if (img) g.image(img, 42, 190); } },
+      { sortY: 220, draw: () => { const img = assets.getSheetFrame('characters/animals/bunnies/bunny_mint.png', 32, 32, 1, 0); if (img) g.image(img, 58, 192); } },
       { sortY: 222, draw: () => this.drawSleepingCat(g, 86, 214) },
 
       // Chat aux ballons (vrai sprite 'kid_front' 48x48) + ficelles attachées à sa main !
@@ -836,7 +836,7 @@ class HubScene extends Scene {
       { sortY: 224, draw: () => this.drawPondFrog(g, 356, 218) },
       { sortY: 202, draw: () => {
         const cowCol = Math.floor(frameCount / 22) % 3;
-        const cow = assets.getSheetFrame('sprites/ambient/cow_sheet.png', 32, 32, cowCol, 0);
+        const cow = assets.getSheetFrame('characters/animals/ambient/cow_sheet.png', 32, 32, cowCol, 0);
         if (cow) g.image(cow, 438, 174);
       }},
 
@@ -1016,7 +1016,7 @@ class HubScene extends Scene {
     g.pop();
   }
 
-  /** Chariot Barbe à Papa & Douceurs (decor/candy_and_pie.png) — Interactif ! */
+  /** Chariot Barbe à Papa & Douceurs (world/decor/candy_and_pie.png) — Interactif ! */
   drawCottonCandyCart(g, font, c, isNear) {
     const x = c.x;
     const y = c.y;
@@ -1047,10 +1047,10 @@ class HubScene extends Scene {
       g.fill(i % 2 === 0 ? g.color(246, 152, 174) : g.color(252, 244, 218));
       g.rect(x + 3 + i * 7, y + 6, 7, 8);
     }
-    // Vrais bonbons pixel-art (decor/candy_and_pie.png) sur le chariot !
-    const pie = this.game.assets.getSheetFrame('decor/candy_and_pie.png', 16, 16, 0, 0);
-    const candy = this.game.assets.getSheetFrame('decor/candy_and_pie.png', 16, 16, 1, 0);
-    const pop = this.game.assets.getSheetFrame('decor/candy_and_pie.png', 16, 16, 3, 0);
+    // Vrais bonbons pixel-art (world/decor/candy_and_pie.png) sur le chariot !
+    const pie = this.game.assets.getSheetFrame('world/decor/candy_and_pie.png', 16, 16, 0, 0);
+    const candy = this.game.assets.getSheetFrame('world/decor/candy_and_pie.png', 16, 16, 1, 0);
+    const pop = this.game.assets.getSheetFrame('world/decor/candy_and_pie.png', 16, 16, 3, 0);
     if (pie) g.image(pie, x + 8, y + 16, 11, 11);
     if (candy) g.image(candy, x + 19, y + 15, 11, 11);
     if (pop) g.image(pop, x + 30, y + 16, 11, 11);
@@ -1306,7 +1306,7 @@ class HubScene extends Scene {
       g.triangle(x + 25, y + 2, x + 21, y + 7, x + 29, y + 7);
       g.triangle(x + 21, y + 7, x + 18, y + 11, x + 24, y + 11);
       g.triangle(x + 29, y + 7, x + 26, y + 11, x + 32, y + 11);
-      const pot = this.game.assets.getImage('Legend_of_Zink_Asset_Pack/Legend_of_Zink_Asset_Pack/Props/PNG/sprFancyPot.png');
+      const pot = this.game.assets.getImage('minigames/legend_of_moo/zelda/Props/PNG/sprFancyPot.png');
       if (pot) g.image(pot, x + 5, y + 29, 11, 11);
       PixelUI.panel(g, x + 7, y + 43, 36, 10, g.color(248, 236, 198));
       this.drawWorldSign(g, 'LEGEND', x + 25, y + 48, g.color(102, 72, 136));
@@ -1334,8 +1334,8 @@ class HubScene extends Scene {
     g.fill(242, 164, 108); g.rect(x + 36, y + 26, 4, 5, 1);
 
     const giftCol = Math.floor(t / 16) % 4;
-    const redGift = this.game.assets.getSheetFrame('decor/present_red.png', 16, 16, giftCol, 0);
-    const greenGift = this.game.assets.getSheetFrame('decor/present_green.png', 16, 16, (giftCol + 2) % 4, 0);
+    const redGift = this.game.assets.getSheetFrame('world/decor/present_red.png', 16, 16, giftCol, 0);
+    const greenGift = this.game.assets.getSheetFrame('world/decor/present_green.png', 16, 16, (giftCol + 2) % 4, 0);
     if (redGift) g.image(redGift, x - 14, y + 40, 14, 14);
     if (greenGift) g.image(greenGift, x + 49, y + 42, 13, 13);
     g.pop();
@@ -1411,7 +1411,7 @@ class HubScene extends Scene {
   }
 
   drawCherryBlossom(g, x, y, size = 'big') {
-    const img = this.game.assets.getImage('decor/cherry_blossom.png');
+    const img = this.game.assets.getImage('world/decor/cherry_blossom.png');
     if (!img) return;
     if (size === 'big') g.image(img, x, y, 48, 48, 112, 0, 48, 48);
     else if (size === 'med') g.image(img, x, y, 32, 32, 80, 16, 32, 32);
@@ -1451,13 +1451,13 @@ class HubScene extends Scene {
     const cycle = frameCount % 220;
     const row = cycle > 172 ? 4 : 2;
     const col = row === 4 ? Math.min(7, Math.floor((cycle - 172) / 6)) : Math.floor(frameCount / 10) % 14;
-    const img = this.game.assets.getSheetFrame('sprites/ambient/frog_sheet.png', 16, 16, col, row);
+    const img = this.game.assets.getSheetFrame('characters/animals/ambient/frog_sheet.png', 16, 16, col, row);
     if (img) g.image(img, x, y, 14, 14);
   }
 
   drawMeadowDeer(g, x, y) {
     const col = Math.floor(frameCount / 16) % 4;
-    const img = this.game.assets.getSheetFrame('sprites/ambient/deer1_sheet.png', 32, 32, col, 0);
+    const img = this.game.assets.getSheetFrame('characters/animals/ambient/deer1_sheet.png', 32, 32, col, 0);
     if (img) {
       g.push();
       g.translate(x, y);
@@ -1474,7 +1474,7 @@ class HubScene extends Scene {
       { cx: 646,  cy: 206, ph: 3.5 }
     ];
     const col = Math.floor(frameCount / 5) % 8;
-    const img = this.game.assets.getSheetFrame('sprites/ambient/bee_small_sheet.png', 16, 16, col, 0);
+    const img = this.game.assets.getSheetFrame('characters/animals/ambient/bee_small_sheet.png', 16, 16, col, 0);
     if (!img) return;
     for (const s of spots) {
       const bx = Math.round(s.cx + Math.cos(frameCount * 0.045 + s.ph) * 14);
@@ -1504,7 +1504,7 @@ class HubScene extends Scene {
 
   drawPerchedBird(g, x, y) {
     const col = Math.floor(frameCount / 18) % 4;
-    const img = this.game.assets.getSheetFrame('sprites/ambient/bird_sheet.png', 16, 16, col, 0);
+    const img = this.game.assets.getSheetFrame('characters/animals/ambient/bird_sheet.png', 16, 16, col, 0);
     if (img) g.image(img, x - 4, y - 9, 14, 14);
   }
 

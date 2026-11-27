@@ -17,19 +17,19 @@ class PowerUp extends Vehicle {
     const py = Math.round(this.pos.y + Math.sin(frameCount * 0.1 + this.phase) * 1.8);
 
     const ringFile = Math.floor(frameCount / 16) % 2 === 0
-      ? 'generated/fox/pickup_ring_0.png'
-      : 'generated/fox/pickup_ring_1.png';
+      ? 'minigames/legend_of_moo/legacy_fox/pickup_ring_0.png'
+      : 'minigames/legend_of_moo/legacy_fox/pickup_ring_1.png';
     const ring = this.assets.getImage(ringFile);
     if (ring) g.image(ring, px - Math.floor(ring.width / 2), py - Math.floor(ring.height / 2));
 
     // Sprites Zelda (Legend_of_Zink_Asset_Pack) pour Shield / Triple Magic / Heal Potion
-    const zBase = 'Legend_of_Zink_Asset_Pack/Legend_of_Zink_Asset_Pack/Collectables/PNG/';
+    const zBase = 'minigames/legend_of_moo/zelda/Collectables/PNG/';
     const mapZ = {
       shield: zBase + 'sprHeartContainer.png',
       triple: zBase + 'sprMagicPotion.png',
       heal:   zBase + 'sprHealthPotion.png'
     };
-    const icon = this.assets.getImage(mapZ[this.type]) || this.assets.getImage('generated/fox/powerup_' + this.type + '.png');
+    const icon = this.assets.getImage(mapZ[this.type]) || this.assets.getImage('minigames/legend_of_moo/legacy_fox/powerup_' + this.type + '.png');
     if (icon) {
       g.image(icon, px - 8, py - 8, 16, 16);
     }

@@ -3,7 +3,7 @@
  * Utilise une unique constante ASSET_BASE pointant vers le pack existant,
  * sans dupliquer les fichiers sur le disque.
  */
-const ASSET_BASE = 'ressources projet/moo_s_funfair_assets/bunny_funfair_assets/';
+const ASSET_BASE = 'assets/';
 
 class AssetManager {
   constructor() {
@@ -31,61 +31,61 @@ class AssetManager {
     });
 
     this.pending++;
-    loadJSON(this.base + 'hub/hub_layout.json', (data) => {
+    loadJSON(this.base + 'world/hub/hub_layout.json', (data) => {
       this.hubLayout = data;
 
       // Sol pré-rendu du hub
-      this.loadImageKey('hub/hub_ground.png');
+      this.loadImageKey('world/hub/hub_ground.png');
 
       // Tous les sprites référencés par hub_layout.json
       const files = new Set(Object.values(data.sprites).map((s) => s.file));
       data.friends.forEach((f) => files.add(f.sheet));
 
       // Personnages & éléments d'ambiance du hub + écran titre
-      files.add('sprites/moo/better sprite.png');
-      files.add('sprites/ducklings/duckling_sheet.png');
-      files.add('sprites/npc/kid_4dir_sheet.png');
-      files.add('generated/ambient/butterfly_2frames_12x10.png');
-      files.add('generated/hub/stamp_empty_full_16x16.png');
+      files.add('characters/moo/moo_main.png');
+      files.add('characters/animals/ducklings/duckling_sheet.png');
+      files.add('characters/npcs/kid/kid_4dir_sheet.png');
+      files.add('characters/animals/ambient/butterfly_2frames_12x10.png');
+      files.add('world/hub/props/stamp_empty_full_16x16.png');
 
       // Nouveaux assets NPC, Mr. Carrot, Nouveau Lapin, Nouveau Renard & Tiny Neighbours Vol1
-      files.add('FREE SAMPLE NPC Characters by antarcticbees/girl1_idle.png');
-      files.add('mr.carrot by caoduy/carrot sprite sheet.png');
-      files.add('Bunny/Bunny 1 16x16 animation.png');
-      files.add('Fox Sprite Sheet.png');
+      files.add('characters/npcs/girl/girl1_idle.png');
+      files.add('characters/npcs/mr_carrot/carrot_sheet.png');
+      files.add('characters/animals/bunnies/bunny_anim.png');
+      files.add('characters/animals/fox/fox_new_sheet.png');
       for (let i = 1; i <= 15; i++) {
-        files.add('Tiny Neighbours Vol1/NPC_' + i + '.png');
+        files.add('characters/npcs/tiny_neighbours/NPC_' + i + '.png');
       }
       ['Heart', 'Happy', 'Star', 'Exclamation', 'Surprised', 'Interrogation'].forEach((em) => {
-        files.add('Tiny Neighbours Vol1/Emotes/' + em + '_emote_16x16.png');
+        files.add('characters/npcs/tiny_neighbours/emotes/' + em + '_emote_16x16.png');
       });
 
       // Décors & faune Sprout Lands / Minifolks (cerisiers, cadeaux, bonbons, pique-nique, grenouille, abeilles, cerf, oiseau)
-      files.add('decor/cherry_blossom.png');
-      files.add('decor/candy_and_pie.png');
-      files.add('decor/present_red.png');
-      files.add('decor/present_green.png');
-      files.add('decor/picnic_foods.png');
-      files.add('sprites/ambient/bird_sheet.png');
-      files.add('sprites/ambient/bee_small_sheet.png');
-      files.add('sprites/ambient/frog_sheet.png');
-      files.add('sprites/ambient/deer1_sheet.png');
+      files.add('world/decor/cherry_blossom.png');
+      files.add('world/decor/candy_and_pie.png');
+      files.add('world/decor/present_red.png');
+      files.add('world/decor/present_green.png');
+      files.add('world/decor/picnic_foods.png');
+      files.add('characters/animals/ambient/bird_sheet.png');
+      files.add('characters/animals/ambient/bee_small_sheet.png');
+      files.add('characters/animals/ambient/frog_sheet.png');
+      files.add('characters/animals/ambient/deer1_sheet.png');
       for (let h = 1; h <= 4; h++) {
-        files.add('ui/Icon & Menu/Icon & Menu/Heart HP/heart idle' + h + '.png');
+        files.add('ui/book_menu/heart_hp/heart idle' + h + '.png');
       }
 
       // Nouveaux assets PokéMoo Feast!! (Onix, Scorbunny, Gengar)
-      files.add('generated/pokemon/onix_head.png');
-      files.add('generated/pokemon/onix_rock.png');
-      files.add('generated/pokemon/onix_tail.png');
-      files.add('scorbunny.png');
-      files.add('gengar.png');
+      files.add('minigames/pokemoo/onix_head.png');
+      files.add('minigames/pokemoo/onix_rock.png');
+      files.add('minigames/pokemoo/onix_tail.png');
+      files.add('minigames/pokemoo/scorbunny.png');
+      files.add('minigames/pokemoo/gengar.png');
 
       // Nouveaux assets Catch the Purins! (Pompompurin transparent)
-      files.add('generated/purin/pompompurin_sheet.png');
+      files.add('minigames/purins/pompompurin_sheet.png');
 
       // Nouveaux assets The Legend of Moo (Legend_of_Zink_Asset_Pack)
-      const zBase = 'Legend_of_Zink_Asset_Pack/Legend_of_Zink_Asset_Pack/';
+      const zBase = 'minigames/legend_of_moo/zelda/';
       files.add(zBase + 'Enemies/PNG/sprFireCultistE.png');
       files.add(zBase + 'Enemies/PNG/sprFireCultistW.png');
       files.add(zBase + 'Enemies/PNG/sprFireBall.png');
@@ -101,42 +101,42 @@ class AssetManager {
 
       // Ressources Caterpillar Crawl (Snake) + effets communs
       ['green', 'pink', 'blue', 'gold'].forEach((col) => {
-        files.add('generated/snake/caterpillar_head_' + col + '.png');
-        files.add('generated/snake/caterpillar_body_' + col + '.png');
-        files.add('generated/snake/caterpillar_tail_' + col + '.png');
+        files.add('minigames/pokemoo/legacy_caterpillar/caterpillar_head_' + col + '.png');
+        files.add('minigames/pokemoo/legacy_caterpillar/caterpillar_body_' + col + '.png');
+        files.add('minigames/pokemoo/legacy_caterpillar/caterpillar_tail_' + col + '.png');
       });
-      files.add('items/plants_items.png');
-      files.add('generated/fx/sparkle_4frames_9x9.png');
-      files.add('generated/fx/confetti_6colors_3x3.png');
-      files.add('generated/fx/dizzy_star.png');
+      files.add('world/items/plants_items.png');
+      files.add('fx/sparkle_4frames_9x9.png');
+      files.add('fx/confetti_6colors_3x3.png');
+      files.add('fx/dizzy_star.png');
 
       // Ressources Duckling Herder
-      files.add('generated/ducklings/goose_2frames_30x28.png');
-      files.add('generated/ducklings/pen_sign.png');
+      files.add('minigames/purins/goose_2frames_30x28.png');
+      files.add('minigames/purins/pen_sign.png');
 
       // Ressources Bunny Derby (circuit + 8 lapins + drapeau/couronne/foin)
-      files.add('derby/track_01.png');
-      files.add('derby/track_01_mask.png');
-      files.add('generated/derby/crown.png');
-      files.add('generated/derby/finish_flag.png');
-      files.add('generated/derby/hay_bale.png');
+      files.add('minigames/derby/track_01.png');
+      files.add('minigames/derby/track_01_mask.png');
+      files.add('minigames/derby/crown.png');
+      files.add('minigames/derby/finish_flag.png');
+      files.add('minigames/derby/hay_bale.png');
       ['snow', 'peach', 'butter', 'mint', 'lavender', 'sky', 'caramel', 'smoke'].forEach((c) => {
-        files.add('sprites/bunny/bunny_' + c + '.png');
+        files.add('characters/animals/bunnies/bunny_' + c + '.png');
       });
 
       // Ressources Fox Showdown
-      files.add('sprites/fox/fox_sheet.png');
-      files.add('generated/fox/projectile_acorn.png');
-      files.add('generated/fox/projectile_carrot.png');
-      files.add('generated/fox/powerup_shield.png');
-      files.add('generated/fox/powerup_triple.png');
-      files.add('generated/fox/powerup_heal.png');
-      files.add('generated/fox/pickup_ring_0.png');
-      files.add('generated/fox/pickup_ring_1.png');
+      files.add('characters/animals/fox/fox_sheet.png');
+      files.add('minigames/legend_of_moo/legacy_fox/projectile_acorn.png');
+      files.add('minigames/legend_of_moo/legacy_fox/projectile_carrot.png');
+      files.add('minigames/legend_of_moo/legacy_fox/powerup_shield.png');
+      files.add('minigames/legend_of_moo/legacy_fox/powerup_triple.png');
+      files.add('minigames/legend_of_moo/legacy_fox/powerup_heal.png');
+      files.add('minigames/legend_of_moo/legacy_fox/pickup_ring_0.png');
+      files.add('minigames/legend_of_moo/legacy_fox/pickup_ring_1.png');
 
       // Animation du livre de menu (ouverture / fermeture / pages)
       for (let i = 1; i <= 5; i++) {
-        files.add('ui/Icon & Menu/Icon & Menu/Menu/menu swipe animation' + i + '.png');
+        files.add('ui/book_menu/menu/menu swipe animation' + i + '.png');
       }
 
       // Stand Prize Booth + 18 cosmétiques + 7 hoodies de Moo
@@ -164,7 +164,7 @@ class AssetManager {
 
     // Métadonnées du circuit Bunny Derby (checkpoints ordonnés & départ)
     this.pending++;
-    loadJSON(this.base + 'derby/track_01_meta.json', (meta) => {
+    loadJSON(this.base + 'minigames/derby/track_01_meta.json', (meta) => {
       this.derbyMeta = meta;
       this.checkDone();
     }, () => this.checkDone());

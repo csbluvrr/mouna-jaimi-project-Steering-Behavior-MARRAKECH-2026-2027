@@ -71,7 +71,7 @@ class GardenPredator extends Vehicle {
       row = this.vel.y < 0 ? 3 : 0;
     }
     const col = Math.floor(frameCount / 7 + this.phase) % 4;
-    const gImg = this.assets ? this.assets.getSheetFrame('gengar.png', 64, 64, col, row) : null;
+    const gImg = this.assets ? this.assets.getSheetFrame('minigames/pokemoo/gengar.png', 64, 64, col, row) : null;
     const floatY = Math.round(Math.sin(frameCount * 0.14 + this.phase) * 1.5);
     if (gImg) {
       g.image(gImg, px - 12, py - 13 + floatY, 24, 24);

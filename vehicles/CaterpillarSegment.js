@@ -38,8 +38,8 @@ class CaterpillarSegment extends Vehicle {
 
   show(g, colorName = 'green') {
     const file = this.isTail
-      ? 'generated/pokemon/onix_tail.png'
-      : 'generated/pokemon/onix_rock.png';
+      ? 'minigames/pokemoo/onix_tail.png'
+      : 'minigames/pokemoo/onix_rock.png';
     const img = this.assets.getImage(file);
 
     const wiggle = Math.sin(frameCount * 0.2 - this.index * 0.65) * 0.6;

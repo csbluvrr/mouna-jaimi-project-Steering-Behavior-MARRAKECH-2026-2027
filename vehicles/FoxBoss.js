@@ -143,7 +143,7 @@ class FoxBoss extends Vehicle {
   }
 
   show(g) {
-    // Nouveau spritesheet Fox Sprite Sheet.png (448x224 = 14x7 cellules 32x32) :
+    // Nouveau spritesheet characters/animals/fox/fox_new_sheet.png (448x224 = 14x7 cellules 32x32) :
     // row 0 = repos (5f), row 2 = course (8f), row 3 = bond/lancer (11f), row 4 = surpris/touché (5f), row 5 = sieste KO (6f)
     let row = 0;
     let col = Math.floor(frameCount / 8) % 5;
@@ -161,7 +161,7 @@ class FoxBoss extends Vehicle {
       col = Math.floor(frameCount / 5) % 8;
     }
 
-    const img = this.assets.getSheetFrame('Fox Sprite Sheet.png', 32, 32, col, row);
+    const img = this.assets.getSheetFrame('characters/animals/fox/fox_new_sheet.png', 32, 32, col, row);
     const px = Math.round(this.pos.x);
     const py = Math.round(this.pos.y);
 
@@ -188,7 +188,7 @@ class FoxBoss extends Vehicle {
 
     // Étoiles étourdies au-dessus du renard vaincu (pas de violence, ton cozy !)
     if (this.isKO) {
-      const star = this.assets.getImage('generated/fx/dizzy_star.png');
+      const star = this.assets.getImage('fx/dizzy_star.png');
       for (let i = 0; i < 3; i++) {
         const a = frameCount * 0.1 + (TWO_PI * i) / 3;
         const sx = Math.round(px + Math.cos(a) * 11);

@@ -27,7 +27,7 @@ class HubDuckling extends Vehicle {
   show(g) {
     const moving = this.vel.magSq() > 0.01;
     const col = moving ? 1 + (Math.floor(frameCount / 8) % 3) : 0;
-    const img = this.assets.getSheetFrame('sprites/ducklings/duckling_sheet.png', 16, 16, col, 1);
+    const img = this.assets.getSheetFrame('characters/animals/ducklings/duckling_sheet.png', 16, 16, col, 1);
     if (img) {
       g.push();
       g.translate(Math.round(this.pos.x), Math.round(this.pos.y) - 15);

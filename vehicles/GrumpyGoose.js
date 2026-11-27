@@ -50,7 +50,7 @@ class GrumpyGoose extends Vehicle {
 
   show(g) {
     const col = Math.floor(frameCount / 12) % 2;
-    const img = this.assets.getSheetFrame('generated/ducklings/goose_2frames_30x28.png', 30, 28, col, 0);
+    const img = this.assets.getSheetFrame('minigames/purins/goose_2frames_30x28.png', 30, 28, col, 0);
 
     g.push();
     g.translate(Math.round(this.pos.x), Math.round(this.pos.y));

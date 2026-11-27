@@ -167,34 +167,34 @@ class FairVisitor extends Vehicle {
       const row = 1 + (this.tone % 3) * 4 + (dirMap[this.dirRow] || 0);
       const colBase = moving ? 4 : 0;
       const col = colBase + (Math.floor(frameCount / (moving ? 8 : 14) + this.phase) % 4);
-      const sheet = 'Tiny Neighbours Vol1/NPC_' + this.npcId + '.png';
+      const sheet = 'characters/npcs/tiny_neighbours/NPC_' + this.npcId + '.png';
       const img = this.assets.getSheetFrame(sheet, 16, 16, col, row);
       if (img) g.image(img, -10, -21, 20, 20);
     } else if (this.kind === 'carrot') {
       const row = moving ? 2 : 1;
       const col = Math.floor(frameCount / 7 + this.phase) % (moving ? 7 : 6);
-      const img = this.assets.getSheetFrame('mr.carrot by caoduy/carrot sprite sheet.png', 32, 32, col, row);
+      const img = this.assets.getSheetFrame('characters/npcs/mr_carrot/carrot_sheet.png', 32, 32, col, row);
       if (this.facingLeft) g.scale(-1, 1);
       if (img) g.image(img, -16, -30);
     } else if (this.kind === 'girl') {
-      const img = this.assets.getImage('FREE SAMPLE NPC Characters by antarcticbees/girl1_idle.png');
+      const img = this.assets.getImage('characters/npcs/girl/girl1_idle.png');
       const bob = Math.round(Math.sin(frameCount * 0.08 + this.phase) * 0.8);
       if (this.facingLeft) g.scale(-1, 1);
       if (img) g.image(img, -16, -30 + bob);
     } else if (this.kind === 'new_bunny') {
       const row = moving ? (this.facingLeft ? 5 : 4) : 0;
       const col = Math.floor(frameCount / 6 + this.phase) % (moving ? 6 : 8);
-      const img = this.assets.getSheetFrame('Bunny/Bunny 1 16x16 animation.png', 32, 32, col, row);
+      const img = this.assets.getSheetFrame('characters/animals/bunnies/bunny_anim.png', 32, 32, col, row);
       if (img) g.image(img, -16, -24);
     } else if (this.kind === 'fox_nap') {
       const row = this.showBubble ? 0 : 5;
       const col = Math.floor(frameCount / 12 + this.phase) % (this.showBubble ? 5 : 6);
-      const img = this.assets.getSheetFrame('Fox Sprite Sheet.png', 32, 32, col, row);
+      const img = this.assets.getSheetFrame('characters/animals/fox/fox_new_sheet.png', 32, 32, col, row);
       if (this.facingLeft) g.scale(-1, 1);
       if (img) g.image(img, -16, -26);
     } else {
       const col = moving ? Math.floor(frameCount / 9 + this.phase) % 4 : 0;
-      const img = this.assets.getSheetFrame('sprites/npc/kid_4dir_sheet.png', 48, 48, col, this.dirRow);
+      const img = this.assets.getSheetFrame('characters/npcs/kid/kid_4dir_sheet.png', 48, 48, col, this.dirRow);
       if (img) g.image(img, -24, -32);
     }
 
@@ -205,7 +205,7 @@ class FairVisitor extends Vehicle {
     const activeEmote = this.showBubble ? this.emote : (this.routineState === 'CHAT' ? this.chatEmote : null);
     if (activeEmote) {
       const emFrame = Math.min(3, Math.floor(this.emoteTimer / 4));
-      const emPath = 'Tiny Neighbours Vol1/Emotes/' + activeEmote + '_emote_16x16.png';
+      const emPath = 'characters/npcs/tiny_neighbours/emotes/' + activeEmote + '_emote_16x16.png';
       const emImg = this.assets.getSheetFrame(emPath, 16, 16, emFrame, 0);
       if (emImg) {
         g.image(emImg, px - 8, py - 35 + Math.round(bob));
