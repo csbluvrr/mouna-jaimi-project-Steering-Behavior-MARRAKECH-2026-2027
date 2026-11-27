@@ -393,12 +393,18 @@ class FoxScene extends Scene {
         g.image(floorImg, fx, this.groundY + 4, 16, 16);
       }
     }
-    // Vases antiques Zelda décoratifs aux bords du temple
+    // Vases antiques Zelda décoratifs + brasiers animés (Tiny Swords Fire_01) aux bords du temple
     const fancyPot = assets.getImage(zBase + 'Props/PNG/sprFancyPot.png');
     const bluePot = assets.getImage(zBase + 'Props/PNG/sprBluePot.png');
+    const fireCol = Math.floor(frameCount / 5) % 8;
+    const fireImg = assets.getSheetFrame('packs/tiny_swords/fx/Fire_01.png', 64, 64, fireCol, 0);
     if (fancyPot) {
       g.image(fancyPot, 8, this.groundY - 15, 16, 16);
       g.image(fancyPot, 456, this.groundY - 15, 16, 16);
+    }
+    if (fireImg) {
+      g.image(fireImg, 4, this.groundY - 34, 24, 24);
+      g.image(fireImg, 452, this.groundY - 34, 24, 24);
     }
     if (bluePot) {
       g.image(bluePot, 24, this.groundY - 14, 14, 14);

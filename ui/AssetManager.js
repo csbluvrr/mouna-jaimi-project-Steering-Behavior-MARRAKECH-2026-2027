@@ -44,12 +44,11 @@ class AssetManager {
       // Personnages & éléments d'ambiance du hub + écran titre
       files.add('characters/moo/moo_main.png');
       files.add('characters/animals/ducklings/duckling_sheet.png');
-      files.add('characters/npcs/kid/kid_4dir_sheet.png');
+      files.add('characters/npcs/catboy/kid_4dir_sheet.png');
       files.add('characters/animals/ambient/butterfly_2frames_12x10.png');
       files.add('world/hub/props/stamp_empty_full_16x16.png');
 
       // Nouveaux assets NPC, Mr. Carrot, Nouveau Lapin, Nouveau Renard & Tiny Neighbours Vol1
-      files.add('characters/npcs/girl/girl1_idle.png');
       files.add('characters/npcs/mr_carrot/carrot_sheet.png');
       files.add('characters/animals/bunnies/bunny_anim.png');
       files.add('characters/animals/fox/fox_new_sheet.png');
@@ -59,6 +58,16 @@ class AssetManager {
       ['Heart', 'Happy', 'Star', 'Exclamation', 'Surprised', 'Interrogation'].forEach((em) => {
         files.add('characters/npcs/tiny_neighbours/emotes/' + em + '_emote_16x16.png');
       });
+
+      // Nouveaux invités crossover du Hub (Deltarune, OneShot, Hollow Knight, Zelda, One Piece)
+      ['kris_walk', 'ralsei_walk', 'susie_walk', 'niko_walk', 'knight_walk', 'link_walk', 'luffy', 'zoro', 'chopper'].forEach((gName) => {
+        files.add('characters/npcs/guests/' + gName + '.png');
+      });
+
+      // Sélection utile du pack Tiny Swords (moutons animés, canard de bain, flammes de temple)
+      files.add('packs/tiny_swords/terrain/Resources/Meat/Sheep/Sheep_Grass.png');
+      files.add('packs/tiny_swords/terrain/Decorations/Rubber Duck/Rubber duck.png');
+      files.add('packs/tiny_swords/fx/Fire_01.png');
 
       // Décors & faune Sprout Lands / Minifolks (cerisiers, cadeaux, bonbons, pique-nique, grenouille, abeilles, cerf, oiseau)
       files.add('world/decor/cherry_blossom.png');

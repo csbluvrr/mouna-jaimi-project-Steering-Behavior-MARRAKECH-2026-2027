@@ -19,6 +19,8 @@ class FairVisitor extends Vehicle {
     this.dialogue = options.dialogue || null; // { text, choices: [{ label, reply, action? }] }
     this.npcId = options.npcId || 1;       // 1..15 pour 'neighbour' (Tiny Neighbours Vol1)
     this.tone = options.tone || 0;         // 0..2 teinte dans la spritesheet Tiny Neighbours
+    this.guestFile = options.guestFile || null; // Nom de fichier dans characters/npcs/guests/
+    this.guestH = options.guestH || 32;
     this.emote = options.emote || 'Happy'; // 'Heart' | 'Happy' | 'Star' | 'Exclamation' | 'Surprised' | 'Interrogation'
     this.emoteTimer = 0;
     this.bounds = options.bounds || [24, 136, 432, 86];
@@ -176,11 +178,25 @@ class FairVisitor extends Vehicle {
       const img = this.assets.getSheetFrame('characters/npcs/mr_carrot/carrot_sheet.png', 32, 32, col, row);
       if (this.facingLeft) g.scale(-1, 1);
       if (img) g.image(img, -16, -30);
-    } else if (this.kind === 'girl') {
-      const img = this.assets.getImage('characters/npcs/girl/girl1_idle.png');
-      const bob = Math.round(Math.sin(frameCount * 0.08 + this.phase) * 0.8);
+    } else if (this.kind === 'guest_strip') {
+      // Invités crossover animés (4 frames horizontales : Kris, Ralsei, Susie, Niko, Hollow Knight, Link)
+      const col = moving ? Math.floor(frameCount / 8 + this.phase) % 4 : 0;
+      const fh = this.guestH || 32;
+      const img = this.assets.getSheetFrame('characters/npcs/guests/' + this.guestFile + '.png', 32, fh, col, 0);
+      const bob = moving ? 0 : Math.round(Math.sin(frameCount * 0.08 + this.phase) * 0.6);
       if (this.facingLeft) g.scale(-1, 1);
-      if (img) g.image(img, -16, -30 + bob);
+      if (img) g.image(img, -16, -fh + 2 + bob);
+    } else if (this.kind === 'guest_single') {
+      // Invités crossover 1-frame avec petit sautillement mignon en marchant (Luffy, Zoro, Chopper)
+      const img = this.assets.getImage('characters/npcs/guests/' + this.guestFile + '.png');
+      const hop = moving ? -Math.abs(Math.round(Math.sin(frameCount * 0.22 + this.phase) * 2.2)) : Math.round(Math.sin(frameCount * 0.08 + this.phase) * 0.6);
+      if (this.facingLeft) g.scale(-1, 1);
+      if (img) g.image(img, -16, -30 + hop);
+    } else if (this.kind === 'girl') {
+      // Ancienne entrée 'girl' redirigée proprement vers Tiny Neighbours Vol1
+      const col = Math.floor(frameCount / 14 + this.phase) % 4;
+      const img = this.assets.getSheetFrame('characters/npcs/tiny_neighbours/NPC_' + (this.npcId || 1) + '.png', 16, 16, col, 1);
+      if (img) g.image(img, -10, -21, 20, 20);
     } else if (this.kind === 'new_bunny') {
       const row = moving ? (this.facingLeft ? 5 : 4) : 0;
       const col = Math.floor(frameCount / 6 + this.phase) % (moving ? 6 : 8);
@@ -194,7 +210,7 @@ class FairVisitor extends Vehicle {
       if (img) g.image(img, -16, -26);
     } else {
       const col = moving ? Math.floor(frameCount / 9 + this.phase) % 4 : 0;
-      const img = this.assets.getSheetFrame('characters/npcs/kid/kid_4dir_sheet.png', 48, 48, col, this.dirRow);
+      const img = this.assets.getSheetFrame('characters/npcs/catboy/kid_4dir_sheet.png', 48, 48, col, this.dirRow);
       if (img) g.image(img, -24, -32);
     }
 

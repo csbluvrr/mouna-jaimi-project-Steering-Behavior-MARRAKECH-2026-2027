@@ -300,6 +300,68 @@ class HubScene extends Scene {
       }),
       new FairVisitor(812, 184, 'new_bunny', this.game.assets, {
         name: 'Meadow Bunny', bounds: [740, 154, 145, 54], emote: 'Heart'
+      }),
+
+      // === INVITÉS CROSSOVER SPÉCIAUX (Deltarune, OneShot, Hollow Knight, Zelda, One Piece) ===
+      new FairVisitor(-368, 152, 'guest_single', this.game.assets, {
+        name: 'Chopper', guestFile: 'chopper', bounds: [-435, 138, 120, 48], emote: 'Heart',
+        dialogue: {
+          text: "COTTON CANDY!! Moo, this is the best funfair on the Grand Line!",
+          choices: [
+            { label: '1. Grab Cotton Candy together!', reply: "Yaaay! *Happy reindeer dance!* Here's to sweet snacks!", action: 'treat_cotton' },
+            { label: '2. Have you seen Zoro?', reply: "He wandered off east again... I hope he didn't get lost!" }
+          ]
+        }
+      }),
+      new FairVisitor(-236, 154, 'guest_strip', this.game.assets, {
+        name: 'Ralsei', guestFile: 'ralsei_walk', guestH: 32, bounds: [-285, 140, 140, 48], emote: 'Heart',
+        greeting: 'Hello Moo! Everyone here is so kind — I baked a cake for the fair!'
+      }),
+      new FairVisitor(-296, 174, 'guest_strip', this.game.assets, {
+        name: 'Susie', guestFile: 'susie_walk', guestH: 34, bounds: [-365, 150, 145, 50], emote: 'Exclamation',
+        greeting: "Heh, this popcorn rules! Don't tell Ralsei I ate three buckets!"
+      }),
+      new FairVisitor(148, 158, 'guest_strip', this.game.assets, {
+        name: 'Kris', guestFile: 'kris_walk', guestH: 36, bounds: [75, 142, 175, 44], emote: 'Star',
+        greeting: '* (Kris proudly holds up a shiny golden funfair balloon.)'
+      }),
+      new FairVisitor(248, 170, 'guest_single', this.game.assets, {
+        name: 'Luffy', guestFile: 'luffy', bounds: [175, 146, 170, 46], emote: 'Exclamation',
+        dialogue: {
+          text: "Shishishi! Hey Moo! This funfair is awesome! Where's the meat?!",
+          choices: [
+            { label: '1. Try the snack carts in the West!', reply: "Sugoi!! I'm gonna eat ALL the popcorn and cotton candy!" },
+            { label: '2. Race in Bunny Derby!', reply: "A race?! Count me in — I'm gonna be King of the Funfair!" }
+          ]
+        }
+      }),
+      new FairVisitor(386, 148, 'guest_strip', this.game.assets, {
+        name: 'Link', guestFile: 'link_walk', guestH: 32, bounds: [320, 138, 130, 42], emote: 'Star',
+        dialogue: {
+          text: "Hyaa! The Fire Mage inside the Legend of Moo booth is tough!",
+          choices: [
+            { label: '1. Any tips for the boss?', reply: "Double-jump across the stone platforms and aim your Boomerang!" },
+            { label: '2. Cool green tunic!', reply: "*Link nods proudly and adjusts his Triforce cap!*" }
+          ]
+        }
+      }),
+      new FairVisitor(688, 176, 'guest_strip', this.game.assets, {
+        name: 'Niko', guestFile: 'niko_walk', guestH: 32, bounds: [625, 150, 135, 52], emote: 'Star',
+        dialogue: {
+          text: "Whoa, Moo! This Wishing Fountain glows almost as warmly as my Sun!",
+          choices: [
+            { label: '1. Make a wish at the Fountain!', reply: "I wish for pancakes for everyone at the funfair!", action: 'open_wish' },
+            { label: '2. Keep the Sun safe, Niko!', reply: "I will! And thank you for showing me around!" }
+          ]
+        }
+      }),
+      new FairVisitor(584, 156, 'guest_strip', this.game.assets, {
+        name: 'The Knight', guestFile: 'knight_walk', guestH: 32, bounds: [515, 140, 140, 48], emote: 'Interrogation',
+        greeting: '... (The tiny vessel quietly admires the spinning pastel carousel.)'
+      }),
+      new FairVisitor(862, 166, 'guest_single', this.game.assets, {
+        name: 'Zoro', guestFile: 'zoro', bounds: [805, 144, 115, 54], emote: 'Interrogation',
+        greeting: "Wait... how did I end up at a funfair? Which way is the Sunny?!"
       })
     ];
 
@@ -583,6 +645,8 @@ class HubScene extends Scene {
     this.game.sound.playSfx('ui_click', 0.6);
     if (action === 'open_prize') this.prizeShop.show();
     else if (action === 'ring_carousel') this.interactWithProp('carousel');
+    else if (action === 'treat_cotton') this.interactWithProp('cotton_candy');
+    else if (action === 'open_wish') this.interactWithProp('fountain');
   }
 
   /** Ouvre la fenêtre de saisie de vœu de la Fontaine à Vœux ! */
@@ -832,12 +896,33 @@ class HubScene extends Scene {
         this.drawPerchedBird(g, this.posterPos.x + 44, this.posterPos.y - 2);
       }},
 
-      // Grenouille près de la mare + Vache paisible
+      // Grenouille près de la mare + Canard de bain (Tiny Swords) + Vache paisible
       { sortY: 224, draw: () => this.drawPondFrog(g, 356, 218) },
+      { sortY: 215, draw: () => {
+        const rdCol = Math.floor(frameCount / 14) % 3;
+        const rd = assets.getSheetFrame('packs/tiny_swords/terrain/Decorations/Rubber Duck/Rubber duck.png', 32, 32, rdCol, 0);
+        if (rd) g.image(rd, 394, 212 + Math.round(Math.sin(frameCount * 0.08) * 1.2), 14, 14);
+      }},
       { sortY: 202, draw: () => {
         const cowCol = Math.floor(frameCount / 22) % 3;
         const cow = assets.getSheetFrame('characters/animals/ambient/cow_sheet.png', 32, 32, cowCol, 0);
         if (cow) g.image(cow, 438, 174);
+      }},
+
+      // Moutons broutant paisiblement (Tiny Swords) dans les prairies Ouest & Est
+      { sortY: 226, draw: () => {
+        const shCol = Math.floor(frameCount / 9) % 12;
+        const sh = assets.getSheetFrame('packs/tiny_swords/terrain/Resources/Meat/Sheep/Sheep_Grass.png', 128, 128, shCol, 0);
+        if (sh) g.image(sh, -448, 200, 32, 32);
+      }},
+      { sortY: 222, draw: () => {
+        const shCol = Math.floor(frameCount / 9 + 5) % 12;
+        const sh = assets.getSheetFrame('packs/tiny_swords/terrain/Resources/Meat/Sheep/Sheep_Grass.png', 128, 128, shCol, 0);
+        g.push();
+        g.translate(836, 198);
+        g.scale(-1, 1);
+        if (sh) g.image(sh, -16, 0, 32, 32);
+        g.pop();
       }},
 
       // Fontaine à vœux (Est) + Faon paisible + Lampadaires de jardin
