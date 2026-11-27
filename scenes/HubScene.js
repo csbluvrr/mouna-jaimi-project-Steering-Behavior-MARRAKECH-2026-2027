@@ -38,6 +38,9 @@ class HubScene extends Scene {
     this.walkBounds = [-462, 114, 942, 234];
 
     this.promptTrigger = null;
+    this.nearbyVisitor = null;
+    this.activeDialogue = null; // { npc, speaker, text, choices, stage: 'ASK'|'REPLY' }
+    this.wishModalOpen = false;
     this.overlay = false;
     this.mapOverlay = false;
     this.prizeShop = new PrizeShop(game);
@@ -76,6 +79,10 @@ class HubScene extends Scene {
     this.overlay = false;
     this.mapOverlay = false;
     this.promptTrigger = null;
+    this.nearbyVisitor = null;
+    this.activeDialogue = null;
+    this.wishModalOpen = false;
+    this.closeWishModal();
     this.fx = [];
 
     // 1. Sols pré-rendus propres & cohérents pour les 3 ailes [-480..0], [0..480], [480..960]
@@ -193,63 +200,106 @@ class HubScene extends Scene {
       d.pondRadius = 24;
     }
 
-    // 7. Visiteurs avec routines quotidiennes & conversations NPC-à-NPC sur les 3 ailes
+    // 7. Visiteurs avec routines quotidiennes, conversations NPC-à-NPC et dialogues à choix [Space]
     this.visitors = [
       // Aile Ouest (Shopping & Gourmandises)
       new FairVisitor(-202, 138, 'girl', this.game.assets, {
-        stationary: true, emote: 'Heart', greeting: 'Welcome to the Prize Boutique!'
+        name: 'Lina', stationary: true, emote: 'Heart',
+        dialogue: {
+          text: "Welcome to the Prize Boutique, Moo! Looking for a new outfit today?",
+          choices: [
+            { label: '1. Show me the Prize Boutique!', reply: "Right away! Try on anything you like!", action: 'open_prize' },
+            { label: '2. What accessory suits me?', reply: "The Flower Crown or Fairy Wings look magical on you!" }
+          ]
+        }
       }),
       new FairVisitor(-316, 158, 'carrot', this.game.assets, {
-        bounds: [-420, 140, 260, 52], emote: 'Star', greeting: 'Try the Cotton Candy & Popcorn!'
+        name: 'Chef Carrot', bounds: [-420, 140, 260, 52], emote: 'Star',
+        greeting: 'Fresh cotton candy & warm popcorn! Press Space at the carts!'
       }),
       new FairVisitor(-352, 166, 'neighbour', this.game.assets, {
-        npcId: 4, tone: 0, emote: 'Happy', bounds: [-435, 142, 175, 52], greeting: 'Sweetest treats in town!'
+        name: 'Clara', npcId: 4, tone: 0, emote: 'Happy', bounds: [-435, 142, 175, 52],
+        greeting: 'The strawberry cotton candy here is the sweetest treat in town!'
       }),
       new FairVisitor(-172, 160, 'neighbour', this.game.assets, {
-        npcId: 2, tone: 1, emote: 'Heart', bounds: [-240, 142, 165, 50], greeting: 'Love your outfit, Moo!'
+        name: 'Sora', npcId: 2, tone: 1, emote: 'Heart', bounds: [-240, 142, 165, 50],
+        greeting: 'Your hoodie looks super cozy, Moo! I love your bunny ears.'
       }),
       new FairVisitor(-250, 198, 'new_bunny', this.game.assets, {
-        bounds: [-320, 182, 160, 44], emote: 'Happy'
+        name: 'Fluffy Bunny', bounds: [-320, 182, 160, 44], emote: 'Happy'
       }),
 
       // Place Centrale (Cœur animé de la fête foraine)
       new FairVisitor(212, 162, 'carrot', this.game.assets, {
-        bounds: [90, 142, 240, 44], emote: 'Star', greeting: "Welcome to Moo's Funfair!"
+        name: 'Mr. Carrot', bounds: [90, 142, 240, 44], emote: 'Star',
+        dialogue: {
+          text: "Hey Moo! Welcome to Moo's Funfair! What are you in the mood for?",
+          choices: [
+            { label: '1. Which mini-game is your favorite?', reply: "PokeMoo Feast!! Chasing Scorbunnies as Onix is so much fun!" },
+            { label: '2. Tell me a funfair secret!', reply: "Press [T] anytime to watch the whole park glow in Sunset light!" }
+          ]
+        }
       }),
       new FairVisitor(84, 154, 'neighbour', this.game.assets, {
-        npcId: 7, tone: 0, emote: 'Exclamation', bounds: [24, 142, 150, 40], greeting: 'Bunny Derby starts soon!'
+        name: 'Milo', npcId: 7, tone: 0, emote: 'Exclamation', bounds: [24, 142, 150, 40],
+        dialogue: {
+          text: "Bunny Derby is about to start! Are you betting on a racer?",
+          choices: [
+            { label: '1. Who is your lucky pick?', reply: "I always cheer for Peach or Mochi — 1st place pays 3x tickets!" },
+            { label: '2. How do the bunnies steer?', reply: "They use raycast sensors and a TensorFlow.js neural network!" }
+          ]
+        }
       }),
       new FairVisitor(186, 150, 'neighbour', this.game.assets, {
-        npcId: 11, tone: 1, emote: 'Happy', bounds: [120, 140, 160, 40], greeting: 'The Ferris wheel glows so bright!'
+        name: 'Noah', npcId: 11, tone: 1, emote: 'Happy', bounds: [120, 140, 160, 40],
+        greeting: 'The Ferris wheel lights look extra dreamy at sunset!'
       }),
       new FairVisitor(334, 154, 'neighbour', this.game.assets, {
-        npcId: 6, tone: 2, emote: 'Heart', bounds: [260, 142, 185, 40], greeting: 'Look at the ducklings & frog!'
+        name: 'Iris', npcId: 6, tone: 2, emote: 'Heart', bounds: [260, 142, 185, 40],
+        greeting: 'Watch the little green frog by the pond — it flicks its tongue!'
       }),
       new FairVisitor(118, 174, 'new_bunny', this.game.assets, {
-        bounds: [66, 154, 110, 38], emote: 'Happy'
+        name: 'Clover Bunny', bounds: [66, 154, 110, 38], emote: 'Happy'
       }),
       new FairVisitor(276, 160, 'kid', this.game.assets, {
-        bounds: [190, 142, 170, 40], emote: 'Star', greeting: 'Use the MAP to visit all wings!'
+        name: 'Toby', bounds: [190, 142, 170, 40], emote: 'Star',
+        greeting: 'Press [M] anytime to open the Park Map and fast-travel!'
       }),
 
       // Aile Est (Manège, Fontaine & Prairie)
       new FairVisitor(628, 148, 'girl', this.game.assets, {
-        stationary: true, emote: 'Happy', greeting: 'Ring the Carousel bell!'
+        name: 'Pip', stationary: true, emote: 'Happy',
+        dialogue: {
+          text: "Isn't the East Meadow peaceful? Have you visited our attractions?",
+          choices: [
+            { label: '1. Ring the Mini Carousel bell!', reply: "Ding-ding! Listen to the carousel chime!", action: 'ring_carousel' },
+            { label: '2. Tell me about the Fountain!', reply: "Walk up to the Wishing Fountain and press Space to type a wish!" }
+          ]
+        }
       }),
       new FairVisitor(746, 198, 'fox_nap', this.game.assets, {
-        stationary: true, emote: 'Heart', greeting: 'Zzz... cozy meadow nap!'
+        name: 'Sleepy Fox', stationary: true, emote: 'Heart',
+        dialogue: {
+          text: "*Yawn*... Zzz... Oh, hello Moo... This meadow is so warm...",
+          choices: [
+            { label: '1. Gently pet the fox', reply: "*Happy tail wag!* Thank you, Moo! Good luck in the Legend of Moo!", action: 'pet_fox' },
+            { label: '2. Let him keep napping', reply: "Zzz... Sweet dreams of golden tickets..." }
+          ]
+        }
       }),
       new FairVisitor(548, 164, 'neighbour', this.game.assets, {
-        npcId: 9, tone: 0, emote: 'Surprised', bounds: [495, 142, 185, 50], greeting: 'Toss a wish in the fountain!'
+        name: 'Leo', npcId: 9, tone: 0, emote: 'Surprised', bounds: [495, 142, 185, 50],
+        greeting: 'I just tossed a wish into the fountain — it sparkled!'
       }),
       new FairVisitor(768, 158, 'neighbour', this.game.assets, {
-        npcId: 13, tone: 2, emote: 'Interrogation', bounds: [670, 142, 225, 48], greeting: 'Tarot & Rings open soon!'
+        name: 'Maya', npcId: 13, tone: 2, emote: 'Interrogation', bounds: [670, 142, 225, 48],
+        greeting: 'I cannot wait for the Tarot Tent and Ring Toss to open!'
       }),
       new FairVisitor(648, 166, 'kid', this.game.assets, {
-        bounds: [560, 144, 180, 46], emote: 'Happy'
+        name: 'Benji', bounds: [560, 144, 180, 46], emote: 'Happy'
       }),
       new FairVisitor(812, 184, 'new_bunny', this.game.assets, {
-        bounds: [740, 154, 145, 54], emote: 'Heart'
+        name: 'Meadow Bunny', bounds: [740, 154, 145, 54], emote: 'Heart'
       })
     ];
 
@@ -417,7 +467,7 @@ class HubScene extends Scene {
   }
 
   update() {
-    if (this.overlay || this.mapOverlay || (this.prizeShop && this.prizeShop.open)) return;
+    if (this.overlay || this.mapOverlay || this.activeDialogue || this.wishModalOpen || (this.prizeShop && this.prizeShop.open)) return;
 
     this.moo.step(this.solids, this.walkBounds);
 
@@ -455,6 +505,20 @@ class HubScene extends Scene {
         this.moo.pos.y > y && this.moo.pos.y < y + h
       ) || null;
 
+    // Détection du visiteur le plus proche auquel Moo peut parler avec [Space]
+    this.nearbyVisitor = null;
+    let bestD2 = 38 * 38;
+    for (const v of this.visitors) {
+      if (!v.greeting && !v.dialogue) continue;
+      const dx = v.pos.x - this.moo.pos.x;
+      const dy = v.pos.y - this.moo.pos.y;
+      const d2 = dx * dx + dy * dy;
+      if (d2 < bestD2) {
+        bestD2 = d2;
+        this.nearbyVisitor = v;
+      }
+    }
+
     if (
       this.promptTrigger &&
       this.promptTrigger !== prevTrigger &&
@@ -468,15 +532,114 @@ class HubScene extends Scene {
     }
   }
 
+  /** Ouvre la boîte de dialogue RPG avec un NPC (salutation ou choix multiples). */
+  startNpcDialogue(npc) {
+    if (!npc) return;
+    this.moo.stop();
+    npc.facingLeft = this.moo.pos.x < npc.pos.x;
+    this.game.sound.playSfx('ui_click', 0.7);
+    if (npc.dialogue) {
+      this.activeDialogue = {
+        npc,
+        speaker: npc.name,
+        text: npc.dialogue.text,
+        choices: npc.dialogue.choices || [],
+        stage: 'ASK',
+        pendingAction: null
+      };
+    } else if (npc.greeting) {
+      this.activeDialogue = {
+        npc,
+        speaker: npc.name,
+        text: npc.greeting,
+        choices: [],
+        stage: 'REPLY',
+        pendingAction: null
+      };
+    }
+  }
+
+  /** Valide un choix dans la conversation avec un NPC. */
+  pickDialogueChoice(idx) {
+    if (!this.activeDialogue || this.activeDialogue.stage !== 'ASK') return;
+    const ch = this.activeDialogue.choices[idx];
+    if (!ch) return;
+    this.game.sound.playSfx('success_bell', 0.55);
+    this.activeDialogue.text = ch.reply;
+    this.activeDialogue.stage = 'REPLY';
+    this.activeDialogue.pendingAction = ch.action || null;
+    if (ch.action === 'pet_fox' && this.activeDialogue.npc) {
+      for (let i = 0; i < 8; i++) {
+        this.fx.push(new SparkleFX(this.activeDialogue.npc.pos.x + random(-8, 8), this.activeDialogue.npc.pos.y - 16, 'sparkle'));
+      }
+    }
+  }
+
+  /** Ferme la boîte de dialogue (et exécute l'action éventuelle du choix). */
+  closeDialogue() {
+    if (!this.activeDialogue) return;
+    const action = this.activeDialogue.pendingAction;
+    this.activeDialogue = null;
+    this.game.sound.playSfx('ui_click', 0.6);
+    if (action === 'open_prize') this.prizeShop.show();
+    else if (action === 'ring_carousel') this.interactWithProp('carousel');
+  }
+
+  /** Ouvre la fenêtre de saisie de vœu de la Fontaine à Vœux ! */
+  openWishModal() {
+    const modal = document.getElementById('wish-modal');
+    const input = document.getElementById('wish-input');
+    const subBtn = document.getElementById('wish-submit');
+    const canBtn = document.getElementById('wish-cancel');
+    if (!modal || !input) {
+      this.completeWish('a wonderful funfair day');
+      return;
+    }
+    this.moo.stop();
+    this.wishModalOpen = true;
+    input.value = '';
+    modal.classList.add('open');
+    setTimeout(() => input.focus(), 30);
+
+    const doSubmit = () => {
+      const txt = input.value.trim();
+      this.closeWishModal();
+      this.completeWish(txt || 'a lucky secret wish');
+    };
+    const doCancel = () => this.closeWishModal();
+
+    subBtn.onclick = (e) => { e.stopPropagation(); doSubmit(); };
+    canBtn.onclick = (e) => { e.stopPropagation(); doCancel(); };
+    input.onkeydown = (e) => {
+      e.stopPropagation();
+      if (e.key === 'Enter') { e.preventDefault(); doSubmit(); }
+      else if (e.key === 'Escape') { e.preventDefault(); doCancel(); }
+    };
+  }
+
+  closeWishModal() {
+    this.wishModalOpen = false;
+    const modal = document.getElementById('wish-modal');
+    if (modal) modal.classList.remove('open');
+  }
+
+  completeWish(wishText) {
+    if (this.game.save && this.game.save.data) {
+      this.game.save.data.lastWish = wishText;
+      this.game.save.save();
+    }
+    this.game.sound.playSfx('success_bell', 0.75);
+    for (let i = 0; i < 14; i++) {
+      this.fx.push(new SparkleFX(this.fountainPos.x + random(-10, 10), this.fountainPos.y - 8, 'sparkle'));
+    }
+    this.fx.push(new SparkleFX(this.fountainPos.x, this.fountainPos.y - 18, 'text', 'WISH SENT!', color(255, 242, 150)));
+    this.showToast('Your wish "' + wishText + '" sparkles in the fountain!', 3200);
+  }
+
   /** Déclenche une interaction joyeuse avec les objets environnementaux du parc. */
   interactWithProp(id) {
     if (id === 'fountain') {
-      this.game.sound.playSfx('success_bell', 0.65);
-      for (let i = 0; i < 10; i++) {
-        this.fx.push(new SparkleFX(this.fountainPos.x + random(-8, 8), this.fountainPos.y - 8, 'sparkle'));
-      }
-      this.fx.push(new SparkleFX(this.fountainPos.x, this.fountainPos.y - 18, 'text', 'MAKE A WISH!', color(255, 242, 150)));
-      this.showToast('You tossed a lucky wish into the fountain!', 2200);
+      this.openWishModal();
     } else if (id === 'cotton_candy') {
       this.game.sound.playSfx('squeak_2', 0.55);
       for (let i = 0; i < 8; i++) {
@@ -728,19 +891,29 @@ class HubScene extends Scene {
       for (const obs of this.obstacles) obs.showDebug(g);
     }
 
-    // Bulle d'invitation au-dessus de Moo
-    if (this.promptTrigger && !this.overlay && !this.mapOverlay && !this.prizeShop.open) {
-      const labels = {
-        poster:       'Pick a game! (P / Space)',
-        map:          'Open Funfair Map! (Space)',
-        prize:        'Open Prize Boutique! (Space)',
-        cotton_candy: 'Get Cotton Candy! (Space)',
-        popcorn:      'Grab Popcorn! (Space)',
-        carousel:     'Ring Carousel Bell! (Space)',
-        fountain:     'Make a Wish! (Space)'
-      };
-      const label = labels[this.promptTrigger.id] || ('Play ' + this.promptTrigger.title + '? (Space)');
-      PixelUI.drawTag(g, font, label, this.moo.pos.x, this.moo.pos.y - 40 + Math.sin(frameCount * 0.12) * 1.4);
+    // Bulle d'invitation au-dessus de Moo (stand / objet interactif OU visiteur proche)
+    if (!this.overlay && !this.mapOverlay && !this.activeDialogue && !this.wishModalOpen && !this.prizeShop.open) {
+      if (this.promptTrigger) {
+        const labels = {
+          poster:       'Pick a game! (P / Space)',
+          map:          'Open Funfair Map! (Space)',
+          prize:        'Open Prize Boutique! (Space)',
+          cotton_candy: 'Get Cotton Candy! (Space)',
+          popcorn:      'Grab Popcorn! (Space)',
+          carousel:     'Ring Carousel Bell! (Space)',
+          fountain:     'Make a Wish! (Space)'
+        };
+        const label = labels[this.promptTrigger.id] || ('Play ' + this.promptTrigger.title + '? (Space)');
+        PixelUI.drawTag(g, font, label, this.moo.pos.x, this.moo.pos.y - 40 + Math.sin(frameCount * 0.12) * 1.4);
+      } else if (this.nearbyVisitor) {
+        PixelUI.drawTag(
+          g, font,
+          'Talk to ' + this.nearbyVisitor.name + ' (Space)',
+          this.moo.pos.x,
+          this.moo.pos.y - 40 + Math.sin(frameCount * 0.12) * 1.4,
+          g.color(255, 250, 224)
+        );
+      }
     }
 
     g.pop();
@@ -757,6 +930,7 @@ class HubScene extends Scene {
     this.drawHud(g);
     if (this.overlay) { PixelUI.flushLayer(g); this.drawPosterOverlay(g); }
     if (this.mapOverlay) { PixelUI.flushLayer(g); this.drawMapOverlay(g); }
+    if (this.activeDialogue) { PixelUI.flushLayer(g); this.drawDialogueOverlay(g); }
     if (this.prizeShop && this.prizeShop.open) { PixelUI.flushLayer(g); this.prizeShop.draw(g); }
 
     if (millis() < this.toastUntil && this.toast) {
@@ -1580,6 +1754,58 @@ class HubScene extends Scene {
     PixelUI.txt(g, font, 'Esc / M to close', ox + 240, oy + 190, g.color(144, 98, 93), CENTER, 8.5);
   }
 
+  /** Géométrie des boutons de choix dans la boîte de dialogue RPG. */
+  getDialogueChoiceRects() {
+    if (!this.activeDialogue || this.activeDialogue.stage !== 'ASK') return [];
+    const { ox, oy } = this.getOverlayOffsets();
+    return this.activeDialogue.choices.map((ch, i) => ({
+      idx: i,
+      label: ch.label,
+      x: ox + 66,
+      y: oy + 206 + i * 24,
+      w: 348,
+      h: 20
+    }));
+  }
+
+  /** Boîte de dialogue RPG chaleureuse en bas de l'écran (avec choix cliquables / 1-2 / Space). */
+  drawDialogueOverlay(g) {
+    const d = this.activeDialogue;
+    if (!d) return;
+    const font = this.game.assets.font;
+    const { mx, my } = this.game.getMouseBufferPos();
+    const { ox, oy } = this.getOverlayOffsets();
+
+    const bx = ox + 52;
+    const by = d.stage === 'ASK' ? oy + 158 : oy + 186;
+    const bw = 376;
+    const bh = d.stage === 'ASK' ? 102 : 70;
+
+    PixelUI.panel(g, bx, by, bw, bh, g.color(250, 242, 212));
+    // Étiquette du nom du personnage
+    PixelUI.panel(g, bx + 10, by - 12, 118, 16, g.color(189, 117, 126));
+    PixelUI.txt(g, font, d.speaker, bx + 69, by - 9, g.color(255, 252, 238), CENTER, 8.5, 110);
+
+    PixelUI.txt(g, font, d.text, bx + 14, by + 12, g.color(82, 52, 66), LEFT, 9, bw - 28);
+
+    if (d.stage === 'ASK') {
+      const rects = this.getDialogueChoiceRects();
+      for (const r of rects) {
+        const hov = PixelUI.pointInRect(mx, my, r);
+        PixelUI.drawButton(
+          g, font, r, r.label, hov,
+          g.color(238, 224, 186), g.color(223, 240, 187)
+        );
+      }
+    } else {
+      PixelUI.txt(g, font, 'Press Space or click to continue...', bx + bw - 14, by + bh - 16, g.color(144, 98, 93), RIGHT, 7.5);
+    }
+  }
+
+  cleanup() {
+    this.closeWishModal();
+  }
+
   enterGame(gameId) {
     this.overlay = false;
     this.mapOverlay = false;
@@ -1590,7 +1816,18 @@ class HubScene extends Scene {
 
   mousePressed(mx, my) {
     const { ox, oy } = this.getOverlayOffsets();
+    if (this.wishModalOpen) return;
     if (this.prizeShop && this.prizeShop.open) { this.prizeShop.mousePressed(mx, my); return; }
+
+    if (this.activeDialogue) {
+      if (this.activeDialogue.stage === 'ASK') {
+        const hit = this.getDialogueChoiceRects().find((r) => PixelUI.pointInRect(mx, my, r));
+        if (hit) this.pickDialogueChoice(hit.idx);
+      } else {
+        this.closeDialogue();
+      }
+      return;
+    }
 
     if (Vehicle.debug && this.showTicketCheat && !this.overlay && !this.mapOverlay && PixelUI.pointInRect(mx, my, this.ticketPlusBtn)) {
       this.game.save.addTickets(50);
@@ -1636,7 +1873,19 @@ class HubScene extends Scene {
   }
 
   keyPressed(k, kc) {
+    if (this.wishModalOpen) return;
     if (this.prizeShop && this.prizeShop.open) { this.prizeShop.keyPressed(k, kc); return; }
+
+    if (this.activeDialogue) {
+      if (this.activeDialogue.stage === 'ASK') {
+        if (k === '1') this.pickDialogueChoice(0);
+        else if (k === '2') this.pickDialogueChoice(1);
+        else if (kc === ESCAPE) this.activeDialogue = null;
+      } else if (k === ' ' || kc === ENTER || kc === ESCAPE) {
+        this.closeDialogue();
+      }
+      return;
+    }
 
     if (Vehicle.debug) {
       if (k === 'n' || k === 'N') { this.secretLastWasN = true; this.secretStarCount = 0; return; }
@@ -1685,13 +1934,17 @@ class HubScene extends Scene {
       return;
     }
 
-    if (k === ' ' && this.promptTrigger && !this.overlay && !this.mapOverlay) {
-      const id = this.promptTrigger.id;
-      if (id === 'poster') { this.game.sound.playSfx('ui_click'); this.overlay = true; }
-      else if (id === 'map') { this.game.sound.playSfx('ui_click'); this.mapOverlay = true; }
-      else if (id === 'prize') { this.moo.stop(); this.prizeShop.show(); }
-      else if (['cotton_candy', 'popcorn', 'carousel', 'fountain'].includes(id)) { this.interactWithProp(id); }
-      else { this.enterGame(id); }
+    if (k === ' ' && !this.overlay && !this.mapOverlay) {
+      if (this.promptTrigger) {
+        const id = this.promptTrigger.id;
+        if (id === 'poster') { this.game.sound.playSfx('ui_click'); this.overlay = true; }
+        else if (id === 'map') { this.game.sound.playSfx('ui_click'); this.mapOverlay = true; }
+        else if (id === 'prize') { this.moo.stop(); this.prizeShop.show(); }
+        else if (['cotton_candy', 'popcorn', 'carousel', 'fountain'].includes(id)) { this.interactWithProp(id); }
+        else { this.enterGame(id); }
+      } else if (this.nearbyVisitor) {
+        this.startNpcDialogue(this.nearbyVisitor);
+      }
     }
   }
 }

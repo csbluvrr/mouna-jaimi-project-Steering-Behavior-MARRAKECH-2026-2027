@@ -200,6 +200,10 @@ function triggerMenuToggle() {
     cur.prizeShop.close();
     return;
   }
+  if (cur && cur.activeDialogue) {
+    cur.activeDialogue = null;
+    return;
+  }
   if (cur && cur.mapOverlay) {
     cur.mapOverlay = false;
     return;
@@ -288,8 +292,17 @@ function setupFullscreenButton() {
       }
     }
 
-    // Touche Échap : ouvre/ferme immédiatement le livre-menu (un appui long est géré nativement par le navigateur pour quitter le plein écran)
+    // Touche Échap : ferme d'abord la fenêtre de vœu si ouverte, sinon bascule le livre-menu
     if (e.key === 'Escape') {
+      const wishModal = document.getElementById('wish-modal');
+      if (wishModal && wishModal.classList.contains('open')) {
+        e.preventDefault();
+        e.stopPropagation();
+        wishModal.classList.remove('open');
+        const cur = game.scenes ? game.scenes.current : null;
+        if (cur) cur.wishModalOpen = false;
+        return;
+      }
       e.preventDefault();
       e.stopPropagation();
       if (!e.repeat) {
@@ -407,10 +420,11 @@ function windowResized() {
 
 function mousePressed(event) {
   if (!game.assets.ready) return;
-  // Ignorer les clics sur les boutons HUD haut-droite ou les panneaux latéraux (Derby / Debug)
+  // Ignorer les clics sur les boutons HUD haut-droite, la fenêtre de vœu ou les panneaux latéraux
   if (event && event.target && (
     event.target.id === 'fullscreen-btn' ||
     event.target.closest('#hud-controls') ||
+    event.target.closest('#wish-modal') ||
     event.target.closest('#derby-panel') ||
     event.target.closest('.debug-side-panel')
   )) {
@@ -437,6 +451,12 @@ function mousePressed(event) {
 
 function keyPressed() {
   if (!game.assets.ready) return;
+
+  // Si le joueur tape dans un champ texte (ex: Fontaine à Vœux), laisser le navigateur gérer !
+  const activeTag = document.activeElement && document.activeElement.tagName;
+  if (activeTag === 'INPUT' || activeTag === 'TEXTAREA') {
+    return true;
+  }
 
   // F et Échap sont gérés en phase capture native (pour garantir Keyboard Lock & appui long)
   if (key === 'f' || key === 'F' || keyCode === ESCAPE) {

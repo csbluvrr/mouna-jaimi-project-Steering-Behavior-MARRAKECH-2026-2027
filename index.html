@@ -66,7 +66,19 @@
       <button id="btn-debug" class="hud-pill hud-pill-sm" type="button" title="Toggle Debug Mode (H)">[H] Debug</button>
       <button id="btn-map"   class="hud-pill hud-pill-sm" type="button" title="Open Funfair Map (M)">[M] Map</button>
       <button id="btn-games" class="hud-pill hud-pill-sm" type="button" title="Pick a Mini-Game (P)">[P] Games</button>
+      <span   id="btn-interact" class="hud-pill hud-pill-sm hud-pill-hint" title="Press Space to Interact">[Space] Interact</span>
       <span   id="btn-run"   class="hud-pill hud-pill-sm hud-pill-hint" title="Hold Shift to Run">[Shift] Run</span>
+    </div>
+  </div>
+  <div id="wish-modal" aria-hidden="true">
+    <div class="wish-card">
+      <div class="wish-header">WISHING FOUNTAIN</div>
+      <p class="wish-sub">Type your secret wish and toss a lucky sparkle into the water:</p>
+      <input id="wish-input" type="text" maxlength="64" placeholder="I wish for..." autocomplete="off" />
+      <div class="wish-actions">
+        <button id="wish-submit" class="hud-pill hud-pill-sm" type="button">Toss Wish! (Enter)</button>
+        <button id="wish-cancel" class="hud-pill hud-pill-sm" type="button">Cancel (Esc)</button>
+      </div>
     </div>
   </div>
 </body>

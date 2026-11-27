@@ -14,7 +14,9 @@ class FairVisitor extends Vehicle {
     this.assets = assets;
     this.stationary = stationary;
     this.r = 7;
+    this.name = options.name || 'Fairgoer';
     this.greeting = options.greeting || null;
+    this.dialogue = options.dialogue || null; // { text, choices: [{ label, reply, action? }] }
     this.npcId = options.npcId || 1;       // 1..15 pour 'neighbour' (Tiny Neighbours Vol1)
     this.tone = options.tone || 0;         // 0..2 teinte dans la spritesheet Tiny Neighbours
     this.emote = options.emote || 'Happy'; // 'Heart' | 'Happy' | 'Star' | 'Exclamation' | 'Surprised' | 'Interrogation'
@@ -198,7 +200,7 @@ class FairVisitor extends Vehicle {
 
     g.pop();
 
-    // Émotes animées (interaction Moo OU conversation NPC-à-NPC !)
+    // Émotes animées uniquement (les dialogues texte ne s'ouvrent que quand le joueur appuie sur Space !)
     const bob = Math.sin(frameCount * 0.12) * 1.2;
     const activeEmote = this.showBubble ? this.emote : (this.routineState === 'CHAT' ? this.chatEmote : null);
     if (activeEmote) {
@@ -206,13 +208,8 @@ class FairVisitor extends Vehicle {
       const emPath = 'Tiny Neighbours Vol1/Emotes/' + activeEmote + '_emote_16x16.png';
       const emImg = this.assets.getSheetFrame(emPath, 16, 16, emFrame, 0);
       if (emImg) {
-        const ey = (this.showBubble && this.greeting) ? py - 46 + Math.round(bob) : py - 35 + Math.round(bob);
-        g.image(emImg, px - 8, ey);
+        g.image(emImg, px - 8, py - 35 + Math.round(bob));
       }
-    }
-
-    if (this.showBubble && this.greeting) {
-      PixelUI.drawTag(g, this.assets.font, this.greeting, px, py - 32 + bob, g.color(255, 250, 224));
     }
 
     if (Vehicle.debug && !this.stationary) {
