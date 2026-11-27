@@ -47,18 +47,26 @@ class DerbyScene extends Scene {
 
     this.speedMult = 1;
     this.showRays = true;
+    this.trainScenario = 'evolve'; // 'evolve' | 'observe' | 'broom' (inspiré de 9-VoitureSuitCircuit)
+    this.trainPaused = false;
+    this.stepOnce = false;
     this.generation = 1;
     this.bestFitnessEver = 0;
     this.bestLapSec = null;
     this.bestBrainEver = null;
+    this.fitnessHistory = [];
 
     this.bunnies = [];
     this.savedBunnies = [];
+    this.broomBunny = null;
     this.hayObstacles = [];
     this.fx = [];
     this.raceCountdown = 0;
     this.raceStandings = [];
     this.panelEl = null;
+    this.inspectorEl = null;
+    this.inspectorSel = null;
+    this._wasPausedBeforeInspect = false;
 
     this.startBtn = { x: 185, y: 184, w: 110, h: 22 };
     this.resumeBtn = { x: 180, y: 112, w: 120, h: 20 };
@@ -140,6 +148,7 @@ class DerbyScene extends Scene {
   }
 
   cleanup() {
+    this.closeBrainInspector();
     this.disposePopulation();
     if (this.trackImg && typeof this.trackImg.remove === 'function') {
       this.trackImg.remove();
@@ -154,27 +163,92 @@ class DerbyScene extends Scene {
   disposePopulation() {
     for (const b of this.bunnies) b.dispose();
     for (const b of this.savedBunnies) b.dispose();
+    if (this.broomBunny) {
+      this.broomBunny.dispose();
+      this.broomBunny = null;
+    }
     this.bunnies = [];
     this.savedBunnies = [];
+  }
+
+  /** Crée la voiture-balai (lapin doré lièvre) pour le scénario 'broom'. */
+  spawnBroomBunny() {
+    if (this.broomBunny) {
+      this.broomBunny.dispose();
+      this.broomBunny = null;
+    }
+    if (this.trainScenario !== 'broom' || !this.meta) return;
+    const [sx, sy] = this.meta.start;
+    const heading = this.meta.start_heading_rad;
+    const broomCfg = { ...this.config, useRuleFallback: true };
+    const broom = new DerbyBunny(sx, sy, heading, broomCfg, this.game.assets, null, 2, 'Broom');
+    broom.maxSpeed = 1.68;
+    broom.isBroom = true;
+    this.broomBunny = broom;
   }
 
   startTraining(resetStats = false) {
     this.mode = 'TRAINING';
     this.disposePopulation();
     this.hayObstacles = [];
+    this.trainPaused = false;
+    this.stepOnce = false;
     if (resetStats) {
       this.generation = 1;
       this.bestFitnessEver = 0;
       this.bestLapSec = null;
+      this.fitnessHistory = [];
     }
 
     const [sx, sy] = this.meta.start;
     const heading = this.meta.start_heading_rad;
     for (let i = 0; i < this.config.popSize; i++) {
-      this.bunnies.push(new DerbyBunny(sx, sy, heading, this.config, this.game.assets, null, i));
+      let brain = null;
+      if (this.trainScenario === 'observe' && this.bestBrainEver) {
+        brain = this.bestBrainEver.copy();
+      }
+      this.bunnies.push(new DerbyBunny(sx, sy, heading, this.config, this.game.assets, brain, i));
     }
+    this.spawnBroomBunny();
     this.state = 'RUNNING';
+    this.syncPauseButton();
     this.updatePanelStats();
+    this.updateSparkline();
+  }
+
+  /** Passe à la génération suivante (GA) ou relance les cerveaux figés en mode Observe. */
+  evolveGeneration() {
+    if (!this.meta || this.bunnies.length === 0) return;
+    const [sx, sy] = this.meta.start;
+    const heading = this.meta.start_heading_rad;
+
+    if (this.trainScenario === 'observe') {
+      const clonedBrains = this.bunnies.map((b) => (b.brain ? b.brain.copy() : null));
+      this.disposePopulation();
+      for (let i = 0; i < clonedBrains.length; i++) {
+        this.bunnies.push(new DerbyBunny(sx, sy, heading, this.config, this.game.assets, clonedBrains[i], i));
+      }
+      this.spawnBroomBunny();
+      this.updatePanelStats();
+      return;
+    }
+
+    const genBest = this.recordBestFromGeneration();
+    this.fitnessHistory.push(genBest);
+    if (this.fitnessHistory.length > 60) this.fitnessHistory.shift();
+
+    this.savedBunnies = this.bunnies;
+    this.bunnies = GeneticAlgorithm.nextGeneration(
+      this.savedBunnies,
+      this.config.popSize,
+      this.config.mutationRate,
+      (brain, idx) => new DerbyBunny(sx, sy, heading, this.config, this.game.assets, brain, idx)
+    );
+    this.savedBunnies = [];
+    this.generation++;
+    this.spawnBroomBunny();
+    this.updatePanelStats();
+    this.updateSparkline();
   }
 
   /** Prépare la grille des 8 lapins de Race Day (avant le pari). */
@@ -316,7 +390,15 @@ class DerbyScene extends Scene {
       return;
     }
 
-    const steps = this.mode === 'TRAINING' ? this.speedMult : 1;
+    // Pause & pas-à-pas ("Un pas") en mode TRAINING (comme 9-VoitureSuitCircuit)
+    if (this.mode === 'TRAINING' && this.trainPaused && !this.stepOnce) {
+      return;
+    }
+
+    const steps = this.mode === 'TRAINING'
+      ? (this.stepOnce ? 1 : this.speedMult)
+      : 1;
+    this.stepOnce = false;
     const cps = this.meta.checkpoints_in_order;
     const t0 = performance.now();
 
@@ -326,8 +408,25 @@ class DerbyScene extends Scene {
       let aliveCount = 0;
       let finishedCount = 0;
 
+      // Scénario Voiture-Balai ('broom') : fait avancer le lièvre doré
+      if (this.mode === 'TRAINING' && this.trainScenario === 'broom' && this.broomBunny && !this.broomBunny.dead) {
+        this.broomBunny.step(this.maskPixels, this.maskW, this.maskH, cps, []);
+      }
+
       for (const b of this.bunnies) {
         b.step(this.maskPixels, this.maskW, this.maskH, cps, this.hayObstacles);
+        // Élimination par la Voiture-Balai si le lapin a > 4 checkpoints de retard
+        if (
+          this.mode === 'TRAINING' &&
+          this.trainScenario === 'broom' &&
+          this.broomBunny &&
+          !b.dead &&
+          !b.finishedLap &&
+          this.broomBunny.checkpointsPassed >= 4 &&
+          this.broomBunny.checkpointsPassed - b.checkpointsPassed > 4
+        ) {
+          b.dead = true;
+        }
         if (!b.dead) aliveCount++;
         if (b.finishedLap) {
           finishedCount++;
@@ -343,9 +442,11 @@ class DerbyScene extends Scene {
       }
 
       if (this.mode === 'TRAINING') {
-        // Arrêt automatique quand >= 60% des lapins bouclent un tour (slide 54 !)
-        if (finishedCount >= Math.ceil(this.bunnies.length * 0.6)) {
-          this.recordBestFromGeneration();
+        // Arrêt automatique quand >= 60% des lapins bouclent un tour (sauf en mode Observe)
+        if (this.trainScenario !== 'observe' && finishedCount >= Math.ceil(this.bunnies.length * 0.6)) {
+          const genBest = this.recordBestFromGeneration();
+          this.fitnessHistory.push(genBest);
+          this.updateSparkline();
           this.state = 'GRADUATED';
           this.game.save.recordGameResult('derby', 3, 15);
           this.game.sound.playSfx('success_bell', 0.9);
@@ -357,18 +458,7 @@ class DerbyScene extends Scene {
 
         // Passage à la génération suivante quand tous les lapins sont éliminés
         if (aliveCount === 0) {
-          this.recordBestFromGeneration();
-          const [sx, sy] = this.meta.start;
-          const heading = this.meta.start_heading_rad;
-          this.savedBunnies = this.bunnies;
-          this.bunnies = GeneticAlgorithm.nextGeneration(
-            this.savedBunnies,
-            this.config.popSize,
-            this.config.mutationRate,
-            (brain, idx) => new DerbyBunny(sx, sy, heading, this.config, this.game.assets, brain, idx)
-          );
-          this.savedBunnies = [];
-          this.generation++;
+          this.evolveGeneration();
         }
       } else if (this.mode === 'RACE') {
         if (this.raceStandings.length >= 3 || aliveCount === 0) {
@@ -421,6 +511,7 @@ class DerbyScene extends Scene {
       b.computeFitness();
       if (!top || b.rawFitness > top.rawFitness) top = b;
     }
+    const genBest = top ? top.rawFitness : 0;
     if (top && top.rawFitness > this.bestFitnessEver) {
       this.bestFitnessEver = top.rawFitness;
       if (top.brain) {
@@ -428,6 +519,7 @@ class DerbyScene extends Scene {
         this.bestBrainEver = top.brain.copy();
       }
     }
+    return genBest;
   }
 
   draw(g) {
@@ -508,6 +600,20 @@ class DerbyScene extends Scene {
       b.show(g, scaleX, scaleY, b === leader, drawRaysNow && b === leader);
     }
 
+    // Voiture-Balai (lièvre doré) dans le scénario 'broom'
+    if (this.mode === 'TRAINING' && this.trainScenario === 'broom' && this.broomBunny && !this.broomBunny.dead) {
+      const bx = Math.round(this.broomBunny.pos.x * scaleX);
+      const by = Math.round(this.broomBunny.pos.y * scaleY);
+      g.push();
+      g.noFill();
+      g.stroke(255, 200, 60, 220);
+      g.strokeWeight(1.5);
+      g.circle(bx, by, 16);
+      g.pop();
+      this.broomBunny.show(g, scaleX, scaleY, false, false);
+      PixelUI.txt(g, font, 'BROOM', bx, by - 22, g.color(255, 225, 110), CENTER, 6.5);
+    }
+
     // Ballons colorés qui flottent autour du circuit + pollen doré
     for (const bl of this.balloons) {
       const bsp = assets.getSprite(bl.sprite);
@@ -565,9 +671,11 @@ class DerbyScene extends Scene {
       PixelUI.panel(g, 234, 2, 240, 14);
       PixelUI.txt(g, font, top3, 354, 4, g.color(144, 78, 92), CENTER, 7.5, 230);
     } else {
-      PixelUI.panel(g, 6, 2, 290, 14);
-      const hudText = 'TRAINING | GEN ' + this.generation + ' | ALIVE ' + alive + '/' + this.bunnies.length + ' | ' + this.speedMult + 'x';
-      PixelUI.txt(g, font, hudText, 12, 4, g.color(107, 75, 91), LEFT, 7.5, 278);
+      PixelUI.panel(g, 6, 2, 340, 14);
+      const scLbl = this.trainScenario === 'broom' ? 'BROOM' : (this.trainScenario === 'observe' ? 'OBSERVE' : 'GA');
+      const spLbl = this.trainPaused ? 'PAUSED' : (this.speedMult + 'x');
+      const hudText = 'TRAIN [' + scLbl + '] | GEN ' + this.generation + ' | ALIVE ' + alive + '/' + this.bunnies.length + ' | ' + spLbl;
+      PixelUI.txt(g, font, hudText, 12, 4, g.color(107, 75, 91), LEFT, 7.5, 328);
     }
 
     // Overlays (flushLayer pour que les cartes recouvrent proprement le HUD HD derrière)
@@ -623,17 +731,24 @@ class DerbyScene extends Scene {
     }
   }
 
-  /** Panneau HTML latéral discret regroupant tous les curseurs exigés par le cours. */
+  /** Panneau HTML latéral regroupant les scénarios, contrôles pas-à-pas, sparkline, Brain Inspector et curseurs. */
   createSidePanel() {
     if (this.panelEl) this.panelEl.remove();
     const el = document.createElement('div');
     el.id = 'derby-panel';
     el.innerHTML = `
-      <div class="dp-title">DERBY DEBUG LAB [H]</div>
+      <div class="dp-title">DERBY TRAINING LAB [H]</div>
       <div class="dp-tabs">
         <button id="dp-tab-race" class="dp-btn dp-active">Race Day</button>
         <button id="dp-tab-train" class="dp-btn">Training</button>
       </div>
+      <label>Scenario:
+        <select id="dp-scenario">
+          <option value="evolve" selected>Evolve (Genetic Algo)</option>
+          <option value="observe">Observe (Frozen Brains)</option>
+          <option value="broom">Broom (Voiture-Balai)</option>
+        </select>
+      </label>
       <label>Track:
         <select id="dp-track">
           <option value="clover" selected>Clover S-Curve (Hard)</option>
@@ -641,7 +756,25 @@ class DerbyScene extends Scene {
           <option value="classic">Meadow Classic (Easy)</option>
         </select>
       </label>
-      <div class="dp-stats" id="dp-stats">Gen 1 | Best: 0</div>
+      <div class="dp-stats" id="dp-stats">Gen 1 | Fit 0 | Lap --</div>
+      <div class="dp-status-row">
+        <span id="dp-pill-run" class="dp-pill">Run 0</span>
+        <span id="dp-pill-fin" class="dp-pill ok">Fin 0</span>
+        <span id="dp-pill-dead" class="dp-pill dead">Dead 0</span>
+      </div>
+      <svg id="dp-sparkline" viewBox="0 0 200 36" preserveAspectRatio="none" title="Best Fitness per Generation"></svg>
+      <div class="dp-row">
+        <button id="dp-pause" class="dp-btn" title="Pause / Resume Training">Pause</button>
+        <button id="dp-step" class="dp-btn" title="Advance exactly 1 frame (Un pas)">+1 Step</button>
+        <button id="dp-nextgen" class="dp-btn" title="Force Next Generation">Next Gen</button>
+      </div>
+      <div class="dp-row">
+        <button id="dp-sp1" class="dp-btn dp-active">1x</button>
+        <button id="dp-sp5" class="dp-btn">5x</button>
+        <button id="dp-sp20" class="dp-btn">20x</button>
+        <button id="dp-rays-tog" class="dp-btn dp-active">Rays</button>
+      </div>
+      <button id="dp-inspect" class="dp-btn" style="background:#d6e8fa;">Inspect Brain &#8599;</button>
       <label>Rays: <span id="dp-v-rays">${this.config.rayCount}</span>
         <input id="dp-rays" type="range" min="3" max="11" step="2" value="${this.config.rayCount}">
       </label>
@@ -667,15 +800,14 @@ class DerbyScene extends Scene {
         </select>
       </label>
       <div class="dp-row">
-        <button id="dp-sp1" class="dp-btn dp-active">1x</button>
-        <button id="dp-sp5" class="dp-btn">5x</button>
-        <button id="dp-sp20" class="dp-btn">20x</button>
-        <button id="dp-rays-tog" class="dp-btn">Rays</button>
+        <button id="dp-restart" class="dp-btn">Restart</button>
+        <button id="dp-save" class="dp-btn">Save</button>
       </div>
       <div class="dp-row">
-        <button id="dp-restart" class="dp-btn">Restart</button>
-        <button id="dp-save" class="dp-btn">Save Brain</button>
+        <button id="dp-export" class="dp-btn">Export JSON</button>
+        <button id="dp-import" class="dp-btn">Import JSON</button>
       </div>
+      <input id="dp-import-file" type="file" accept=".json,application/json" style="display:none" />
       <select id="dp-saved-list"><option value="">-- Load Saved Brain --</option></select>
       <button id="dp-back" class="dp-btn dp-back">Back to Fair</button>
     `;
@@ -698,6 +830,10 @@ class DerbyScene extends Scene {
     bindSlider('#dp-neu', '#dp-v-neu', 'hiddenNodes', true);
     bindSlider('#dp-mut', '#dp-v-mut', 'mutationRate', false);
 
+    el.querySelector('#dp-scenario').addEventListener('change', (e) => {
+      this.trainScenario = e.target.value;
+      if (this.mode === 'TRAINING') this.startTraining(false);
+    });
     el.querySelector('#dp-act').addEventListener('change', (e) => {
       this.config.activation = e.target.value;
       if (this.mode === 'TRAINING') this.startTraining(true);
@@ -717,6 +853,23 @@ class DerbyScene extends Scene {
       this.startRaceDay();
     };
 
+    el.querySelector('#dp-pause').onclick = () => {
+      if (this.mode !== 'TRAINING') return;
+      this.trainPaused = !this.trainPaused;
+      this.syncPauseButton();
+    };
+    el.querySelector('#dp-step').onclick = () => {
+      if (this.mode !== 'TRAINING') return;
+      this.trainPaused = true;
+      this.stepOnce = true;
+      this.syncPauseButton();
+    };
+    el.querySelector('#dp-nextgen').onclick = () => {
+      if (this.mode !== 'TRAINING') return;
+      this.evolveGeneration();
+    };
+    el.querySelector('#dp-inspect').onclick = () => this.openBrainInspector();
+
     const setSp = (n, btnId) => {
       this.speedMult = n;
       ['#dp-sp1', '#dp-sp5', '#dp-sp20'].forEach((id) => el.querySelector(id).classList.remove('dp-active'));
@@ -725,17 +878,37 @@ class DerbyScene extends Scene {
     el.querySelector('#dp-sp1').onclick = () => setSp(1, '#dp-sp1');
     el.querySelector('#dp-sp5').onclick = () => setSp(5, '#dp-sp5');
     el.querySelector('#dp-sp20').onclick = () => setSp(20, '#dp-sp20');
-    el.querySelector('#dp-rays-tog').onclick = () => { this.showRays = !this.showRays; };
+    el.querySelector('#dp-rays-tog').onclick = () => {
+      this.showRays = !this.showRays;
+      el.querySelector('#dp-rays-tog').classList.toggle('dp-active', this.showRays);
+    };
     el.querySelector('#dp-restart').onclick = () => {
       if (this.mode === 'TRAINING') this.startTraining(true);
       else this.startRaceDay();
     };
     el.querySelector('#dp-save').onclick = () => this.saveBestBrain();
+    el.querySelector('#dp-export').onclick = () => this.exportBestBrainJson();
+    const fileInp = el.querySelector('#dp-import-file');
+    el.querySelector('#dp-import').onclick = () => fileInp.click();
+    fileInp.onchange = (e) => {
+      const f = e.target.files && e.target.files[0];
+      if (f) this.importBrainJson(f);
+      fileInp.value = '';
+    };
     el.querySelector('#dp-saved-list').onchange = (e) => {
       if (e.target.value !== '') this.loadSavedBrain(Number(e.target.value));
     };
     el.querySelector('#dp-back').onclick = () => this.backToHub();
     this.refreshSavedDropdown();
+    this.updateSparkline();
+  }
+
+  syncPauseButton() {
+    if (!this.panelEl) return;
+    const btn = this.panelEl.querySelector('#dp-pause');
+    if (!btn) return;
+    btn.textContent = this.trainPaused ? 'Play' : 'Pause';
+    btn.classList.toggle('dp-active', this.trainPaused);
   }
 
   refreshSavedDropdown() {
@@ -754,9 +927,343 @@ class DerbyScene extends Scene {
   updatePanelStats() {
     if (!this.panelEl) return;
     const el = this.panelEl.querySelector('#dp-stats');
-    if (!el) return;
-    const lapTxt = this.bestLapSec ? this.bestLapSec.toFixed(1) + 's' : '--';
-    el.textContent = 'Gen ' + this.generation + ' | Fit ' + Math.round(this.bestFitnessEver) + ' | Lap ' + lapTxt;
+    if (el) {
+      const lapTxt = this.bestLapSec ? this.bestLapSec.toFixed(1) + 's' : '--';
+      el.textContent = 'Gen ' + this.generation + ' | Fit ' + Math.round(this.bestFitnessEver) + ' | Lap ' + lapTxt;
+    }
+    let run = 0;
+    let fin = 0;
+    let dead = 0;
+    for (const b of this.bunnies) {
+      if (b.finishedLap) fin++;
+      else if (b.dead) dead++;
+      else run++;
+    }
+    const pRun = this.panelEl.querySelector('#dp-pill-run');
+    const pFin = this.panelEl.querySelector('#dp-pill-fin');
+    const pDead = this.panelEl.querySelector('#dp-pill-dead');
+    if (pRun) pRun.textContent = 'Run ' + run;
+    if (pFin) pFin.textContent = 'Fin ' + fin;
+    if (pDead) pDead.textContent = 'Dead ' + dead;
+  }
+
+  /** Dessine la courbe SVG de progression de la meilleure fitness par génération. */
+  updateSparkline() {
+    if (!this.panelEl) return;
+    const svg = this.panelEl.querySelector('#dp-sparkline');
+    if (!svg) return;
+    const hist = this.fitnessHistory;
+    if (hist.length === 0) {
+      svg.innerHTML = '<text x="100" y="21" text-anchor="middle" font-size="9" fill="#9c8078">Fitness history (Gen 1...)</text>';
+      return;
+    }
+    const maxV = Math.max(10, ...hist);
+    const n = hist.length;
+    const pts = hist.map((v, i) => {
+      const x = n === 1 ? 100 : 4 + (i / (n - 1)) * 192;
+      const y = 32 - (v / maxV) * 26;
+      return x.toFixed(1) + ',' + y.toFixed(1);
+    });
+    const poly = pts.join(' ');
+    const area = '4,34 ' + poly + ' ' + (n === 1 ? '100' : '196') + ',34';
+    svg.innerHTML =
+      '<polygon points="' + area + '" fill="rgba(120,178,118,0.28)" />' +
+      '<polyline points="' + poly + '" fill="none" stroke="#4c8c58" stroke-width="2" />' +
+      '<text x="196" y="10" text-anchor="end" font-size="8" fill="#6b4b5b">max ' + Math.round(maxV) + '</text>';
+  }
+
+  /** Exporte le meilleur cerveau au format JSON téléchargeable. */
+  exportBestBrainJson() {
+    const leader = this.getLeaderBunny();
+    const targetBrain = this.bestBrainEver || (leader && leader.brain);
+    if (!targetBrain) return;
+    const payload = {
+      name: 'MooDerby_G' + this.generation + '_Fit' + Math.round(this.bestFitnessEver),
+      config: { ...this.config },
+      brainData: targetBrain.serialize(),
+      exportedAt: new Date().toISOString()
+    };
+    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = payload.name + '.json';
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+    this.game.sound.playSfx('ui_click');
+  }
+
+  /** Importe un cerveau JSON et lance immédiatement la population avec ce cerveau. */
+  importBrainJson(file) {
+    const reader = new FileReader();
+    reader.onload = () => {
+      try {
+        const parsed = JSON.parse(String(reader.result || '{}'));
+        const brainData = parsed.brainData || parsed;
+        if (!brainData || !Array.isArray(brainData.weights)) return;
+        if (parsed.config) {
+          this.config = { ...this.config, ...parsed.config };
+        }
+        const loaded = NeuralNetwork.deserialize(brainData);
+        if (this.bestBrainEver) this.bestBrainEver.dispose();
+        this.bestBrainEver = loaded;
+
+        if (!Array.isArray(this.game.save.data.savedBrains)) this.game.save.data.savedBrains = [];
+        this.game.save.data.savedBrains.unshift({
+          name: parsed.name || file.name.replace(/\.json$/i, ''),
+          config: { ...this.config },
+          brainData: loaded.serialize(),
+          savedAt: new Date().toISOString()
+        });
+        if (this.game.save.data.savedBrains.length > 8) this.game.save.data.savedBrains.pop();
+        this.game.save.save();
+        this.refreshSavedDropdown();
+
+        this.mode = 'TRAINING';
+        this.loadSavedBrain(0);
+        this.game.sound.playSfx('success_bell', 0.8);
+      } catch (err) {
+        console.warn('Invalid brain JSON:', err);
+      }
+    };
+    reader.readAsText(file);
+  }
+
+  /** Ouvre le Brain Inspector interactif (inspiré de brain-inspector.js du repo Bruno Vasselle). */
+  openBrainInspector() {
+    const leader = this.getLeaderBunny();
+    if (!leader || !leader.brain) return;
+    this._wasPausedBeforeInspect = this.trainPaused;
+    this.trainPaused = true;
+    this.syncPauseButton();
+
+    if (!this.inspectorEl) {
+      const modal = document.createElement('div');
+      modal.id = 'brain-inspector-modal';
+      modal.innerHTML = `
+        <div class="bi-card">
+          <div class="bi-head">
+            <span id="bi-title">BRAIN INSPECTOR — NEURAL NETWORK</span>
+            <div style="display:flex;gap:6px;">
+              <button id="bi-step-btn" class="hud-pill hud-pill-sm" type="button">+1 Step</button>
+              <button id="bi-close-btn" class="hud-pill hud-pill-sm" type="button">Close (Esc)</button>
+            </div>
+          </div>
+          <div class="bi-svg-wrap"><svg id="bi-svg" width="700" height="240"></svg></div>
+          <div class="bi-grid">
+            <div class="bi-box">
+              <h4 id="bi-neuron-title">Click any neuron to inspect z = &Sigma;(a&#x1D62; &times; w&#x1D62;) + b</h4>
+              <div id="bi-neuron-detail">Select a hidden or output neuron in the graph above to view exact incoming weights, activations, and bias.</div>
+            </div>
+            <div class="bi-box">
+              <h4>Live Sensors &amp; Steering Outputs</h4>
+              <div id="bi-io-detail"></div>
+            </div>
+          </div>
+        </div>
+      `;
+      modal.addEventListener('click', (e) => {
+        if (e.target === modal) this.closeBrainInspector();
+      });
+      modal.querySelector('#bi-close-btn').onclick = () => this.closeBrainInspector();
+      modal.querySelector('#bi-step-btn').onclick = () => {
+        if (this.mode === 'TRAINING' && this.meta && this.maskPixels) {
+          const cps = this.meta.checkpoints_in_order;
+          if (this.trainScenario === 'broom' && this.broomBunny && !this.broomBunny.dead) {
+            this.broomBunny.step(this.maskPixels, this.maskW, this.maskH, cps, []);
+          }
+          for (const b of this.bunnies) {
+            b.step(this.maskPixels, this.maskW, this.maskH, cps, this.hayObstacles);
+          }
+          this.updatePanelStats();
+          this.renderBrainInspector();
+        }
+      };
+      document.body.appendChild(modal);
+      this.inspectorEl = modal;
+    }
+
+    this.inspectorSel = { layer: leader.brain._cachedLayers.length, idx: 0 }; // Sélectionne la sortie "Turn" par défaut
+    this.inspectorEl.classList.add('open');
+    this.renderBrainInspector();
+  }
+
+  closeBrainInspector() {
+    if (this.inspectorEl) {
+      this.inspectorEl.classList.remove('open');
+    }
+    this.trainPaused = this._wasPausedBeforeInspect;
+    this.syncPauseButton();
+  }
+
+  /** Dessine le graphe SVG interactif des poids/activations + tables de détail. */
+  renderBrainInspector() {
+    if (!this.inspectorEl || !this.inspectorEl.classList.contains('open')) return;
+    const leader = this.getLeaderBunny();
+    if (!leader || !leader.brain) return;
+
+    const snap = leader.brain.getSnapshot(leader.lastInputs);
+    const rc = this.config.rayCount;
+    const spreadDeg = Math.round(0.85 * 180); // ~153°
+    const rayAngles = [];
+    for (let i = 0; i < rc; i++) {
+      const t = rc === 1 ? 0.5 : i / (rc - 1);
+      rayAngles.push(Math.round(-spreadDeg * 0.5 + t * spreadDeg));
+    }
+
+    const titleEl = this.inspectorEl.querySelector('#bi-title');
+    if (titleEl) {
+      titleEl.textContent =
+        'BRAIN INSPECTOR — ' + leader.name + ' (Gen ' + this.generation +
+        ' | CP ' + leader.checkpointsPassed + ' | ' + snap.widths.join(' -> ') + ' | ' + snap.activation + ')';
+    }
+
+    const numCols = snap.widths.length;
+    const maxNodes = Math.max(...snap.widths);
+    const svgW = Math.max(660, numCols * 175);
+    const svgH = Math.max(220, maxNodes * 24 + 36);
+    const svg = this.inspectorEl.querySelector('#bi-svg');
+    svg.setAttribute('width', svgW);
+    svg.setAttribute('height', svgH);
+    svg.setAttribute('viewBox', '0 0 ' + svgW + ' ' + svgH);
+
+    // Coordonnées (x, y) de chaque neurone
+    const coords = [];
+    const padX = 72;
+    const stepX = numCols > 1 ? (svgW - padX * 2) / (numCols - 1) : 0;
+    for (let c = 0; c < numCols; c++) {
+      const count = snap.widths[c];
+      const colPts = [];
+      const topY = 26;
+      const availH = svgH - 44;
+      for (let i = 0; i < count; i++) {
+        const y = count === 1 ? topY + availH / 2 : topY + (i * availH) / (count - 1);
+        colPts.push({ x: padX + c * stepX, y });
+      }
+      coords.push(colPts);
+    }
+
+    const sel = this.inspectorSel;
+    let html = '';
+
+    // En-têtes de colonnes
+    for (let c = 0; c < numCols; c++) {
+      const lbl = c === 0 ? 'Inputs (' + snap.widths[c] + ')'
+        : (c === numCols - 1 ? 'Outputs (2)' : 'Hidden ' + c + ' (' + snap.widths[c] + ')');
+      html += '<text x="' + coords[c][0].x + '" y="14" text-anchor="middle" font-size="10" font-weight="700" fill="#6b4b5b">' + lbl + '</text>';
+    }
+
+    // Arêtes pondérées : bleu = positif, rouge = négatif, épaisseur ~ |w|
+    for (let l = 0; l < snap.layers.length; l++) {
+      const layer = snap.layers[l];
+      for (let i = 0; i < layer.inSize; i++) {
+        for (let j = 0; j < layer.outSize; j++) {
+          const w = layer.w[i * layer.outSize + j];
+          const p1 = coords[l][i];
+          const p2 = coords[l + 1][j];
+          const isSelEdge = sel && sel.layer === l + 1 && sel.idx === j;
+          const color = w >= 0 ? '#2b6cb0' : '#c53030';
+          const sw = Math.min(3.4, 0.45 + Math.abs(w) * 1.15);
+          const op = sel ? (isSelEdge ? 0.95 : 0.16) : Math.min(0.75, 0.18 + Math.abs(w) * 0.35);
+          html += '<line x1="' + p1.x.toFixed(1) + '" y1="' + p1.y.toFixed(1) +
+            '" x2="' + p2.x.toFixed(1) + '" y2="' + p2.y.toFixed(1) +
+            '" stroke="' + color + '" stroke-width="' + sw.toFixed(2) + '" stroke-opacity="' + op.toFixed(2) + '" />';
+        }
+      }
+    }
+
+    // Neurones cliquables
+    const nodeLabel = (c, i) => {
+      if (c === 0) return i < rc ? 'R' + (i + 1) + ' (' + rayAngles[i] + '°)' : 'Speed';
+      if (c === numCols - 1) return i === 0 ? 'Turn' : 'Throttle';
+      return 'H' + c + '_' + (i + 1);
+    };
+
+    for (let c = 0; c < numCols; c++) {
+      for (let i = 0; i < snap.widths[c]; i++) {
+        const pt = coords[c][i];
+        const act = snap.activations[c] && snap.activations[c][i] !== undefined ? snap.activations[c][i] : 0;
+        const norm = Math.max(0, Math.min(1, act));
+        const isSel = sel && sel.layer === c && sel.idx === i;
+        const fill = 'rgb(' + Math.round(252 - norm * 110) + ',' + Math.round(238 - norm * 24) + ',' + Math.round(190 - norm * 60) + ')';
+        html += '<g class="bi-node" data-layer="' + c + '" data-idx="' + i + '" style="cursor:pointer;">';
+        html += '<circle cx="' + pt.x.toFixed(1) + '" cy="' + pt.y.toFixed(1) + '" r="' + (isSel ? 10 : 8) +
+          '" fill="' + fill + '" stroke="' + (isSel ? '#a64d5a' : '#6b4b5b') + '" stroke-width="' + (isSel ? 2.6 : 1.5) + '" />';
+        html += '<text x="' + pt.x.toFixed(1) + '" y="' + (pt.y + 3).toFixed(1) + '" text-anchor="middle" font-size="8" font-weight="700" fill="#462b38">' +
+          act.toFixed(2) + '</text>';
+        if (c === 0) {
+          html += '<text x="' + (pt.x - 13).toFixed(1) + '" y="' + (pt.y + 3).toFixed(1) + '" text-anchor="end" font-size="9" fill="#523442">' +
+            nodeLabel(c, i) + '</text>';
+        } else if (c === numCols - 1) {
+          html += '<text x="' + (pt.x + 13).toFixed(1) + '" y="' + (pt.y + 3).toFixed(1) + '" text-anchor="start" font-size="10" font-weight="700" fill="#523442">' +
+            nodeLabel(c, i) + '</text>';
+        }
+        html += '</g>';
+      }
+    }
+
+    svg.innerHTML = html;
+    svg.querySelectorAll('.bi-node').forEach((gEl) => {
+      gEl.addEventListener('click', () => {
+        this.inspectorSel = {
+          layer: Number(gEl.getAttribute('data-layer')),
+          idx: Number(gEl.getAttribute('data-idx'))
+        };
+        this.renderBrainInspector();
+      });
+    });
+
+    // Détail du neurone sélectionné : z = Σ (a_i × w_i) + b
+    const nTitle = this.inspectorEl.querySelector('#bi-neuron-title');
+    const nDetail = this.inspectorEl.querySelector('#bi-neuron-detail');
+    if (sel && sel.layer > 0 && snap.layers[sel.layer - 1]) {
+      const layer = snap.layers[sel.layer - 1];
+      const prevActs = snap.activations[sel.layer - 1] || [];
+      const bias = layer.b[sel.idx];
+      let z = bias;
+      let rows = '';
+      for (let i = 0; i < layer.inSize; i++) {
+        const ai = prevActs[i] || 0;
+        const wi = layer.w[i * layer.outSize + sel.idx];
+        const contrib = ai * wi;
+        z += contrib;
+        const cls = contrib >= 0 ? 'bi-pos' : 'bi-neg';
+        rows += '<tr><td>' + nodeLabel(sel.layer - 1, i) + '</td><td>' + ai.toFixed(3) +
+          '</td><td class="' + (wi >= 0 ? 'bi-pos' : 'bi-neg') + '">' + (wi >= 0 ? '+' : '') + wi.toFixed(3) +
+          '</td><td class="' + cls + '">' + (contrib >= 0 ? '+' : '') + contrib.toFixed(3) + '</td></tr>';
+      }
+      const outVal = snap.activations[sel.layer][sel.idx] || 0;
+      nTitle.textContent = 'Neuron ' + nodeLabel(sel.layer, sel.idx) + ' (' + layer.act + ')';
+      nDetail.innerHTML =
+        '<div style="margin-bottom:5px;"><b>z</b> = &Sigma;(a&#x1D62;&middot;w&#x1D62;) + b(' + (bias >= 0 ? '+' : '') + bias.toFixed(3) +
+        ') = <b>' + z.toFixed(3) + '</b> &rarr; <b>a = ' + outVal.toFixed(3) + '</b></div>' +
+        '<table class="bi-table"><thead><tr><th>From</th><th>a&#x1D62;</th><th>w&#x1D62;</th><th>a&#x1D62;&times;w&#x1D62;</th></tr></thead><tbody>' +
+        rows + '</tbody></table>';
+    } else if (sel && sel.layer === 0) {
+      const val = snap.activations[0][sel.idx] || 0;
+      nTitle.textContent = 'Input ' + nodeLabel(0, sel.idx);
+      nDetail.innerHTML = '<p>Raw normalized sensor value: <b>' + val.toFixed(3) + '</b> (0 = edge touch, 1 = clear ray of ' + this.config.rayLength + 'px).</p>';
+    }
+
+    // Détail des capteurs + formules de sortie
+    const ioDetail = this.inspectorEl.querySelector('#bi-io-detail');
+    const steerOut = leader.lastOutputs[0] || 0.5;
+    const throttleOut = leader.lastOutputs[1] || 0.5;
+    const dHeadDeg = ((steerOut - 0.5) * 0.28 * 180 / Math.PI).toFixed(1);
+    const spdVal = (0.75 + throttleOut * (leader.maxSpeed - 0.75)).toFixed(2);
+    let rayRows = '';
+    for (let i = 0; i < rc; i++) {
+      const dNorm = leader.lastInputs[i] || 0;
+      rayRows += '<tr><td>R' + (i + 1) + '</td><td>' + rayAngles[i] + '&deg;</td><td>' +
+        (dNorm * this.config.rayLength).toFixed(0) + ' px (' + dNorm.toFixed(2) + ')</td></tr>';
+    }
+    ioDetail.innerHTML =
+      '<div style="margin-bottom:6px;">' +
+      '<b>Turn</b>: ' + steerOut.toFixed(3) + ' &rarr; &Delta;angle = <b>' + (Number(dHeadDeg) >= 0 ? '+' : '') + dHeadDeg + '&deg;/frame</b><br/>' +
+      '<b>Throttle</b>: ' + throttleOut.toFixed(3) + ' &rarr; speed = <b>' + spdVal + ' px/f</b>' +
+      '</div>' +
+      '<table class="bi-table"><thead><tr><th>Ray</th><th>Angle</th><th>Distance</th></tr></thead><tbody>' +
+      rayRows + '</tbody></table>';
   }
 
   drawIntroCard(g) {

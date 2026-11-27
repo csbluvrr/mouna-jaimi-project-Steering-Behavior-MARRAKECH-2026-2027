@@ -190,6 +190,25 @@ class NeuralNetwork {
     this._cachedLayers = [];
   }
 
+  /** Instantané complet des poids, biais et dernières activations (pour le Brain Inspector). */
+  getSnapshot(lastInputs = null) {
+    const widths = [this.input_nodes];
+    const layers = [];
+    const activations = [lastInputs ? Array.from(lastInputs) : new Array(this.input_nodes).fill(0)];
+    for (const l of this._cachedLayers) {
+      widths.push(l.outSize);
+      layers.push({
+        inSize: l.inSize,
+        outSize: l.outSize,
+        w: Array.from(l.w),
+        b: Array.from(l.b),
+        act: l.act
+      });
+      activations.push(Array.from(l.buf));
+    }
+    return { widths, layers, activations, activation: this.activation };
+  }
+
   /** Sérialise la topologie et tous les poids en objet JSON sauvegardable. */
   serialize() {
     const weights = this.model.getWeights().map((t) => ({

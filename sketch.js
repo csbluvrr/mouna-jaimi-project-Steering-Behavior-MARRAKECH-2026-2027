@@ -292,8 +292,17 @@ function setupFullscreenButton() {
       }
     }
 
-    // Touche Échap : ferme d'abord la fenêtre de vœu si ouverte, sinon bascule le livre-menu
+    // Touche Échap : ferme d'abord le Brain Inspector ou la fenêtre de vœu si ouverts, sinon bascule le livre-menu
     if (e.key === 'Escape') {
+      const biModal = document.getElementById('brain-inspector-modal');
+      if (biModal && biModal.classList.contains('open')) {
+        e.preventDefault();
+        e.stopPropagation();
+        const cur = game.scenes ? game.scenes.current : null;
+        if (cur && typeof cur.closeBrainInspector === 'function') cur.closeBrainInspector();
+        else biModal.classList.remove('open');
+        return;
+      }
       const wishModal = document.getElementById('wish-modal');
       if (wishModal && wishModal.classList.contains('open')) {
         e.preventDefault();
@@ -420,11 +429,12 @@ function windowResized() {
 
 function mousePressed(event) {
   if (!game.assets.ready) return;
-  // Ignorer les clics sur les boutons HUD haut-droite, la fenêtre de vœu ou les panneaux latéraux
+  // Ignorer les clics sur les boutons HUD haut-droite, les modales ou les panneaux latéraux
   if (event && event.target && (
     event.target.id === 'fullscreen-btn' ||
     event.target.closest('#hud-controls') ||
     event.target.closest('#wish-modal') ||
+    event.target.closest('#brain-inspector-modal') ||
     event.target.closest('#derby-panel') ||
     event.target.closest('.debug-side-panel')
   )) {
