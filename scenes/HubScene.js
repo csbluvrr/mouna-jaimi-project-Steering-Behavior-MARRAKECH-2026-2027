@@ -368,13 +368,24 @@ class HubScene extends Scene {
       }),
       new FairVisitor(-234, 158, 'guest_strip', this.game.assets, {
         name: 'Ralsei', guestFile: 'ralsei_walk', guestW: 32, guestH: 32, guestFrames: 4,
-        trioMode: true, bounds: [-450, 136, 1380, 74], emote: 'Heart',
+        trioMode: true, portrait: 'portrait_ralsei', bounds: [-450, 136, 1380, 74], emote: 'Heart',
         greeting: 'Hello Moo! Kris, Susie and I are exploring every corner of your funfair together!'
       }),
       new FairVisitor(-280, 160, 'guest_strip', this.game.assets, {
         name: 'Susie', guestFile: 'susie_walk', guestW: 32, guestH: 34, guestFrames: 4,
-        trioMode: true, bounds: [-450, 136, 1380, 74], emote: 'Exclamation',
+        trioMode: true, portrait: 'portrait_susie', bounds: [-450, 136, 1380, 74], emote: 'Exclamation',
         greeting: "Heh, stick with us! First snacks, then the Ferris wheel, then fireworks!"
+      }),
+      new FairVisitor(-292, 166, 'guest_strip', this.game.assets, {
+        name: 'Law', guestFile: 'law_walk', guestW: 32, guestH: 32, guestFrames: 4,
+        bounds: [-410, 140, 260, 56], emote: 'Interrogation',
+        dialogue: {
+          text: "Room... Wait, I don't need my Devil Fruit just to grab a cold lemonade here.",
+          choices: [
+            { label: '1. Share a sparkling lemonade!', reply: "Hmph... Not bad. Just don't tell Straw Hat I'm having fun.", action: 'treat_lemonade' },
+            { label: '2. Seen Luffy around?', reply: "He sprinted straight toward the central plaza shouting about meat..." }
+          ]
+        }
       }),
       new FairVisitor(248, 170, 'guest_strip', this.game.assets, {
         name: 'Luffy', guestFile: 'luffy_walk', guestW: 32, guestH: 32, guestFrames: 4,
@@ -400,7 +411,9 @@ class HubScene extends Scene {
       }),
       new FairVisitor(688, 176, 'guest_strip', this.game.assets, {
         name: 'Niko', guestFile: 'niko_walk', guestW: 32, guestH: 32, guestFrames: 4,
-        bounds: [625, 150, 135, 52], emote: 'Star',
+        portrait: 'portrait_niko',
+        pauseSprite: { file: 'niko_sit', w: 32, h: 32, frames: 2, speed: 18 },
+        bounds: [-430, 142, 1340, 62], emote: 'Star',
         dialogue: {
           text: "Whoa, Moo! This Wishing Fountain glows almost as warmly as my Sun!",
           choices: [
@@ -409,8 +422,20 @@ class HubScene extends Scene {
           ]
         }
       }),
+      new FairVisitor(654, 166, 'guest_strip', this.game.assets, {
+        name: 'Perona', guestFile: 'perona_walk', guestW: 32, guestH: 32, guestFrames: 4,
+        bounds: [520, 142, 340, 56], emote: 'Star',
+        dialogue: {
+          text: "Horohorohoro! This pastel funfair is almost as cute as my Negative Hollows!",
+          choices: [
+            { label: '1. Ride the Mini Carousel!', reply: "Horohoro! A fairytale pony carousel?! Lead the way, cute bunny!", action: 'ring_carousel' },
+            { label: '2. Cute floating ghosts!', reply: "Of course they are! Horohorohoro — don't get gloomy now!" }
+          ]
+        }
+      }),
       new FairVisitor(584, 156, 'guest_strip', this.game.assets, {
         name: 'The Knight', guestFile: 'knight_walk', guestW: 32, guestH: 32, guestFrames: 4,
+        portrait: 'portrait_knight',
         bounds: [515, 140, 140, 48], emote: 'Interrogation',
         greeting: '... (The tiny vessel quietly admires the spinning pastel carousel.)'
       }),
@@ -458,8 +483,8 @@ class HubScene extends Scene {
     for (const v of this.visitors) {
       if (v.stationary || v.trioMode || v.kind === 'new_bunny') continue;
       v.othersRef = this.visitors;
-      if (v.name === 'Zoro') {
-        v.parkSpots = allSpots; // Seul Zoro traverse tout le parc (toujours perdu !)
+      if (v.name === 'Zoro' || v.name === 'Niko') {
+        v.parkSpots = allSpots; // Zoro (toujours perdu) & Niko (explore toute la fête) traversent les 3 ailes !
       } else if (v.pos.x < 0) {
         v.parkSpots = westSpots; // Habitués de l'Aile Ouest (Sweet Street & Boutique)
       } else if (v.pos.x > 480) {
@@ -953,18 +978,51 @@ class HubScene extends Scene {
     }
   }
 
-  /** Ouvre la boîte de dialogue RPG avec un NPC (salutation ou choix multiples). */
+  /** Ouvre la boîte de dialogue RPG avec un NPC (salutation, portrait éventuel ou choix multiples). */
   startNpcDialogue(npc) {
     if (!npc) return;
     this.moo.stop();
     npc.facingLeft = this.moo.pos.x < npc.pos.x;
     this.game.sound.playSfx('ui_click', 0.7);
-    if (npc.dialogue) {
+    this.dialogueChoiceIdx = 0;
+
+    // Dialogue contextuel de Niko selon l'endroit du parc où il se promène !
+    let dlg = npc.dialogue;
+    if (npc.name === 'Niko') {
+      if (npc.pos.x < 0) {
+        dlg = {
+          text: "Whoa, Moo! The Food Court smells just like Mama's hazelnut pancakes!!",
+          choices: [
+            { label: '1. Grab Cotton Candy with Niko!', reply: "Yum!! Almost as fluffy and sweet as pancakes!", action: 'treat_cotton' },
+            { label: '2. Want to bounce in the castle?', reply: "Ooh! Let's jump super high — I'll hold my hat tight!" }
+          ]
+        };
+      } else if (npc.pos.x > 500 && npc.pos.x < 670) {
+        dlg = {
+          text: "Whoa, Moo! This Wishing Fountain glows almost as warmly as my Sun!",
+          choices: [
+            { label: '1. Make a wish at the Fountain!', reply: "I wish for pancakes for everyone at the funfair!", action: 'open_wish' },
+            { label: '2. Keep the Sun safe, Niko!', reply: "I will! And thank you for showing me around!" }
+          ]
+        };
+      } else {
+        dlg = {
+          text: "The Ferris Wheel and string lights remind me of the Refuge, Moo!",
+          choices: [
+            { label: '1. Watch the Stage fireworks!', reply: "Ooh! They sparkle like tiny suns in the sky!", action: 'stage_fireworks' },
+            { label: '2. Enjoy exploring the fair!', reply: "Hehe, thanks Moo! I'll rest on my stool if my paws get tired!" }
+          ]
+        };
+      }
+    }
+
+    if (dlg) {
       this.activeDialogue = {
         npc,
         speaker: npc.name,
-        text: npc.dialogue.text,
-        choices: npc.dialogue.choices || [],
+        portrait: npc.portrait || null,
+        text: dlg.text,
+        choices: dlg.choices || [],
         stage: 'ASK',
         pendingAction: null
       };
@@ -972,6 +1030,7 @@ class HubScene extends Scene {
       this.activeDialogue = {
         npc,
         speaker: npc.name,
+        portrait: npc.portrait || null,
         text: npc.greeting,
         choices: [],
         stage: 'REPLY',
@@ -1005,6 +1064,8 @@ class HubScene extends Scene {
     if (action === 'open_prize') this.prizeShop.show();
     else if (action === 'ring_carousel') this.interactWithProp('carousel');
     else if (action === 'treat_cotton') this.interactWithProp('cotton_candy');
+    else if (action === 'treat_lemonade') this.interactWithProp('lemonade');
+    else if (action === 'stage_fireworks') this.interactWithProp('stage');
     else if (action === 'open_wish') this.interactWithProp('fountain');
   }
 
@@ -1152,25 +1213,25 @@ class HubScene extends Scene {
     fg.susie.emoteTimer = 0;
 
     if (stop.mode === 'SNACK') {
-      // Jeu de maillet forain (Kris & Susie balancent leur gros maillet rose, Ralsei applaudit !)
-      fg.kris.trioAction   = { file: 'kris_act_mallet',  w: 42, h: 36, frames: 8, speed: 6, emote: 'Exclamation', allowFlip: false };
-      fg.ralsei.trioAction = { file: 'ralsei_act_cheer', w: 36, h: 36, frames: 8, speed: 6, emote: 'Heart',       allowFlip: false };
-      fg.susie.trioAction  = { file: 'susie_act_mallet', w: 42, h: 38, frames: 8, speed: 6, emote: 'Happy',       allowFlip: false };
+      // Pause gourmande au Food Court Ouest : Kris & Susie boivent un soda, Ralsei tient son gâteau !
+      fg.kris.trioAction   = { file: 'kris_act_drink',   w: 32, h: 34, frames: 4, speed: 8, emote: 'Happy',       allowFlip: false };
+      fg.ralsei.trioAction = { file: 'ralsei_act_cake',  w: 32, h: 32, frames: 4, speed: 8, emote: 'Heart',       allowFlip: false };
+      fg.susie.trioAction  = { file: 'susie_act_drink',  w: 32, h: 36, frames: 4, speed: 8, emote: 'Happy',       allowFlip: false };
     } else if (stop.mode === 'PICNIC') {
-      // Spectacle de magie de Ralsei (boules de feu!) + glaces de Susie + soda de Kris
-      fg.kris.trioAction   = { file: 'kris_act_drink',   w: 32, h: 34, frames: 4, speed: 8, emote: 'Star',        allowFlip: false };
-      fg.ralsei.trioAction = { file: 'ralsei_act_magic', w: 40, h: 36, frames: 8, speed: 6, emote: 'Star',        allowFlip: true };
+      // Sweet Street : Kris tient son ballon doré, Ralsei applaudit, Susie danse avec ses deux glaces roses !
+      fg.kris.trioAction   = { file: 'kris_act_balloon', w: 32, h: 36, frames: 4, speed: 8, emote: 'Star',        allowFlip: false };
+      fg.ralsei.trioAction = { file: 'ralsei_act_cheer', w: 36, h: 36, frames: 8, speed: 6, emote: 'Heart',       allowFlip: false };
       fg.susie.trioAction  = { file: 'susie_act_laugh',  w: 36, h: 38, frames: 8, speed: 7, emote: 'Happy',       allowFlip: false };
     } else if (stop.mode === 'CHEER') {
-      // Danse d'écharpe magique de Ralsei + rires de Susie + maillet de Kris
-      fg.kris.trioAction   = { file: 'kris_act_mallet',  w: 42, h: 36, frames: 8, speed: 6, emote: 'Happy',       allowFlip: false };
+      // Jeux forains à la Place Centrale : Kris & Susie jouent du gros maillet rose, Ralsei fait tournoyer son écharpe !
+      fg.kris.trioAction   = { file: 'kris_act_mallet',  w: 42, h: 36, frames: 8, speed: 6, emote: 'Exclamation', allowFlip: false };
       fg.ralsei.trioAction = { file: 'ralsei_act_dance', w: 44, h: 36, frames: 8, speed: 6, emote: 'Heart',       allowFlip: true };
-      fg.susie.trioAction  = { file: 'susie_act_cheer',  w: 36, h: 38, frames: 8, speed: 7, emote: 'Exclamation', allowFlip: false };
+      fg.susie.trioAction  = { file: 'susie_act_mallet', w: 42, h: 38, frames: 8, speed: 6, emote: 'Happy',       allowFlip: false };
     } else {
-      // PARTY devant la scène : boules de feu + glaces/danse + ballon doré + feux d'artifice !
+      // PARTY devant la Scène Est : Ralsei lance des boules de feu magiques, Susie célèbre, Kris agite son ballon doré + feu d'artifice !
       fg.kris.trioAction   = { file: 'kris_act_balloon', w: 32, h: 36, frames: 4, speed: 8, emote: 'Star',        allowFlip: false };
-      fg.ralsei.trioAction = { file: 'ralsei_act_magic', w: 40, h: 36, frames: 8, speed: 6, emote: 'Heart',       allowFlip: true };
-      fg.susie.trioAction  = { file: 'susie_act_laugh',  w: 36, h: 38, frames: 8, speed: 7, emote: 'Exclamation', allowFlip: false };
+      fg.ralsei.trioAction = { file: 'ralsei_act_magic', w: 40, h: 36, frames: 8, speed: 6, emote: 'Star',        allowFlip: true };
+      fg.susie.trioAction  = { file: 'susie_act_cheer',  w: 36, h: 38, frames: 8, speed: 7, emote: 'Exclamation', allowFlip: false };
       this.launchFirework(this.stagePos.x + 42, 26);
     }
   }
@@ -1365,24 +1426,53 @@ class HubScene extends Scene {
       { sortY: 220, draw: () => { const img = assets.getSheetFrame('characters/animals/bunnies/bunny_mint.png', 32, 32, 1, 0); if (img) g.image(img, 58, 192); } },
       { sortY: 222, draw: () => this.drawSleepingCat(g, 86, 214) },
 
-      // Chat aux ballons (à droite de l'entrée : x=380) + ficelles attachées à sa main !
+      // Chat aux ballons (à droite de l'entrée : x=380) tenant un grand bouquet de 7 ballons pastel !
       { sortY: 212, draw: () => {
-        const catBalloons = [
-          { sp: 'balloon_red',    x: 386, y: 158, ph: 0.2 },
-          { sp: 'balloon_yellow', x: 398, y: 152, ph: 1.4 },
-          { sp: 'balloon_blue',   x: 410, y: 158, ph: 2.6 }
+        const spriteBalloons = [
+          { sp: 'balloon_red',    x: 384, y: 155, ph: 0.2 },
+          { sp: 'balloon_yellow', x: 398, y: 147, ph: 1.4 },
+          { sp: 'balloon_blue',   x: 412, y: 155, ph: 2.6 }
         ];
+        const extraBalloons = [
+          { x: 376, y: 162, ph: 0.8, col: [248, 158, 194] }, // Rose pastel
+          { x: 391, y: 143, ph: 2.0, col: [198, 166, 242] }, // Lavande
+          { x: 407, y: 143, ph: 3.1, col: [148, 224, 178] }, // Menthe
+          { x: 421, y: 161, ph: 4.2, col: [252, 198, 134] }  // Pêche
+        ];
+        // Ficelles de tous les 7 ballons reliées proprement à la main du garçon-chat (404, 198)
         g.push();
         g.stroke(107, 75, 91, 185);
         g.strokeWeight(1);
-        for (const bl of catBalloons) {
+        for (const bl of spriteBalloons) {
           const by = bl.y + Math.sin(frameCount * 0.05 + bl.ph) * 2;
           g.line(bl.x + 6, Math.round(by + 13), 404, 198);
         }
+        for (const bl of extraBalloons) {
+          const by = bl.y + Math.sin(frameCount * 0.055 + bl.ph) * 2;
+          g.line(bl.x + 5, Math.round(by + 11), 404, 198);
+        }
         g.pop();
-        const catSp = assets.getSprite('kid_front');
+        // Sprite du garçon-chat (dossier catboy/kid_4dir_sheet.png, frame face 0,0)
+        const catSp = assets.getSheetFrame('characters/npcs/catboy/kid_4dir_sheet.png', 48, 48, 0, 0);
         if (catSp) g.image(catSp, 380, 168);
-        for (const bl of catBalloons) {
+        // Dessiner les 4 ballons pastel supplémentaires (arrière-plan du bouquet)
+        g.push();
+        g.noStroke();
+        for (const bl of extraBalloons) {
+          const bx = bl.x;
+          const by = Math.round(bl.y + Math.sin(frameCount * 0.055 + bl.ph) * 2);
+          g.fill(107, 75, 91);
+          g.ellipse(bx + 5, by + 5, 11, 13);
+          g.fill(bl.col[0], bl.col[1], bl.col[2]);
+          g.ellipse(bx + 5, by + 5, 9, 11);
+          g.fill(255, 252, 244, 190);
+          g.rect(bx + 3, by + 2, 2, 3);
+          g.fill(107, 75, 91);
+          g.rect(bx + 4, by + 11, 2, 1);
+        }
+        g.pop();
+        // Dessiner les 3 ballons sprites principaux devant
+        for (const bl of spriteBalloons) {
           const sp = assets.getSprite(bl.sp);
           if (sp) g.image(sp, bl.x, Math.round(bl.y + Math.sin(frameCount * 0.05 + bl.ph) * 2));
         }
@@ -3271,17 +3361,19 @@ class HubScene extends Scene {
   getDialogueChoiceRects() {
     if (!this.activeDialogue || this.activeDialogue.stage !== 'ASK') return [];
     const { ox, oy } = this.getOverlayOffsets();
+    const hasPortrait = !!this.activeDialogue.portrait;
+    const padX = hasPortrait ? 58 : 0;
     return this.activeDialogue.choices.map((ch, i) => ({
       idx: i,
       label: ch.label,
-      x: ox + 66,
+      x: ox + 66 + padX,
       y: oy + 206 + i * 24,
-      w: 348,
+      w: 348 - padX,
       h: 20
     }));
   }
 
-  /** Boîte de dialogue RPG chaleureuse en bas de l'écran (avec choix cliquables / 1-2 / Space). */
+  /** Boîte de dialogue RPG chaleureuse en bas de l'écran (avec portrait éventuel & choix cliquables / 1-2 / Space). */
   drawDialogueOverlay(g) {
     const d = this.activeDialogue;
     if (!d) return;
@@ -3299,7 +3391,20 @@ class HubScene extends Scene {
     PixelUI.panel(g, bx + 10, by - 12, 118, 16, g.color(189, 117, 126));
     PixelUI.txt(g, font, d.speaker, bx + 69, by - 9, g.color(255, 252, 238), CENTER, 8.5, 110);
 
-    PixelUI.txt(g, font, d.text, bx + 14, by + 12, g.color(82, 52, 66), LEFT, 9, bw - 28);
+    // Portrait RPG encadré à gauche pour les personnages qui en disposent (Niko, Ralsei, Susie, The Knight)
+    let textPadX = 0;
+    if (d.portrait) {
+      const pImg = this.game.assets.getImage('characters/npcs/guests/' + d.portrait + '.png');
+      if (pImg) {
+        const px = bx + 10;
+        const py = by + Math.round((bh - 50) / 2);
+        PixelUI.panel(g, px, py, 50, 50, g.color(56, 40, 56));
+        g.image(pImg, px + 2, py + 2, 46, 46);
+        textPadX = 58;
+      }
+    }
+
+    PixelUI.txt(g, font, d.text, bx + 14 + textPadX, by + 12, g.color(82, 52, 66), LEFT, 9, bw - 28 - textPadX);
 
     if (d.stage === 'ASK') {
       if (this.dialogueChoiceIdx === undefined) this.dialogueChoiceIdx = 0;

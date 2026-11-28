@@ -59,13 +59,15 @@ class AssetManager {
         files.add('characters/npcs/tiny_neighbours/emotes/' + em + '_emote_16x16.png');
       });
 
-      // Nouveaux invités crossover du Hub (Deltarune, OneShot, Hollow Knight, Zelda, One Piece)
+      // Nouveaux invités crossover du Hub (Deltarune, OneShot, Hollow Knight, Zelda, One Piece) + Portraits RPG
       [
         'kris_walk', 'ralsei_walk', 'susie_walk',
         'kris_act_mallet', 'kris_act_drink', 'kris_act_balloon',
         'ralsei_act_magic', 'ralsei_act_dance', 'ralsei_act_cheer', 'ralsei_act_cake',
         'susie_act_mallet', 'susie_act_laugh', 'susie_act_cheer', 'susie_act_drink', 'susie_act_snack',
-        'niko_walk', 'knight_walk', 'link_walk', 'luffy_walk', 'zoro_walk', 'chopper_walk'
+        'niko_walk', 'niko_sit', 'knight_walk', 'link_walk',
+        'luffy_walk', 'zoro_walk', 'chopper_walk', 'perona_walk', 'law_walk',
+        'portrait_niko', 'portrait_ralsei', 'portrait_susie', 'portrait_knight'
       ].forEach((gName) => {
         files.add('characters/npcs/guests/' + gName + '.png');
       });

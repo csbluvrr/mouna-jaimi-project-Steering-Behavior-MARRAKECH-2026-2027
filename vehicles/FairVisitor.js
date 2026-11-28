@@ -17,6 +17,8 @@ class FairVisitor extends Vehicle {
     this.name = options.name || 'Fairgoer';
     this.greeting = options.greeting || null;
     this.dialogue = options.dialogue || null; // { text, choices: [{ label, reply, action? }] }
+    this.portrait = options.portrait || null; // Nom du portrait dans characters/npcs/guests/
+    this.pauseSprite = options.pauseSprite || null; // Animation spéciale en pause (ex: Niko assis)
     this.npcId = options.npcId || 1;       // 1..15 pour 'neighbour' (Tiny Neighbours Vol1)
     this.tone = options.tone || 0;         // 0..2 teinte dans la spritesheet Tiny Neighbours
     this.guestFile = options.guestFile || null; // Nom de fichier dans characters/npcs/guests/
@@ -253,14 +255,23 @@ class FairVisitor extends Vehicle {
       const img = this.assets.getSheetFrame(sheet, 16, 16, col, row);
       if (img) g.image(img, -10, -21, 20, 20);
     } else if (this.kind === 'carrot') {
-      const row = moving ? 2 : 1;
-      const col = Math.floor(frameCount / 7 + this.phase) % (moving ? 7 : 6);
+      // Animations contextuelles de Mr. Carrot : marche (row 2), rire ^_^ en discutant/saluant (row 4), timide/rougit (row 5), sourire (row 0)
+      let row = 0;
+      let frames = 6;
+      if (moving) {
+        row = 2; frames = 7;
+      } else if (this.showBubble || this.routineState === 'CHAT') {
+        row = 4; frames = 6; // Rire joyeux ^_^
+      } else if (this.routineState === 'PAUSE' && this.chatEmote === 'Heart') {
+        row = 5; frames = 6; // Rougit / timide devant un stand mignon !
+      }
+      const col = Math.floor(frameCount / (moving ? 7 : 9) + this.phase) % frames;
       const img = this.assets.getSheetFrame('characters/npcs/mr_carrot/carrot_sheet.png', 32, 32, col, row);
       if (this.facingLeft) g.scale(-1, 1);
       if (img) g.image(img, -16, -30);
     } else if (this.kind === 'guest_strip') {
-      // Invités crossover animés (action spéciale de groupe si trioAction actif, sinon marche normale)
-      const act = this.trioAction;
+      // Invités crossover animés (action de groupe > animation de pause comme Niko assis > marche normale)
+      const act = this.trioAction || (!moving && this.routineState === 'PAUSE' ? this.pauseSprite : null);
       const file = act ? act.file : this.guestFile;
       const fw = act ? (act.w || 32) : this.guestW;
       const fh = act ? (act.h || 32) : this.guestH;
